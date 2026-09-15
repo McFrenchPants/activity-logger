@@ -11,4 +11,58 @@ Status vocabulary:
 
 ## Items
 
-(none yet)
+1. **Platform/API validation and version pinning** — `idea`
+   Verify current official support for: Android API baseline (minSdk/targetSdk),
+   Gemini Nano / AICore Prompt API availability + Structured Output support on
+   the target phone, on-device speech recognition API, Wear OS minimum API.
+   Document findings and pin exact dependency versions in `docs/DECISIONS.md`;
+   update `docs/PROJECT_STATUS.md`. Source: `docs/IMPLEMENTATION_HANDOFF.md`
+   section 4 ("First engineering phase"), `docs/PROJECT_STATUS.md` "Open
+   implementation decisions". This is a research task, not code — its output
+   (pinned versions/constraints) gates the two items below.
+
+   Known test hardware (2026-09-15):
+   - Pixel 10 Pro (primary) — launch device for the latest Gemini Nano
+     generation; expected AICore-eligible for both the Prompt API and
+     Structured Output. Primary real-device AI test target.
+   - Pixel 7 Pro (secondary) — Tensor G2, predates Gemini Nano's Pixel 8 Pro
+     hardware baseline; almost certainly NOT AICore-capable. Useful as the
+     "AI unavailable" capability-detection test device (ARCHITECTURE.md §21)
+     and for routine non-AI development, not for validating the AI path.
+   - OnePlus Watch 3 (ordered, arriving soon) — Wear OS. Enable Developer
+     options (Settings > System > About > tap Build number) then ADB/Wi-Fi
+     debugging as soon as it arrives; do a trivial Data Layer round-trip
+     before Step 8 depends on it.
+   - Bootloader lock status assumed locked (Verizon-channel Pixels typically
+     restrict OEM unlocking) but not yet confirmed on either phone — Gemini
+     Nano APIs hard-refuse on an unlocked bootloader. Confirm with
+     `adb shell getprop ro.boot.flash.locked` (`1` = locked) before relying
+     on the Pixel 10 Pro for AI testing.
+   - No Play Store distribution needed for MVP dev/testing — sideload via
+     `adb`/Android Studio Run to both phones and the watch once paired.
+
+   Given this hardware, real Gemini Nano validation does not need to wait —
+   it can be attempted directly on the Pixel 10 Pro whenever Step 4 is
+   reached, once the bootloader check above is confirmed.
+
+2. **Gradle project scaffold** — `idea`
+   Create the multi-module Android/Wear OS project structure per
+   `docs/ARCHITECTURE.md` section 3 (`app-phone`, `app-wear`, `core-domain`,
+   `core-data`, `core-ai`, `core-speech`, `core-wear-protocol`,
+   `core-testing`), plus test infrastructure. Source:
+   `docs/IMPLEMENTATION_HANDOFF.md` "Step 1 — Scaffold". Depends on item 1 for
+   pinned SDK/Compose/Kotlin versions.
+
+3. **Room schema v1 + migration test infrastructure** — `idea`
+   Implement the Room schema for raw captures, canonical activities, aliases,
+   interpretations, occurrences, and corrections per `docs/DATA_MODEL.md`, plus
+   baseline migration tests. Source: `docs/IMPLEMENTATION_HANDOFF.md`
+   "Step 2 — Persistence". Depends on item 2 (needs the `core-data` module to
+   exist).
+
+4. **AI vertical slice (hardcoded text -> Gemini Nano -> Room)** — `idea`
+   Using hardcoded text input (e.g. "I cut the grass yesterday.") but the
+   production Gemini Nano path, verify structured output, canonical-activity
+   matching, temporal extraction, Room persistence, and raw-text retention
+   end-to-end. Source: `docs/IMPLEMENTATION_HANDOFF.md` "Step 4 — AI vertical
+   slice". Depends on items 1-3.
