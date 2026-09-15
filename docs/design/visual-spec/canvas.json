@@ -1,0 +1,218 @@
+{
+  "pages": [
+    {
+      "id": "capture",
+      "name": "Phone · Capture"
+    },
+    {
+      "id": "history",
+      "name": "Phone · History, Ask, Correction"
+    },
+    {
+      "id": "settings",
+      "name": "Phone · Settings & accessibility"
+    },
+    {
+      "id": "watch",
+      "name": "Watch"
+    },
+    {
+      "id": "system",
+      "name": "Design system & decisions"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "Log — ready",
+      "x": 0,
+      "y": 0,
+      "w": 412,
+      "h": 915,
+      "page": "capture"
+    },
+    {
+      "file": "HomeListening.dc.html",
+      "title": "Log — listening",
+      "x": 508,
+      "y": 0,
+      "w": 412,
+      "h": 915,
+      "page": "capture"
+    },
+    {
+      "file": "HomeSuccess.dc.html",
+      "title": "Log — saved (undo 8s)",
+      "x": 1016,
+      "y": 0,
+      "w": 412,
+      "h": 915,
+      "page": "capture"
+    },
+    {
+      "file": "NeedsReview.dc.html",
+      "title": "Log — needs review (§4.2)",
+      "x": 1524,
+      "y": 0,
+      "w": 412,
+      "h": 915,
+      "page": "capture"
+    },
+    {
+      "file": "AiUnavailable.dc.html",
+      "title": "Log — AI unavailable (§4.4)",
+      "x": 2032,
+      "y": 0,
+      "w": 412,
+      "h": 915,
+      "page": "capture"
+    },
+    {
+      "file": "CaptureFailure.dc.html",
+      "title": "Log — recognition failed (§4.3)",
+      "x": 2540,
+      "y": 0,
+      "w": 412,
+      "h": 915,
+      "page": "capture"
+    },
+    {
+      "file": "History.dc.html",
+      "title": "History (§6)",
+      "x": 0,
+      "y": 0,
+      "w": 412,
+      "h": 915,
+      "page": "history"
+    },
+    {
+      "file": "OccurrenceSheet.dc.html",
+      "title": "Occurrence sheet",
+      "x": 508,
+      "y": 0,
+      "w": 412,
+      "h": 915,
+      "page": "history"
+    },
+    {
+      "file": "ActivityDetail.dc.html",
+      "title": "Activity detail (§7)",
+      "x": 1016,
+      "y": 0,
+      "w": 412,
+      "h": 915,
+      "page": "history"
+    },
+    {
+      "file": "Correction.dc.html",
+      "title": "Edit interpretation (§8)",
+      "x": 1524,
+      "y": 0,
+      "w": 412,
+      "h": 915,
+      "page": "history"
+    },
+    {
+      "file": "AskHistory.dc.html",
+      "title": "Ask — thread (§9, §10)",
+      "x": 2032,
+      "y": 0,
+      "w": 412,
+      "h": 915,
+      "page": "history"
+    },
+    {
+      "file": "EmptyStates.dc.html",
+      "title": "Empty states (§13)",
+      "x": 0,
+      "y": 1075,
+      "w": 880,
+      "h": 915,
+      "page": "history"
+    },
+    {
+      "file": "Settings.dc.html",
+      "title": "Settings — model downloading",
+      "x": 0,
+      "y": 0,
+      "w": 412,
+      "h": 915,
+      "page": "settings"
+    },
+    {
+      "file": "SettingsUnsupported.dc.html",
+      "title": "Settings — AI not supported",
+      "x": 508,
+      "y": 0,
+      "w": 412,
+      "h": 915,
+      "page": "settings"
+    },
+    {
+      "file": "Accessibility.dc.html",
+      "title": "Accessibility — dark, 200% text",
+      "x": 1016,
+      "y": 0,
+      "w": 960,
+      "h": 915,
+      "page": "settings"
+    },
+    {
+      "file": "WatchStates.dc.html",
+      "title": "Watch states + complication",
+      "x": 0,
+      "y": 0,
+      "w": 1760,
+      "h": 1420,
+      "page": "watch"
+    },
+    {
+      "file": "DesignSystem.dc.html",
+      "title": "Design system",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 2150,
+      "page": "system"
+    },
+    {
+      "file": "Decisions.dc.html",
+      "title": "Decisions D1–D7",
+      "x": 1400,
+      "y": 0,
+      "w": 1040,
+      "h": 3900,
+      "page": "system"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "capture-flow",
+      "page": "capture",
+      "x": 0,
+      "y": -210,
+      "w": 760,
+      "text": "Capture flow, left to right: ready → listening → one of four outcomes. High-confidence captures need zero taps after speaking; the result card replaces the prompt and the new row lands at the top of Recent. Review, AI-unavailable and failure use three visibly different treatments (ochre fill / dashed outline / error fill) plus icon and text — never colour alone."
+    },
+    {
+      "id": "history-flow",
+      "page": "history",
+      "x": 0,
+      "y": -190,
+      "w": 760,
+      "text": "History row tap → occurrence sheet (evidence first) → Edit interpretation or Activity detail. Rows that have no interpretation lead with the user’s own words. Ask is a session thread; the last exchange shows a capture landing in Ask and becoming a §10 “New activity?” card."
+    },
+    {
+      "id": "settings-note",
+      "page": "settings",
+      "x": 0,
+      "y": -170,
+      "w": 760,
+      "text": "Settings is where capability state lives (ARCHITECTURE §21). Left: Pixel 10 Pro while the Gemini Nano model downloads. Middle: Pixel 7 Pro, which cannot run it — the app says so plainly and never implies a cloud fallback."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "capture"
+  }
+}

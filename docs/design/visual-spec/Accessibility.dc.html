@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400;1,8..60,500&amp;display=swap">
+  <style>
+    html, body { margin: 0; background: #F7F4EE; }
+    body { font-family: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+    a { color: #2F6B55; } a:hover { color: #0F3527; }
+    p, h1, h2, h3, h4 { margin: 0; }
+    .ev { font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 400; }
+    
+  </style>
+</helmet>
+<div style="width: 960px; height: 915px; display: flex; gap: 56px; background: #F7F4EE;">
+  <div style="position: relative; flex-shrink: 0;">
+<div style="width: 412px; height: 915px; background: #161513; display: flex; flex-direction: column; overflow: hidden; position: relative; color: #EDE8DF;">
+  <div style="height: 36px; flex-shrink: 0;"></div>
+  
+  <div style="height: 64px; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 16px; flex-shrink: 0;">
+    
+    <div style="flex-grow: 1; font-size: 30px; line-height: 38px; font-weight: 600; color: #EDE8DF; letter-spacing: -0.01em; padding-left: 0px;">Activity Ledger</div>
+    <div style="display: flex; align-items: center;"><div role="button" aria-label="Settings and diagnostics" style="width: 48px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center; color: #EDE8DF;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"></path><circle cx="15.5" cy="7" r="2.3"></circle><circle cx="10.5" cy="17" r="2.3"></circle></svg></div></div>
+  </div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 12px 20px 20px; flex-shrink: 0;">
+    <p style="font-size: 40px; line-height: 50px; font-weight: 500; color: #EDE8DF; text-align: center;">Say what you just did.</p>
+    <div role="button" aria-label="Log by voice" style="width: 112px; height: 112px; border-radius: 56px; background: #8FC9AE; color: #0B2A1E; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.4); opacity: 1;"><svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></div>
+    <div style="font-size: 26px; line-height: 34px; font-weight: 600; color: #A69F93;">Tap to speak</div>
+  </div>
+  <div style="border-top: 1px solid #403B35;">
+    <div style="padding: 14px 16px 14px 20px; border-bottom: 1px solid #403B35; display: flex; gap: 12px;">
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
+    <div style="font-size: 27.200000000000003px; line-height: 38.400000000000006px; font-weight: 600; color: #EDE8DF;">Mow lawn</div>
+    <div style="font-size: 22.400000000000002px; line-height: 32px; color: #A69F93;">Today, afternoon</div>
+    
+    <p class="ev" style="font-size: 22.400000000000002px; line-height: 32px; color: #A69F93;">“I cut the grass this afternoon”</p>
+  </div><div aria-label="Logged from phone" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #A69F93;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A69F93" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="7" y="2.5" width="10" height="19" rx="2.5"></rect><path d="M11 18.5h2"></path></svg></div></div><div style="padding: 14px 16px 14px 20px; border-bottom: 1px solid #403B35; display: flex; gap: 12px;">
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
+    <div style="font-size: 27.200000000000003px; line-height: 38.400000000000006px; font-weight: 600; color: #EDE8DF;">Clean pool</div>
+    <div style="font-size: 22.400000000000002px; line-height: 32px; color: #A69F93;">Today, 10:20 AM</div>
+    <div style="display: flex; gap: 8px; align-items: center; color: #8FC9AE; font-size: 20.8px; line-height: 30px; font-weight: 600;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8FC9AE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><circle cx="12" cy="12" r="9"></circle><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"></path></svg><span>In progress</span></div>
+    <p class="ev" style="font-size: 22.400000000000002px; line-height: 32px; color: #A69F93;">“I’m cleaning the pool”</p>
+  </div><div aria-label="Logged from watch" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #A69F93;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A69F93" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="7" y="6" width="10" height="12" rx="3"></rect><path d="M9 6l.6-3h4.8L15 6M9 18l.6 3h4.8L15 18"></path></svg></div></div>
+  </div></div>
+  
+  <div role="tablist" style="height: 80px; display: flex; background: #282521; flex-shrink: 0;"><div role="tab" aria-selected="true" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: #1E4838; color: #CDEBDC;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 700; color: #EDE8DF;">Log</div>
+    </div><div role="tab" aria-selected="false" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: transparent; color: #A69F93;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"></path><path d="M3.5 4.5V8H7"></path><path d="M12 7.5V12l3 2"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 500; color: #A69F93;">History</div>
+    </div><div role="tab" aria-selected="false" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: transparent; color: #A69F93;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.2A8 8 0 1 1 20 12z"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 500; color: #A69F93;">Ask</div>
+    </div></div>
+  <div style="height: 24px; background: #282521; flex-shrink: 0;"></div>
+</div><div style="position: absolute; top: 300px; left: 300px; width: 28px; height: 28px; border-radius: 14px; background: #F3E4C4; color: #3D2804; border: 2px solid #22201C; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center;">1</div><div style="position: absolute; top: 578px; left: 12px; width: 28px; height: 28px; border-radius: 14px; background: #F3E4C4; color: #3D2804; border: 2px solid #22201C; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center;">2</div><div style="position: absolute; top: 690px; left: 360px; width: 28px; height: 28px; border-radius: 14px; background: #F3E4C4; color: #3D2804; border: 2px solid #22201C; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center;">3</div><div style="position: absolute; top: 868px; left: 36px; width: 28px; height: 28px; border-radius: 14px; background: #F3E4C4; color: #3D2804; border: 2px solid #22201C; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center;">4</div><div style="position: absolute; top: 180px; left: 360px; width: 28px; height: 28px; border-radius: 14px; background: #F3E4C4; color: #3D2804; border: 2px solid #22201C; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center;">5</div></div>
+  <div style="display: flex; flex-direction: column; gap: 22px; padding: 40px 24px 0 0; max-width: 460px;">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6B655B;">Dark theme · 200% font scale · TalkBack</div>
+      <h2 style="font-size: 26px; line-height: 32px; font-weight: 600; color: #22201C;">Home still works when text is huge</h2>
+    </div>
+    <div style="display: flex; gap: 14px; align-items: flex-start;">
+  <div style="width: 28px; height: 28px; border-radius: 14px; background: #22201C; color: #F7F4EE; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">1</div>
+  <div style="display: flex; flex-direction: column; gap: 4px;"><div style="font-size: 16px; line-height: 22px; font-weight: 700; color: #22201C;">Mic button has a spoken name and state</div><div style="font-size: 15px; line-height: 22px; color: #6B655B; text-wrap: pretty;">“Log by voice, button.” While listening: “Stop listening, button” and the transcript region is a polite live region, so what was heard is read out. 112dp target, never shrinks with text.</div></div></div>
+    <div style="display: flex; gap: 14px; align-items: flex-start;">
+  <div style="width: 28px; height: 28px; border-radius: 14px; background: #22201C; color: #F7F4EE; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">2</div>
+  <div style="display: flex; flex-direction: column; gap: 4px;"><div style="font-size: 16px; line-height: 22px; font-weight: 700; color: #22201C;">Each row reads as one sentence</div><div style="font-size: 15px; line-height: 22px; color: #6B655B; text-wrap: pretty;">Merged semantics: “Mow lawn. Today, afternoon. Logged from phone. Your words: I cut the grass this afternoon.” Rows grow in height; nothing truncates the original words.</div></div></div>
+    <div style="display: flex; gap: 14px; align-items: flex-start;">
+  <div style="width: 28px; height: 28px; border-radius: 14px; background: #22201C; color: #F7F4EE; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">3</div>
+  <div style="display: flex; flex-direction: column; gap: 4px;"><div style="font-size: 16px; line-height: 22px; font-weight: 700; color: #22201C;">State is never colour alone</div><div style="font-size: 15px; line-height: 22px; color: #6B655B; text-wrap: pretty;">“In progress”, “Needs review”, “Not categorized yet” each pair an icon shape with a text label. Grayscale-legible in both themes.</div></div></div>
+    <div style="display: flex; gap: 14px; align-items: flex-start;">
+  <div style="width: 28px; height: 28px; border-radius: 14px; background: #22201C; color: #F7F4EE; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">4</div>
+  <div style="display: flex; flex-direction: column; gap: 4px;"><div style="font-size: 16px; line-height: 22px; font-weight: 700; color: #22201C;">Navigation labels always visible</div><div style="font-size: 15px; line-height: 22px; color: #6B655B; text-wrap: pretty;">Log / History / Ask labels stay shown (no icon-only mode). Tabs expose selected state to TalkBack.</div></div></div>
+    <div style="display: flex; gap: 14px; align-items: flex-start;">
+  <div style="width: 28px; height: 28px; border-radius: 14px; background: #22201C; color: #F7F4EE; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">5</div>
+  <div style="display: flex; flex-direction: column; gap: 4px;"><div style="font-size: 16px; line-height: 22px; font-weight: 700; color: #22201C;">Feedback is announced</div><div style="font-size: 15px; line-height: 22px; color: #6B655B; text-wrap: pretty;">Success, review and error cards are live regions: “Saved. Mow lawn, this morning. Undo available.” Undo timeout is suspended while TalkBack is on (see Decisions · D5).</div></div></div>
+    <div style="font-size: 14px; line-height: 21px; color: #6B655B; border-top: 1px solid #D6CEBF; padding-top: 16px;">Touch targets ≥ 48dp everywhere · text uses sp and reflows, containers use min-height not height · contrast ≥ 4.5:1 for text on every token pair in both themes.</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

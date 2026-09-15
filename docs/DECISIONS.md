@@ -195,3 +195,29 @@ The system should be conservative when deciding that two phrases mean the same c
 Phrases such as "this morning" or "yesterday" should preserve appropriate uncertainty/precision.
 
 **Reason:** Historical truth is more important than artificial timestamp precision.
+
+---
+
+## ADR-019 — Phone app uses single-activity navigation with Log as start destination
+
+**Status:** Accepted
+
+The phone app is one Android `Activity` hosting one Compose Navigation `NavHost`.
+
+Top-level destinations in an M3 `NavigationBar`: **Log** (start; capture and recent history on one screen), **History**, **Ask**. Settings/diagnostics opens from the Log top bar. Occurrences open as a bottom sheet; Activity detail and Edit interpretation are pushed screens. Needs-review items are a History filter, not a destination or inbox.
+
+Details and navigation graph: `docs/UX_VISUAL_SPEC.md` §3 D1.
+
+**Reason:** Capture must require no navigation on launch, so the mic lives on the start destination. History and Ask stay one tap away. A single activity keeps deep links and process-death handling in one place, and keeping review inside History avoids inbox patterns excluded by UX_SPEC §15.
+
+---
+
+## ADR-020 — First Wear OS entry surfaces are the launcher and a complication; Tile is deferred
+
+**Status:** Accepted
+
+The Step 8 Wear milestone ships the app launcher entry and a watch-face complication that opens capture directly in the listening state. The complication may show a queued-capture count. A Tile is deferred to a later milestone.
+
+Details: `docs/UX_VISUAL_SPEC.md` §3 D2.
+
+**Reason:** A complication is one tap from the watch face the user is already looking at, which is the fastest practical capture path (WATCH_SPEC §3) and satisfies "one intentional action before speaking". It is a small data source with a tap action; a Tile adds a swipe before the tap and a separate ProtoLayout surface to build.

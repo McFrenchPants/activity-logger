@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400;1,8..60,500&amp;display=swap">
+  <style>
+    html, body { margin: 0; background: #F7F4EE; }
+    body { font-family: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+    a { color: #2F6B55; } a:hover { color: #0F3527; }
+    p, h1, h2, h3, h4 { margin: 0; }
+    .ev { font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 400; }
+    
+  </style>
+</helmet>
+
+<div style="width: 412px; height: 915px; background: #F7F4EE; display: flex; flex-direction: column; overflow: hidden; position: relative; color: #22201C;">
+  <div style="height: 36px; flex-shrink: 0;"></div>
+  
+  <div style="height: 64px; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 16px; flex-shrink: 0;">
+    
+    <div style="flex-grow: 1; font-size: 22px; line-height: 28px; font-weight: 600; color: #22201C; letter-spacing: -0.01em; padding-left: 0px;">History</div>
+    <div style="display: flex; align-items: center;"></div>
+  </div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;">
+  <div style="display: flex; gap: 8px; padding: 4px 16px 12px; flex-wrap: wrap;">
+    <div role="radio" aria-checked="true" style="height: 36px; padding: 0 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 600; box-sizing: border-box; background: #22201C; color: #F7F4EE;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F7F4EE" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span>All</span></div><div role="radio" aria-checked="false" style="height: 36px; padding: 0 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 600; box-sizing: border-box; border: 1px solid #9C9486; color: #22201C;"><span>Needs review</span><span style="color: #6B655B; font-weight: 500;">1</span></div><div role="radio" aria-checked="false" style="height: 36px; padding: 0 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 600; box-sizing: border-box; border: 1px solid #9C9486; color: #22201C;"><span>Not categorized</span><span style="color: #6B655B; font-weight: 500;">0</span></div>
+  </div>
+  <div style="border-top: 1px solid #D6CEBF;">
+    <div role="button" style="display: flex; gap: 12px; padding: 12px 16px 12px 20px; min-height: 72px; box-sizing: border-box; border-bottom: 1px solid #D6CEBF; align-items: flex-start; background: transparent;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+      <div style="font-size: 17px; line-height: 24px; font-weight: 600; color: #22201C;">Mow lawn</div>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"><span style="font-size: 14px; line-height: 20px; color: #6B655B;">Today, afternoon</span></div>
+      <p class="ev" style="font-size: 14px; line-height: 20px; color: #6B655B; text-wrap: pretty;">“I cut the grass this afternoon”</p>
+    </div>
+    <div aria-label="Logged from phone" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #6B655B;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="7" y="2.5" width="10" height="19" rx="2.5"></rect><path d="M11 18.5h2"></path></svg></div>
+  </div><div role="button" style="display: flex; gap: 12px; padding: 12px 16px 12px 20px; min-height: 72px; box-sizing: border-box; border-bottom: 1px solid #D6CEBF; align-items: flex-start; background: transparent;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+      <div style="display: inline-flex; align-items: center; gap: 6px; color: #855610; font-size: 13px; line-height: 16px; font-weight: 600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#855610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><circle cx="12" cy="12" r="9"></circle><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4"></path><path d="M12 16.8v.1"></path></svg><span>Needs review</span></div><p class="ev" style="font-size: 17px; line-height: 24px; color: #22201C; text-wrap: pretty;">“I did the thing with the furnace”</p>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"><span style="font-size: 14px; line-height: 20px; color: #6B655B;">Today, 11:05 AM</span></div>
+      
+    </div>
+    <div aria-label="Logged from phone" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #6B655B;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="7" y="2.5" width="10" height="19" rx="2.5"></rect><path d="M11 18.5h2"></path></svg></div>
+  </div><div role="button" style="display: flex; gap: 12px; padding: 12px 16px 12px 20px; min-height: 72px; box-sizing: border-box; border-bottom: 1px solid #D6CEBF; align-items: flex-start; background: transparent;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+      <div style="font-size: 17px; line-height: 24px; font-weight: 600; color: #22201C;">Clean pool</div>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"><span style="font-size: 14px; line-height: 20px; color: #6B655B;">Today, 10:20 AM</span><div style="display: inline-flex; align-items: center; gap: 6px; color: #2F6B55; font-size: 13px; line-height: 16px; font-weight: 600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2F6B55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><circle cx="12" cy="12" r="9"></circle><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"></path></svg><span>In progress</span></div></div>
+      <p class="ev" style="font-size: 14px; line-height: 20px; color: #6B655B; text-wrap: pretty;">“I’m cleaning the pool”</p>
+    </div>
+    <div aria-label="Logged from watch" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #6B655B;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="7" y="6" width="10" height="12" rx="3"></rect><path d="M9 6l.6-3h4.8L15 6M9 18l.6 3h4.8L15 18"></path></svg></div>
+  </div><div role="button" style="display: flex; gap: 12px; padding: 12px 16px 12px 20px; min-height: 72px; box-sizing: border-box; border-bottom: 1px solid #D6CEBF; align-items: flex-start; background: transparent;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+      <div style="font-size: 17px; line-height: 24px; font-weight: 600; color: #22201C;">Replace furnace filter</div>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"><span style="font-size: 14px; line-height: 20px; color: #6B655B;">Sep 12, 9:40 AM</span></div>
+      <p class="ev" style="font-size: 14px; line-height: 20px; color: #6B655B; text-wrap: pretty;">“Changed the HVAC filter”</p>
+    </div>
+    <div aria-label="Logged from phone" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #6B655B;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="7" y="2.5" width="10" height="19" rx="2.5"></rect><path d="M11 18.5h2"></path></svg></div>
+  </div><div role="button" style="display: flex; gap: 12px; padding: 12px 16px 12px 20px; min-height: 72px; box-sizing: border-box; border-bottom: 1px solid #D6CEBF; align-items: flex-start; background: transparent;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+      <div style="font-size: 17px; line-height: 24px; font-weight: 600; color: #22201C;">Clean gutters</div>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"><span style="font-size: 14px; line-height: 20px; color: #6B655B;">Sat, Sep 12</span></div>
+      <p class="ev" style="font-size: 14px; line-height: 20px; color: #6B655B; text-wrap: pretty;">“I cleaned the gutters Saturday”</p>
+    </div>
+    <div aria-label="Logged from watch" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #6B655B;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="7" y="6" width="10" height="12" rx="3"></rect><path d="M9 6l.6-3h4.8L15 6M9 18l.6 3h4.8L15 18"></path></svg></div>
+  </div><div role="button" style="display: flex; gap: 12px; padding: 12px 16px 12px 20px; min-height: 72px; box-sizing: border-box; border-bottom: 1px solid #D6CEBF; align-items: flex-start; background: transparent;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+      <div style="font-size: 17px; line-height: 24px; font-weight: 600; color: #22201C;">Change vehicle oil</div>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"><span style="font-size: 14px; line-height: 20px; color: #6B655B;">Sep 8, 5:30 PM</span></div>
+      <p class="ev" style="font-size: 14px; line-height: 20px; color: #6B655B; text-wrap: pretty;">“Oil change on the truck”</p>
+    </div>
+    <div aria-label="Logged from phone" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #6B655B;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="7" y="2.5" width="10" height="19" rx="2.5"></rect><path d="M11 18.5h2"></path></svg></div>
+  </div><div role="button" style="display: flex; gap: 12px; padding: 12px 16px 12px 20px; min-height: 72px; box-sizing: border-box; border-bottom: 1px solid #D6CEBF; align-items: flex-start; background: transparent;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+      <div style="font-size: 17px; line-height: 24px; font-weight: 600; color: #22201C;">Mow lawn</div>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"><span style="font-size: 14px; line-height: 20px; color: #6B655B;">Sep 6, 6:15 PM</span></div>
+      <p class="ev" style="font-size: 14px; line-height: 20px; color: #6B655B; text-wrap: pretty;">“Mowed the lawn”</p>
+    </div>
+    <div aria-label="Logged from watch" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #6B655B;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="7" y="6" width="10" height="12" rx="3"></rect><path d="M9 6l.6-3h4.8L15 6M9 18l.6 3h4.8L15 18"></path></svg></div>
+  </div>
+  </div></div>
+  
+  <div role="tablist" style="height: 80px; display: flex; background: #EFEAE1; flex-shrink: 0;"><div role="tab" aria-selected="false" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: transparent; color: #6B655B;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 500; color: #6B655B;">Log</div>
+    </div><div role="tab" aria-selected="true" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: #D5E8DD; color: #0F3527;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"></path><path d="M3.5 4.5V8H7"></path><path d="M12 7.5V12l3 2"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 700; color: #22201C;">History</div>
+    </div><div role="tab" aria-selected="false" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: transparent; color: #6B655B;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.2A8 8 0 1 1 20 12z"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 500; color: #6B655B;">Ask</div>
+    </div></div>
+  <div style="height: 24px; background: #EFEAE1; flex-shrink: 0;"></div>
+</div>
+</x-dc>
+</body>
+</html>

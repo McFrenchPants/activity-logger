@@ -66,3 +66,13 @@ Status vocabulary:
    matching, temporal extraction, Room persistence, and raw-text retention
    end-to-end. Source: `docs/IMPLEMENTATION_HANDOFF.md` "Step 4 — AI vertical
    slice". Depends on items 1-3.
+
+5. **Phone/Wear visual spec and UI decisions** — `done`
+   Visual design system, screen mockups, and the UI decisions the UX specs
+   left open (phone navigation, first Wear entry surface, theming,
+   Settings/diagnostics contents, undo, Ask History shape). Completed
+   2026-09-15 and approved by the owner as the visual reference through MVP:
+   `docs/UX_VISUAL_SPEC.md`, mockups in `docs/design/visual-spec/`, ADR-019
+   (navigation), ADR-020 (Wear entry surface). Carried into implementation:
+   verify color contrast with final Compose values during Step 7; the watch
+   Listening screen depends on item 1's on-device speech findings.

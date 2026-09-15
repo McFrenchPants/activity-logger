@@ -115,6 +115,7 @@ The exact API versions must be verified at implementation time and pinned by the
 | `docs/PRODUCT_SPEC.md` | Product goals, scope, principles, user value |
 | `docs/REQUIREMENTS.md` | Functional and non-functional requirements |
 | `docs/UX_SPEC.md` | Phone/watch interaction behavior |
+| `docs/UX_VISUAL_SPEC.md` | Visual design system, navigation and UI decisions, mockups |
 | `docs/DOMAIN_MODEL.md` | Product/domain concepts |
 | `docs/AI_INTERPRETATION_SPEC.md` | Gemini Nano role, contracts, prompt behavior |
 | `docs/ARCHITECTURE.md` | System structure and boundaries |

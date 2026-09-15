@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400;1,8..60,500&amp;display=swap">
+  <style>
+    html, body { margin: 0; background: #F7F4EE; }
+    body { font-family: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+    a { color: #2F6B55; } a:hover { color: #0F3527; }
+    p, h1, h2, h3, h4 { margin: 0; }
+    .ev { font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 400; }
+    
+  </style>
+</helmet>
+
+<div style="width: 412px; height: 915px; background: #F7F4EE; display: flex; flex-direction: column; overflow: hidden; position: relative; color: #22201C;">
+  <div style="height: 36px; flex-shrink: 0;"></div>
+  
+  <div style="height: 64px; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 4px; flex-shrink: 0;">
+    <div role="button" aria-label="Navigate up" style="width: 48px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center; color: #22201C;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></div>
+    <div style="flex-grow: 1; font-size: 22px; line-height: 28px; font-weight: 600; color: #22201C; letter-spacing: -0.01em; padding-left: 4px;">Settings</div>
+    <div style="display: flex; align-items: center;"></div>
+  </div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;"><div style="display: flex; flex-direction: column; gap: 20px; padding: 4px 16px 16px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;"><div style="font-size: 14px; line-height: 20px; font-weight: 600; color: #6B655B; padding: 0 4px;">On-device interpretation</div><div style="background: #FFFDF9; border: 1px solid #D6CEBF; border-radius: 16px; overflow: hidden;">
+      <div style="display: flex; align-items: flex-start; gap: 14px; padding: 14px 14px 14px 16px; min-height: 56px; box-sizing: border-box; border-bottom: 1px solid #D6CEBF;">
+  <div style="padding-top: 1px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="6" y="6" width="12" height="12" rx="2"></rect><path d="M9 2.5V6M15 2.5V6M9 18v3.5M15 18v3.5M2.5 9H6M2.5 15H6M18 9h3.5M18 15h3.5"></path></svg></div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+    <div style="font-size: 16px; line-height: 22px; font-weight: 600; color: #22201C;">Gemini Nano</div>
+    <div style="font-size: 14px; line-height: 20px; color: #6B655B;">Downloading model · 62% of 1.1 GB</div>
+    <div role="progressbar" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100" style="height: 6px; border-radius: 3px; background: #EFEAE1; margin-top: 6px; overflow: hidden;"><div style="width: 62%; height: 6px; background: #2F6B55; border-radius: 3px;"></div></div>
+        <p style="font-size: 13px; line-height: 18px; color: #6B655B; margin-top: 6px;">Downloads on Wi‑Fi. Captures are saved meanwhile.</p>
+  </div>
+  <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 20px; font-weight: 700; color: #6B655B; white-space: nowrap;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><circle cx="12" cy="12" r="9" stroke-dasharray="2.6 2.6"></circle><path d="M12 8v4.2l2.6 1.6"></path></svg><span>Not ready</span></div>
+  
+</div>
+      <div style="display: flex; align-items: flex-start; gap: 14px; padding: 14px 14px 14px 16px; min-height: 56px; box-sizing: border-box; border-bottom: 1px solid #D6CEBF;">
+  
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+    <div style="font-size: 16px; line-height: 22px; font-weight: 600; color: #22201C;">Structured output</div>
+    <div style="font-size: 14px; line-height: 20px; color: #6B655B;">Checked when the model is ready</div>
+    
+  </div>
+  <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 20px; font-weight: 700; color: #6B655B; white-space: nowrap;"><span>—</span></div>
+  
+</div>
+      <div style="display: flex; align-items: flex-start; gap: 14px; padding: 14px 14px 14px 16px; min-height: 56px; box-sizing: border-box; ">
+  
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+    <div style="font-size: 16px; line-height: 22px; font-weight: 600; color: #22201C;">3 captures waiting to be categorized</div>
+    <div style="font-size: 14px; line-height: 20px; color: #6B655B;">They’ll be categorized automatically</div>
+    
+  </div>
+  
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M9.5 6l6 6-6 6"></path></svg>
+</div></div></div>
+    <div style="display: flex; flex-direction: column; gap: 8px;"><div style="font-size: 14px; line-height: 20px; font-weight: 600; color: #6B655B; padding: 0 4px;">Speech</div><div style="background: #FFFDF9; border: 1px solid #D6CEBF; border-radius: 16px; overflow: hidden;"><div style="display: flex; align-items: flex-start; gap: 14px; padding: 14px 14px 14px 16px; min-height: 56px; box-sizing: border-box; ">
+  <div style="padding-top: 1px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+    <div style="font-size: 16px; line-height: 22px; font-weight: 600; color: #22201C;">Speech recognition</div>
+    <div style="font-size: 14px; line-height: 20px; color: #6B655B;">On this phone · English (US)</div>
+    
+  </div>
+  <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 20px; font-weight: 700; color: #2F6B55; white-space: nowrap;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2F6B55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.8 2.8L16.5 9.5"></path></svg><span>Available</span></div>
+  
+</div></div></div>
+    <div style="display: flex; flex-direction: column; gap: 8px;"><div style="font-size: 14px; line-height: 20px; font-weight: 600; color: #6B655B; padding: 0 4px;">Watch</div><div style="background: #FFFDF9; border: 1px solid #D6CEBF; border-radius: 16px; overflow: hidden;"><div style="display: flex; align-items: flex-start; gap: 14px; padding: 14px 14px 14px 16px; min-height: 56px; box-sizing: border-box; ">
+  <div style="padding-top: 1px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="7" y="6" width="10" height="12" rx="3"></rect><path d="M9 6l.6-3h4.8L15 6M9 18l.6 3h4.8L15 18"></path></svg></div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+    <div style="font-size: 16px; line-height: 22px; font-weight: 600; color: #22201C;">OnePlus Watch 3</div>
+    <div style="font-size: 14px; line-height: 20px; color: #6B655B;">Connected · last capture received 2:58 PM</div>
+    
+  </div>
+  <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 20px; font-weight: 700; color: #2F6B55; white-space: nowrap;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2F6B55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.8 2.8L16.5 9.5"></path></svg><span>Connected</span></div>
+  
+</div></div></div>
+    <div style="display: flex; flex-direction: column; gap: 8px;"><div style="font-size: 14px; line-height: 20px; font-weight: 600; color: #6B655B; padding: 0 4px;">Privacy</div><div style="background: #FFFDF9; border: 1px solid #D6CEBF; border-radius: 16px; overflow: hidden;">
+      <div style="display: flex; align-items: flex-start; gap: 14px; padding: 14px 14px 14px 16px; min-height: 56px; box-sizing: border-box; border-bottom: 1px solid #D6CEBF;">
+  <div style="padding-top: 1px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"></path></svg></div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+    <div style="font-size: 16px; line-height: 22px; font-weight: 600; color: #22201C;">Your words stay on this phone</div>
+    <div style="font-size: 14px; line-height: 20px; color: #6B655B;">Nothing is sent to the cloud.</div>
+    
+  </div>
+  
+  
+</div>
+      <div style="display: flex; align-items: flex-start; gap: 14px; padding: 14px 14px 14px 16px; min-height: 56px; box-sizing: border-box; ">
+  <div style="padding-top: 1px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg></div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+    <div style="font-size: 16px; line-height: 22px; font-weight: 600; color: #22201C;">Copy technical report</div>
+    <div style="font-size: 14px; line-height: 20px; color: #6B655B;">Device and model status only — no activity text</div>
+    
+  </div>
+  
+  
+</div></div></div>
+    <p style="font-size: 12px; line-height: 16px; color: #6B655B; padding: 0 4px;">Version 0.1.0 · Interpreter prompt v1 · Database schema v1</p>
+  </div></div>
+  
+  <div style="height: 24px; flex-shrink: 0;"></div>
+</div>
+</x-dc>
+</body>
+</html>

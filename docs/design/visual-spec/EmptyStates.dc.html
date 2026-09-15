@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400;1,8..60,500&amp;display=swap">
+  <style>
+    html, body { margin: 0; background: #F7F4EE; }
+    body { font-family: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+    a { color: #2F6B55; } a:hover { color: #0F3527; }
+    p, h1, h2, h3, h4 { margin: 0; }
+    .ev { font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 400; }
+    
+  </style>
+</helmet>
+<div style="display: flex; gap: 56px; padding: 0; background: #F7F4EE; width: 880px;">
+<div style="width: 412px; height: 915px; background: #F7F4EE; display: flex; flex-direction: column; overflow: hidden; position: relative; color: #22201C;">
+  <div style="height: 36px; flex-shrink: 0;"></div>
+  
+  <div style="height: 64px; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 16px; flex-shrink: 0;">
+    
+    <div style="flex-grow: 1; font-size: 22px; line-height: 28px; font-weight: 600; color: #22201C; letter-spacing: -0.01em; padding-left: 0px;">History</div>
+    <div style="display: flex; align-items: center;"></div>
+  </div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;"><div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 0 40px 80px; text-align: center;">
+    <div style="width: 96px; height: 96px; border-radius: 48px; border: 1.5px dashed #9C9486; display: flex; align-items: center; justify-content: center; color: #6B655B;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"></path><path d="M3.5 4.5V8H7"></path><path d="M12 7.5V12l3 2"></path></svg></div>
+    <p style="font-size: 20px; line-height: 28px; font-weight: 500; color: #22201C; text-wrap: balance;">No activities logged yet. Tap the microphone and say what you just did.</p>
+    <div role="button" style="height: 48px; padding: 0 20px; border-radius: 24px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; line-height: 20px; font-weight: 600; box-sizing: border-box; background: #2F6B55; color: #FFFFFF;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg><span>Log something</span></div>
+  </div></div>
+  
+  <div role="tablist" style="height: 80px; display: flex; background: #EFEAE1; flex-shrink: 0;"><div role="tab" aria-selected="false" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: transparent; color: #6B655B;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 500; color: #6B655B;">Log</div>
+    </div><div role="tab" aria-selected="true" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: #D5E8DD; color: #0F3527;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"></path><path d="M3.5 4.5V8H7"></path><path d="M12 7.5V12l3 2"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 700; color: #22201C;">History</div>
+    </div><div role="tab" aria-selected="false" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: transparent; color: #6B655B;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.2A8 8 0 1 1 20 12z"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 500; color: #6B655B;">Ask</div>
+    </div></div>
+  <div style="height: 24px; background: #EFEAE1; flex-shrink: 0;"></div>
+</div>
+<div style="width: 412px; height: 915px; background: #F7F4EE; display: flex; flex-direction: column; overflow: hidden; position: relative; color: #22201C;">
+  <div style="height: 36px; flex-shrink: 0;"></div>
+  
+  <div style="height: 64px; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 16px; flex-shrink: 0;">
+    
+    <div style="flex-grow: 1; font-size: 22px; line-height: 28px; font-weight: 600; color: #22201C; letter-spacing: -0.01em; padding-left: 0px;">Ask</div>
+    <div style="display: flex; align-items: center;"></div>
+  </div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;"><div style="display: flex; flex-direction: column; gap: 12px; padding: 4px 16px 16px; justify-content: flex-end; flex-grow: 1;">
+    <div style="align-self: flex-end; max-width: 80%; background: #E7E1D6; color: #22201C; border-radius: 20px 20px 6px 20px; padding: 10px 14px; font-size: 16px; line-height: 22px;">When did I last change the oil?</div>
+    <div role="article" style="align-self: stretch; background: #FFFDF9; border: 1px solid #D6CEBF; border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;"><div style="display: flex; gap: 10px; align-items: flex-start;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><circle cx="12" cy="12" r="9" stroke-dasharray="2.6 2.6"></circle><path d="M12 8v4.2l2.6 1.6"></path></svg><p style="font-size: 17px; line-height: 24px; color: #22201C;">There isn't enough history yet to answer that.</p></div></div>
+  </div></div>
+  <div style="padding: 8px 16px 12px; display: flex; gap: 8px; align-items: center; border-top: 1px solid #D6CEBF; flex-shrink: 0;">
+    <div style="flex-grow: 1; height: 52px; border-radius: 26px; background: #EFEAE1; display: flex; align-items: center; padding: 0 8px 0 18px; font-size: 16px; color: #6B655B;"><span style="flex-grow: 1;">Ask about your history</span><div role="button" aria-label="Ask by voice" style="width: 48px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center; color: #22201C;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></div></div>
+    <div style="width: 52px; height: 52px; border-radius: 26px; background: #2F6B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M4.5 12L20 4.5 15 20l-3-6.5z"></path></svg></div></div>
+  <div role="tablist" style="height: 80px; display: flex; background: #EFEAE1; flex-shrink: 0;"><div role="tab" aria-selected="false" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: transparent; color: #6B655B;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 500; color: #6B655B;">Log</div>
+    </div><div role="tab" aria-selected="false" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: transparent; color: #6B655B;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"></path><path d="M3.5 4.5V8H7"></path><path d="M12 7.5V12l3 2"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 500; color: #6B655B;">History</div>
+    </div><div role="tab" aria-selected="true" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: #D5E8DD; color: #0F3527;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.2A8 8 0 1 1 20 12z"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 700; color: #22201C;">Ask</div>
+    </div></div>
+  <div style="height: 24px; background: #EFEAE1; flex-shrink: 0;"></div>
+</div></div>
+</x-dc>
+</body>
+</html>

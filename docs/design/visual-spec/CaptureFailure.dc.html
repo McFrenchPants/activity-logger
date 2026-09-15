@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400;1,8..60,500&amp;display=swap">
+  <style>
+    html, body { margin: 0; background: #F7F4EE; }
+    body { font-family: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+    a { color: #2F6B55; } a:hover { color: #0F3527; }
+    p, h1, h2, h3, h4 { margin: 0; }
+    .ev { font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 400; }
+    
+  </style>
+</helmet>
+
+<div style="width: 412px; height: 915px; background: #F7F4EE; display: flex; flex-direction: column; overflow: hidden; position: relative; color: #22201C;">
+  <div style="height: 36px; flex-shrink: 0;"></div>
+  
+  <div style="height: 64px; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 16px; flex-shrink: 0;">
+    
+    <div style="flex-grow: 1; font-size: 22px; line-height: 28px; font-weight: 600; color: #22201C; letter-spacing: -0.01em; padding-left: 0px;">Activity Ledger</div>
+    <div style="display: flex; align-items: center;"><div role="button" aria-label="Settings and diagnostics" style="width: 48px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center; color: #22201C;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"></path><circle cx="15.5" cy="7" r="2.3"></circle><circle cx="10.5" cy="17" r="2.3"></circle></svg></div></div>
+  </div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;">
+  <div style="display: flex; flex-direction: column; gap: 24px; padding: 20px 16px 24px; flex-shrink: 0;">
+    <div role="alert" style="background: #F6D9D3; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: flex-start; gap: 10px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#A33B2C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5.5M12 16.3v.1"></path></svg>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <p style="font-size: 17px; line-height: 24px; font-weight: 600; color: #44120A;">Couldn't make out any words.</p>
+          <p style="font-size: 14px; line-height: 20px; color: #44120A;">Nothing was saved.</p>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <div role="button" style="height: 48px; padding: 0 20px; border-radius: 24px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; line-height: 20px; font-weight: 600; box-sizing: border-box; background: #A33B2C; color: #FFFFFF;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg><span>Try again</span></div>
+        <div role="button" style="height: 48px; padding: 0 12px; border-radius: 24px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; line-height: 20px; font-weight: 600; box-sizing: border-box; background: transparent; color: #44120A;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="2.5" y="6" width="19" height="12" rx="2"></rect><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M8 14h8"></path></svg><span>Type instead</span></div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+      <div role="button" aria-label="Log by voice" style="width: 96px; height: 96px; border-radius: 48px; background: #2F6B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(47,107,85,0.28); opacity: 1;"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></div>
+      <div style="font-size: 14px; line-height: 20px; font-weight: 600; color: #6B655B;">Tap to speak</div>
+    </div>
+  </div>
+  <div style="border-top: 1px solid #D6CEBF;">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 4px 20px; min-height: 48px; box-sizing: border-box;">
+  <div style="font-size: 14px; line-height: 20px; font-weight: 600; color: #6B655B; letter-spacing: 0.02em;">Recent</div><div role="button" style="height: 48px; padding: 0 12px; border-radius: 24px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; line-height: 20px; font-weight: 600; box-sizing: border-box; background: transparent; color: #2F6B55;"><span>All history</span></div></div>
+    <div role="button" style="display: flex; gap: 12px; padding: 12px 16px 12px 20px; min-height: 72px; box-sizing: border-box; border-bottom: 1px solid #D6CEBF; align-items: flex-start; background: transparent;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+      <div style="font-size: 17px; line-height: 24px; font-weight: 600; color: #22201C;">Mow lawn</div>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"><span style="font-size: 14px; line-height: 20px; color: #6B655B;">Today, afternoon</span></div>
+      <p class="ev" style="font-size: 14px; line-height: 20px; color: #6B655B; text-wrap: pretty;">“I cut the grass this afternoon”</p>
+    </div>
+    <div aria-label="Logged from phone" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #6B655B;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="7" y="2.5" width="10" height="19" rx="2.5"></rect><path d="M11 18.5h2"></path></svg></div>
+  </div><div role="button" style="display: flex; gap: 12px; padding: 12px 16px 12px 20px; min-height: 72px; box-sizing: border-box; border-bottom: 1px solid #D6CEBF; align-items: flex-start; background: transparent;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+      <div style="display: inline-flex; align-items: center; gap: 6px; color: #855610; font-size: 13px; line-height: 16px; font-weight: 600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#855610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><circle cx="12" cy="12" r="9"></circle><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4"></path><path d="M12 16.8v.1"></path></svg><span>Needs review</span></div><p class="ev" style="font-size: 17px; line-height: 24px; color: #22201C; text-wrap: pretty;">“I did the thing with the furnace”</p>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"><span style="font-size: 14px; line-height: 20px; color: #6B655B;">Today, 11:05 AM</span></div>
+      
+    </div>
+    <div aria-label="Logged from phone" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #6B655B;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B655B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="7" y="2.5" width="10" height="19" rx="2.5"></rect><path d="M11 18.5h2"></path></svg></div>
+  </div>
+  </div></div>
+  
+  <div role="tablist" style="height: 80px; display: flex; background: #EFEAE1; flex-shrink: 0;"><div role="tab" aria-selected="true" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: #D5E8DD; color: #0F3527;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 700; color: #22201C;">Log</div>
+    </div><div role="tab" aria-selected="false" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: transparent; color: #6B655B;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"></path><path d="M3.5 4.5V8H7"></path><path d="M12 7.5V12l3 2"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 500; color: #6B655B;">History</div>
+    </div><div role="tab" aria-selected="false" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px;">
+      <div style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: transparent; color: #6B655B;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.2A8 8 0 1 1 20 12z"></path></svg></div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 500; color: #6B655B;">Ask</div>
+    </div></div>
+  <div style="height: 24px; background: #EFEAE1; flex-shrink: 0;"></div>
+</div>
+</x-dc>
+</body>
+</html>

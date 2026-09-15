@@ -165,13 +165,15 @@ Example:
 
 ```text
 Mow lawn
-Today, 3:12 PM
+Today, afternoon
 "I cut the grass this afternoon"
 
 Replace furnace filter
 Sep 12, 9:40 AM
 "Changed the HVAC filter"
 ```
+
+Times are shown only as precisely as the user said them (ADR-018): "this afternoon" displays as "afternoon", not a made-up clock time. See `docs/UX_VISUAL_SPEC.md` §4.3.
 
 ## 7. Activity detail
 

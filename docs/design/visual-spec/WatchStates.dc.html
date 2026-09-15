@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400;1,8..60,500&amp;display=swap">
+  <style>
+    html, body { margin: 0; background: #0E0D0C; }
+    body { font-family: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+    a { color: #2F6B55; } a:hover { color: #0F3527; }
+    p, h1, h2, h3, h4 { margin: 0; }
+    .ev { font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 400; }
+    
+  </style>
+</helmet>
+<div style="width: 1760px; background: #0E0D0C; padding: 48px 56px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 40px; font-family: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif;">
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #7A7368;">Wear OS · WATCH_SPEC §11</div>
+    <h2 style="font-size: 32px; line-height: 40px; font-weight: 600; color: #EDE8DF;">Five states, readable in a glance</h2>
+  </div>
+  <div style="display: flex; gap: 12px; justify-content: space-between;">
+    <div style="display: flex; flex-direction: column; gap: 22px; align-items: center; width: 320px;">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+    <div style="font-size: 20px; line-height: 26px; font-weight: 700; color: #EDE8DF;">Listening</div>
+    <div style="font-size: 13px; line-height: 18px; color: #A69F93;">Haptic: none (mic opening is the cue)</div></div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+  <div role="img" aria-label="Listening" style="width: 300px; height: 300px; border-radius: 150px; background: #000; box-shadow: 0 0 0 10px #3A3631; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 40px; box-sizing: border-box; overflow: hidden; position: relative;"><div style="width: 132px; height: 132px; border-radius: 66px; background: #1E4838; display: flex; align-items: center; justify-content: center;"><div style="width: 96px; height: 96px; border-radius: 48px; background: #8FC9AE; display: flex; align-items: center; justify-content: center;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0B2A1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></div></div><p style="font-size: 22px; line-height: 26px; font-weight: 600; color: #F2EEE6; text-wrap: balance;">Listening…</p></div></div>
+  <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #7A7368;">Ambient</div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+  <div role="img" aria-label="Listening (ambient)" style="width: 300px; height: 300px; border-radius: 150px; background: #000; box-shadow: 0 0 0 10px #2A2724; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 40px; box-sizing: border-box; overflow: hidden; position: relative;"><div style="width: 96px; height: 96px; border-radius: 48px; border: 2px solid #B8B2A8; display: flex; align-items: center; justify-content: center;"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#B8B2A8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></div><p style="font-size: 22px; line-height: 26px; font-weight: 600; color: #B8B2A8; text-wrap: balance;">Listening…</p></div></div>
+</div>
+    <div style="display: flex; flex-direction: column; gap: 22px; align-items: center; width: 320px;">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+    <div style="font-size: 20px; line-height: 26px; font-weight: 700; color: #EDE8DF;">Queued</div>
+    <div style="font-size: 13px; line-height: 18px; color: #A69F93;">Haptic: one short tick</div></div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+  <div role="img" aria-label="Queued" style="width: 300px; height: 300px; border-radius: 150px; background: #000; box-shadow: 0 0 0 10px #3A3631; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 40px; box-sizing: border-box; overflow: hidden; position: relative;"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#F2EEE6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M12 15V5M7.5 9.5L12 5l4.5 4.5"></path><path d="M5 19h14"></path></svg><p style="font-size: 26px; line-height: 31px; font-weight: 600; color: #F2EEE6; text-wrap: balance;">Queued for phone</p><p style="font-size: 17px; line-height: 22px; color: #A69F93; text-wrap: balance;">Will send when phone reconnects</p></div></div>
+  <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #7A7368;">Ambient</div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+  <div role="img" aria-label="Queued (ambient)" style="width: 300px; height: 300px; border-radius: 150px; background: #000; box-shadow: 0 0 0 10px #2A2724; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 40px; box-sizing: border-box; overflow: hidden; position: relative;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#B8B2A8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M12 15V5M7.5 9.5L12 5l4.5 4.5"></path><path d="M5 19h14"></path></svg><p style="font-size: 26px; line-height: 31px; font-weight: 600; color: #B8B2A8; text-wrap: balance;">Queued for phone</p></div></div>
+</div>
+    <div style="display: flex; flex-direction: column; gap: 22px; align-items: center; width: 320px;">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+    <div style="font-size: 20px; line-height: 26px; font-weight: 700; color: #EDE8DF;">Success</div>
+    <div style="font-size: 13px; line-height: 18px; color: #A69F93;">Haptic: two short ticks</div></div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+  <div role="img" aria-label="Success" style="width: 300px; height: 300px; border-radius: 150px; background: #000; box-shadow: 0 0 0 10px #3A3631; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 40px; box-sizing: border-box; overflow: hidden; position: relative;"><div style="width: 84px; height: 84px; border-radius: 42px; background: #8FC9AE; display: flex; align-items: center; justify-content: center;"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#0B2A1E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div><p style="font-size: 30px; line-height: 36px; font-weight: 600; color: #F2EEE6; text-wrap: balance;">Mow lawn</p></div></div>
+  <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #7A7368;">Ambient</div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+  <div role="img" aria-label="Success (ambient)" style="width: 300px; height: 300px; border-radius: 150px; background: #000; box-shadow: 0 0 0 10px #2A2724; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 40px; box-sizing: border-box; overflow: hidden; position: relative;"><div style="width: 72px; height: 72px; border-radius: 36px; border: 2px solid #B8B2A8; display: flex; align-items: center; justify-content: center;"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#B8B2A8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div><p style="font-size: 30px; line-height: 36px; font-weight: 600; color: #B8B2A8; text-wrap: balance;">Mow lawn</p></div></div>
+</div>
+    <div style="display: flex; flex-direction: column; gap: 22px; align-items: center; width: 320px;">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+    <div style="font-size: 20px; line-height: 26px; font-weight: 700; color: #EDE8DF;">Needs review</div>
+    <div style="font-size: 13px; line-height: 18px; color: #A69F93;">Haptic: two short ticks</div></div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+  <div role="img" aria-label="Needs review" style="width: 300px; height: 300px; border-radius: 150px; background: #000; box-shadow: 0 0 0 10px #3A3631; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 40px; box-sizing: border-box; overflow: hidden; position: relative;"><svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#E4BA6C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><circle cx="12" cy="12" r="9"></circle><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4"></path><path d="M12 16.8v.1"></path></svg><p style="font-size: 24px; line-height: 29px; font-weight: 600; color: #F2EEE6; text-wrap: balance;">Saved — review on phone</p></div></div>
+  <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #7A7368;">Ambient</div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+  <div role="img" aria-label="Needs review (ambient)" style="width: 300px; height: 300px; border-radius: 150px; background: #000; box-shadow: 0 0 0 10px #2A2724; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 40px; box-sizing: border-box; overflow: hidden; position: relative;"><svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#B8B2A8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><circle cx="12" cy="12" r="9"></circle><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4"></path><path d="M12 16.8v.1"></path></svg><p style="font-size: 24px; line-height: 29px; font-weight: 600; color: #B8B2A8; text-wrap: balance;">Saved — review on phone</p></div></div>
+</div>
+    <div style="display: flex; flex-direction: column; gap: 22px; align-items: center; width: 320px;">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+    <div style="font-size: 20px; line-height: 26px; font-weight: 700; color: #EDE8DF;">Failure</div>
+    <div style="font-size: 13px; line-height: 18px; color: #A69F93;">Haptic: one long pulse</div></div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+  <div role="img" aria-label="Failure" style="width: 300px; height: 300px; border-radius: 150px; background: #000; box-shadow: 0 0 0 10px #3A3631; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 40px; box-sizing: border-box; overflow: hidden; position: relative;"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#F0A193" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5.5M12 16.3v.1"></path></svg><p style="font-size: 24px; line-height: 29px; font-weight: 600; color: #F2EEE6; text-wrap: balance;">Couldn't capture.</p><div style="display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 20px; border-radius: 24px; background: #4B221B; color: #FAD9D2; font-size: 18px; font-weight: 600;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FAD9D2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M20 11a8 8 0 1 0-2.3 5.7"></path><path d="M20 4v7h-7"></path></svg><span>Tap to retry</span></div></div></div>
+  <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #7A7368;">Ambient</div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+  <div role="img" aria-label="Failure (ambient)" style="width: 300px; height: 300px; border-radius: 150px; background: #000; box-shadow: 0 0 0 10px #2A2724; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 40px; box-sizing: border-box; overflow: hidden; position: relative;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#B8B2A8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5.5M12 16.3v.1"></path></svg><p style="font-size: 24px; line-height: 29px; font-weight: 600; color: #B8B2A8; text-wrap: balance;">Couldn't capture.</p><p style="font-size: 17px; line-height: 22px; color: #6E6960; text-wrap: balance;">Tap to retry</p></div></div>
+</div>
+  </div>
+  <div style="display: flex; gap: 48px; align-items: center; padding-top: 12px; border-top: 1px solid #403B35;">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+  <div role="img" aria-label="Watch face with capture complication" style="width: 300px; height: 300px; border-radius: 150px; background: #000; box-shadow: 0 0 0 10px #3A3631; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 40px; box-sizing: border-box; overflow: hidden; position: relative;"><div style="font-size: 64px; line-height: 64px; font-weight: 500; color: #F2EEE6; letter-spacing: -0.02em;">4:05</div><div style="font-size: 16px; color: #A69F93;">Tue 15</div>
+    <div role="button" aria-label="Log activity" style="position: absolute; bottom: 36px; left: 114px; width: 72px; height: 72px; border-radius: 36px; background: #282521; border: 2px solid #8FC9AE; display: flex; align-items: center; justify-content: center;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8FC9AE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></div></div></div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+  <div role="img" aria-label="Complication with 2 queued" style="width: 300px; height: 300px; border-radius: 150px; background: #000; box-shadow: 0 0 0 10px #3A3631; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 40px; box-sizing: border-box; overflow: hidden; position: relative;"><div style="font-size: 64px; line-height: 64px; font-weight: 500; color: #F2EEE6; letter-spacing: -0.02em;">4:05</div><div style="font-size: 16px; color: #A69F93;">Tue 15</div>
+    <div role="button" aria-label="Log activity. 2 entries waiting for phone." style="position: absolute; bottom: 36px; left: 114px; width: 72px; height: 72px; border-radius: 36px; background: #282521; border: 2px solid #7A7368; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EDE8DF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg><div style="display: flex; align-items: center; gap: 2px; font-size: 14px; font-weight: 700; color: #EDE8DF;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EDE8DF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M12 15V5M7.5 9.5L12 5l4.5 4.5"></path><path d="M5 19h14"></path></svg>2</div></div></div></div>
+  <div style="display: flex; flex-direction: column; gap: 10px; max-width: 520px;">
+    <div style="font-size: 20px; line-height: 26px; font-weight: 700; color: #EDE8DF;">First entry surface: launcher + complication</div>
+    <p style="font-size: 16px; line-height: 24px; color: #A69F93;">One tap on the watch face opens capture straight into listening. The complication is a monochromatic mic; while captures wait for the phone it adds a queued count (never a review count — review lives on the phone). Tile comes later. Rationale in Decisions · D2.</p>
+    <p style="font-size: 14px; line-height: 21px; color: #7A7368;">Shown at 1.3× (≈230dp round display). Ambient: black ground, outline-only glyphs, no brand fills, text ≤ #B8B2A8, under 10% lit pixels.</p>
+  </div>
+</div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400;1,8..60,500&amp;display=swap">
+  <style>
+    html, body { margin: 0; background: #F7F4EE; }
+    body { font-family: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+    a { color: #2F6B55; } a:hover { color: #0F3527; }
+    p, h1, h2, h3, h4 { margin: 0; }
+    .ev { font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 400; }
+    
+  </style>
+</helmet>
+<div style="width: 1040px; background: #F7F4EE; padding: 56px 64px 64px; box-sizing: border-box; display: flex; flex-direction: column;">
+  <div style="display: flex; flex-direction: column; gap: 10px; padding-bottom: 28px;">
+    <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6B655B;">Decisions the specs left open · proposed for docs/UX_VISUAL_SPEC.md</div>
+    <h1 style="font-size: 40px; line-height: 48px; font-weight: 600; letter-spacing: -0.02em; color: #22201C;">What this mockup commits to</h1>
+    <p style="font-size: 17px; line-height: 26px; color: #6B655B; max-width: 780px;">Each item unblocks IMPLEMENTATION_HANDOFF Step 7 (phone UX) or Step 8 (Wear capture). All are reversible UI choices; none changes the data model or an architectural invariant.</p>
+  </div>
+  <div style="display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 20px; padding: 28px 0; border-top: 1px solid #D6CEBF;">
+  <div style="font-size: 28px; line-height: 34px; font-weight: 600; color: #2F6B55;">D1</div>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <h3 style="font-size: 22px; line-height: 28px; font-weight: 700; color: #22201C;">Phone navigation</h3>
+    <p style="font-size: 17px; line-height: 26px; color: #22201C; text-wrap: pretty;"><strong>Decision.</strong> Single Activity with one Compose Navigation NavHost (type-safe routes). Three top-level destinations in an M3 NavigationBar — <strong>Log</strong> (start; capture + recent history on one screen), <strong>History</strong>, <strong>Ask</strong>. Settings/diagnostics opens from the Log top bar. Occurrence details are a modal bottom sheet; Activity detail and Edit interpretation are pushed screens. “Review” is not its own destination.</p>
+    <p style="font-size: 15px; line-height: 23px; color: #6B655B; text-wrap: pretty;"><strong style="color: #22201C;">Why.</strong> Capture must be zero-navigation on launch (UX §1), so Log is the start destination and holds the mic. History and Ask are the two other things people come back for; a three-item bar keeps both one tap away without a hub-and-spoke detour. Single-activity is the Compose default and keeps process-death and deep-link handling in one place. Keeping review inside History (as a filter) instead of a tab avoids an inbox (UX §15).</p>
+    <div style="background: #FFFDF9; border: 1px solid #D6CEBF; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px; margin-top: 6px; overflow-x: auto;">
+  <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6B655B;">Navigation graph — one Activity, one NavHost</div>
+  <div style="display: flex; align-items: center; gap: 8px;"><div style="background: #D5E8DD; border: 1px solid #2F6B55; border-radius: 12px; padding: 10px 12px; width: 150px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 700; color: #22201C;">Log (start)</span><span style="font-size: 12px; line-height: 16px; color: #6B655B;">capture + recent</span></div><div style="color: #9C9486; display: flex; align-items: center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9C9486" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M9.5 6l6 6-6 6"></path></svg></div><div style="background: #FFFDF9; border: 1px solid #9C9486; border-radius: 12px; padding: 10px 12px; width: 150px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 700; color: #22201C;">Settings</span><span style="font-size: 12px; line-height: 16px; color: #6B655B;">from top bar</span></div></div>
+  <div style="display: flex; align-items: center; gap: 8px;"><div style="background: #D5E8DD; border: 1px solid #2F6B55; border-radius: 12px; padding: 10px 12px; width: 150px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 700; color: #22201C;">History</span><span style="font-size: 12px; line-height: 16px; color: #6B655B;">filters: review / not categorized</span></div><div style="color: #9C9486; display: flex; align-items: center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9C9486" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M9.5 6l6 6-6 6"></path></svg></div><div style="background: #F7F4EE; border: 1.5px dashed #9C9486; border-radius: 12px; padding: 10px 12px; width: 150px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 700; color: #22201C;">Occurrence</span><span style="font-size: 12px; line-height: 16px; color: #6B655B;">bottom sheet</span></div><div style="color: #9C9486; display: flex; align-items: center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9C9486" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M9.5 6l6 6-6 6"></path></svg></div><div style="background: #FFFDF9; border: 1px solid #9C9486; border-radius: 12px; padding: 10px 12px; width: 150px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 700; color: #22201C;">Edit interpretation</span><span style="font-size: 12px; line-height: 16px; color: #6B655B;">full screen</span></div></div>
+  <div style="display: flex; align-items: center; gap: 8px; padding-left: 316px;"><div style="color: #9C9486; display: flex; align-items: center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9C9486" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M9.5 6l6 6-6 6"></path></svg></div><div style="background: #FFFDF9; border: 1px solid #9C9486; border-radius: 12px; padding: 10px 12px; width: 150px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 700; color: #22201C;">Activity detail</span></div><div style="color: #9C9486; display: flex; align-items: center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9C9486" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M9.5 6l6 6-6 6"></path></svg></div><div style="background: #F7F4EE; border: 1.5px dashed #9C9486; border-radius: 12px; padding: 10px 12px; width: 110px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 700; color: #22201C;">Occurrence</span><span style="font-size: 12px; line-height: 16px; color: #6B655B;">sheet</span></div></div>
+  <div style="display: flex; align-items: center; gap: 8px;"><div style="background: #D5E8DD; border: 1px solid #2F6B55; border-radius: 12px; padding: 10px 12px; width: 150px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 700; color: #22201C;">Ask</span><span style="font-size: 12px; line-height: 16px; color: #6B655B;">session thread</span></div><div style="color: #9C9486; display: flex; align-items: center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9C9486" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;"><path d="M9.5 6l6 6-6 6"></path></svg></div><div style="background: #FFFDF9; border: 1px solid #9C9486; border-radius: 12px; padding: 10px 12px; width: 150px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 700; color: #22201C;">Activity detail</span><span style="font-size: 12px; line-height: 16px; color: #6B655B;">from answer source</span></div></div>
+  <div style="font-size: 13px; line-height: 19px; color: #6B655B;">Green = NavigationBar destinations (each keeps its own back stack; system Back from History/Ask returns to Log). Review card on Log → “Choose another activity” opens the same activity picker used by Edit interpretation. Deep link <span style="font-family: ui-monospace, Consolas, monospace;">activityledger://capture</span> opens Log already listening (for launcher shortcut / assistant).</div>
+</div>
+  </div></div>
+  <div style="display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 20px; padding: 28px 0; border-top: 1px solid #D6CEBF;">
+  <div style="font-size: 28px; line-height: 34px; font-weight: 600; color: #2F6B55;">D2</div>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <h3 style="font-size: 22px; line-height: 28px; font-weight: 700; color: #22201C;">First Wear entry surface</h3>
+    <p style="font-size: 17px; line-height: 26px; color: #22201C; text-wrap: pretty;"><strong>Decision.</strong> Ship the <strong>app launcher</strong> entry (required anyway) plus a <strong>watch-face complication</strong> in the Step 8 milestone. The complication tap opens capture directly in listening. <strong>Tile is deferred</strong> to a later milestone.</p>
+    <p style="font-size: 15px; line-height: 23px; color: #6B655B; text-wrap: pretty;"><strong style="color: #22201C;">Why.</strong> A complication is the fastest practical path — one tap from the face the user already sees, satisfying “one intentional action before speaking”. It is a small ComplicationDataSourceService with a tap PendingIntent, whereas a Tile needs a ProtoLayout surface that adds a swipe before the tap. The complication also doubles as the glanceable queued indicator (“mic · 2”). Open dependency: whether the in-app listening screen or the system dictation UI is used depends on on-device speech availability on the OnePlus Watch 3 (backlog item 1); the designed Listening state applies to the in-app path.</p>
+    
+  </div></div>
+  <div style="display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 20px; padding: 28px 0; border-top: 1px solid #D6CEBF;">
+  <div style="font-size: 28px; line-height: 34px; font-weight: 600; color: #2F6B55;">D3</div>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <h3 style="font-size: 22px; line-height: 28px; font-weight: 700; color: #22201C;">Visual design system</h3>
+    <p style="font-size: 17px; line-height: 26px; color: #22201C; text-wrap: pretty;"><strong>Decision.</strong> Compose Material 3 (phone) and Wear Compose Material 3 (watch). Static brand colour scheme, <strong>dynamic colour off</strong> for MVP, light + dark following system. Instrument Sans for UI, Source Serif 4 Italic reserved for the user’s own words, both bundled. One custom colour role (review) via an extended scheme. See the Design system artboard.</p>
+    <p style="font-size: 15px; line-height: 23px; color: #6B655B; text-wrap: pretty;"><strong style="color: #22201C;">Why.</strong> Dynamic colour would re-tint primary and make “review” vs “saved” unpredictable across wallpapers; a fixed palette keeps state semantics stable and testable. The serif/sans split visually encodes the product’s core rule — evidence vs interpretation — so it can never be mistaken for app output.</p>
+    
+  </div></div>
+  <div style="display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 20px; padding: 28px 0; border-top: 1px solid #D6CEBF;">
+  <div style="font-size: 28px; line-height: 34px; font-weight: 600; color: #2F6B55;">D4</div>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <h3 style="font-size: 22px; line-height: 28px; font-weight: 700; color: #22201C;">Settings / diagnostics contents</h3>
+    <p style="font-size: 17px; line-height: 26px; color: #22201C; text-wrap: pretty;"><strong>Decision.</strong> Groups, in order: <strong>On-device interpretation</strong> (Gemini Nano status: Ready / Downloading n% / Not supported; Structured Output; count of captures waiting, linking to History › Not categorized) · <strong>Speech</strong> (on-device recognizer + language) · <strong>Watch</strong> (paired device, connection, last capture received, items queued) · <strong>Privacy</strong> (stays-on-phone statement; “Copy technical report” with device/model status only, no activity text) · version line (app, prompt, schema).</p>
+    <p style="font-size: 15px; line-height: 23px; color: #6B655B; text-wrap: pretty;"><strong style="color: #22201C;">Why.</strong> ARCHITECTURE §21 requires capability detection to be visible without pretending interpretation succeeded; this is the one place all four capabilities (AICore, Structured Output, speech, Data Layer) are shown together. The report excludes user content per AGENTS.md §11. Anything else (export, backup choice) is left out until it has a real behaviour behind it.</p>
+    
+  </div></div>
+  <div style="display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 20px; padding: 28px 0; border-top: 1px solid #D6CEBF;">
+  <div style="font-size: 28px; line-height: 34px; font-weight: 600; color: #2F6B55;">D5</div>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <h3 style="font-size: 22px; line-height: 28px; font-weight: 700; color: #22201C;">Undo mechanics</h3>
+    <p style="font-size: 17px; line-height: 26px; color: #22201C; text-wrap: pretty;"><strong>Decision.</strong> Undo lives <strong>inside the inline success card</strong> on Log, not a snackbar. Visible for <strong>8 seconds</strong> with a draining progress bar; the timer pauses while the card is touched and is scaled with <span style="font-family: ui-monospace, Consolas, monospace;">AccessibilityManager.getRecommendedTimeoutMillis</span> (effectively no timeout while TalkBack is on). Starting a new capture or leaving Log dismisses it. Undo sets the occurrence to hidden; the RawCapture and interpretation are kept. After the window, the same action is “Remove from history” in the occurrence sheet. No undo on the watch in MVP.</p>
+    <p style="font-size: 15px; line-height: 23px; color: #6B655B; text-wrap: pretty;"><strong style="color: #22201C;">Why.</strong> The success card is where the user is already looking, so undo there is discoverable without a second surface; a snackbar would stack over the NavigationBar and compete with the card. 8 s is between M3’s short (4 s) and long (10 s) durations — enough to read a short confirmation. Hiding rather than deleting satisfies UX §11 (“preserve raw capture/audit evidence”).</p>
+    
+  </div></div>
+  <div style="display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 20px; padding: 28px 0; border-top: 1px solid #D6CEBF;">
+  <div style="font-size: 28px; line-height: 34px; font-weight: 600; color: #2F6B55;">D6</div>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <h3 style="font-size: 22px; line-height: 28px; font-weight: 700; color: #22201C;">Ask History interaction shape</h3>
+    <p style="font-size: 17px; line-height: 26px; color: #22201C; text-wrap: pretty;"><strong>Decision.</strong> A <strong>scrollable session thread</strong>: question bubble, then an answer card that states the database fact and names its source activity (tappable → Activity detail). If the input is recognised as a statement of something done, the thread shows the §10 “New activity?” card (Log it / Choose existing / Rename) instead of an answer. The thread is in-memory for the session and cleared with “Clear” or when the process ends; questions are not stored.</p>
+    <p style="font-size: 15px; line-height: 23px; color: #6B655B; text-wrap: pretty;"><strong style="color: #22201C;">Why.</strong> Follow-ups (“and before that?”) and the occasional capture both need a place to land that a single Q&A box can’t give. Showing the source activity keeps answers auditable (“database truth”, UX §9). Not persisting queries avoids creating a second store of user text for no historical purpose.</p>
+    
+  </div></div>
+  <div style="display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 20px; padding: 28px 0; border-top: 1px solid #D6CEBF;">
+  <div style="font-size: 28px; line-height: 34px; font-weight: 600; color: #2F6B55;">D7</div>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <h3 style="font-size: 22px; line-height: 28px; font-weight: 700; color: #22201C;">Review without an inbox</h3>
+    <p style="font-size: 17px; line-height: 26px; color: #22201C; text-wrap: pretty;"><strong>Decision.</strong> Needs-review and not-categorized captures are reachable from History filter chips and from Settings’ waiting count. No NavigationBar badge, no notification, no “clear all” goal.</p>
+    <p style="font-size: 15px; line-height: 23px; color: #6B655B; text-wrap: pretty;"><strong style="color: #22201C;">Why.</strong> UX §4.2 requires “keep for later review”, and §15 forbids inboxes. A filter over the one history list gives a way back without a to-do queue.</p>
+    
+  </div></div>
+  <div style="border-top: 1px solid #D6CEBF; padding-top: 28px; display: flex; flex-direction: column; gap: 12px;">
+    <h3 style="font-size: 22px; line-height: 28px; font-weight: 700; color: #22201C;">Spec gaps found while drawing</h3>
+    <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 16px; line-height: 24px; color: #6B655B;">
+      <li><strong style="color: #22201C;">Time precision in rows.</strong> UX §6’s example shows “Today, 3:12 PM” for “I cut the grass this afternoon”; ADR-018 forbids fabricated precision. Mockups render APPROXIMATE as “Today, afternoon” and DATE_ONLY as “Sat, Sep 12”. UX_SPEC §6 example corrected to match.</li>
+      <li><strong style="color: #22201C;">Phone recognition-failure copy.</strong> §4.3 gives no wording. Proposed: “Couldn't make out any words. Nothing was saved.” + Try again. Mirrors the watch’s “Couldn't capture.”</li>
+      <li><strong style="color: #22201C;">Occurrence view.</strong> §3 lists no screen for a single logged occurrence, but §8.1’s “Edit interpretation” needs an entry point. Resolved as a bottom sheet (D1).</li>
+      <li><strong style="color: #22201C;">Typed capture.</strong> “Type instead” is shown as a quiet secondary action for noisy places and speech-unavailable devices (§12). It feeds the same capture pipeline with source text flagged as typed.</li>
+      <li><strong style="color: #22201C;">Unsupported-device path.</strong> On a phone that can never run Gemini Nano (Pixel 7 Pro), captures stay uncategorized until the user assigns an activity from History. Confirm this is acceptable MVP behaviour.</li>
+    </ul>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

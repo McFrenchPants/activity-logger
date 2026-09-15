@@ -22,6 +22,7 @@ Implementation has not yet been started.
 - Correction/audit model defined.
 - Cloud sync explicitly deferred.
 - Semantic regression strategy defined.
+- Visual design system, phone/watch mockups, and UI decisions approved (`docs/UX_VISUAL_SPEC.md`, ADR-019, ADR-020).
 
 ## Next milestone
 
@@ -67,10 +68,11 @@ These should be resolved during architecture validation rather than guessed:
 - UUID vs UUIDv7 library/implementation
 - whether `IN_PROGRESS` ships in first functional milestone or immediately after completed-state capture
 - exact policy thresholds for auto-accept vs needs-review
+- whether the watch uses in-app on-device speech (designed Listening screen) or system dictation UI
 
 ## Discrepancy log
 
-None currently.
+None currently. (Resolved 2026-09-15: UX_SPEC §6 example showed a clock time for "this afternoon", contradicting ADR-018; example corrected.)
 
 ## Environment lessons
 
