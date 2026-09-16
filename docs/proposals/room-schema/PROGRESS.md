@@ -15,7 +15,7 @@ trigger, and most of it touches raw-capture immutability.
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
 | DB1.1 | Host-side Room test tooling + ID factory | done | Verifier pass. Robolectric 4.17 at sdk 35; driver-based MigrationTestHelper; UUIDv7 via stdlib. See TOOLING_NOTES.md |
-| DB1.2 | Domain vocabularies in core-domain | todo | After DB1.1 |
+| DB1.2 | Domain vocabularies in core-domain | done | Verifier pass. Names pinned by VocabularyNamesTest |
 | DB1.3 | Schema v1: entities, converters, database | todo | Needs DB1.1, DB1.2 |
 | DB1.4 | Data-layer operations and integrity tests | todo | Needs DB1.3 |
 | DB1.5 | Migration harness, production builder, destructive-fallback guard | todo | Needs DB1.4 |

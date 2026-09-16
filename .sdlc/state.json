@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T16:04:08.477Z",
+  "updated_at": "2026-09-16T16:09:25.538Z",
   "work_items": [
     {
       "id": "SS1",
@@ -132,7 +132,7 @@
         {
           "id": "DB1.2",
           "title": "Domain vocabularies in core-domain",
-          "status": "todo",
+          "status": "done",
           "lifecycle_state": null,
           "dependencies": [
             "DB1.1"
@@ -140,11 +140,11 @@
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/DB1.2.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done, verifier pass. Twelve enums in core-domain model package; VocabularyNamesTest pins constant names."
         },
         {
           "id": "DB1.3",
