@@ -14,7 +14,7 @@ trigger, and most of it touches raw-capture immutability.
 
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
-| DB1.1 | Host-side Room test tooling + ID factory | todo | Settles spec §6 by running it |
+| DB1.1 | Host-side Room test tooling + ID factory | done | Verifier pass. Robolectric 4.17 at sdk 35; driver-based MigrationTestHelper; UUIDv7 via stdlib. See TOOLING_NOTES.md |
 | DB1.2 | Domain vocabularies in core-domain | todo | After DB1.1 |
 | DB1.3 | Schema v1: entities, converters, database | todo | Needs DB1.1, DB1.2 |
 | DB1.4 | Data-layer operations and integrity tests | todo | Needs DB1.3 |
@@ -22,6 +22,18 @@ trigger, and most of it touches raw-capture immutability.
 | DB1.6 | Documentation: DATA_MODEL, identifier ADR, PROJECT_STATUS | todo | Needs DB1.5 |
 
 ## Session log
+
+### 2026-09-16 — DB1.1 done
+
+Host-side Room tests work (Robolectric 4.17, SDK 35 because 36 fails on JDK
+21; driver-based `MigrationTestHelper` because the Instrumentation/Class
+constructor fails on Windows paths). `Uuid.generateV7()` works at Kotlin
+2.3.21, so IDs are UUIDv7 — DB1.6's ADR records that. Carry-forward for
+DB1.3/DB1.5: `inMemoryTestDatabase` forces `foreign_keys=ON` in tests, so FK
+tests on the real schema must also show Room enables FKs without that
+callback (production builder has none); MigrationTestHelper connections do
+not enable FKs. First spawn got an unsubstituted packet (orchestrator error),
+re-spawned fresh with the packet inline.
 
 ### 2026-09-16 — design signed off; plan written
 

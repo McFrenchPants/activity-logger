@@ -1,0 +1,28 @@
+{
+  "task_id": "DB1.1",
+  "plan_revision": "781daef",
+  "objective": "Host-side Room test tooling + ID factory for the core-data Android library module (package root com.mcfrenchpants.activityledger.core.data). Context: core-data currently holds only a scaffold placeholder Room database (ScaffoldPlaceholderDatabase, version 1, exported schema at core-data/schemas/com.mcfrenchpants.activityledger.core.data.ScaffoldPlaceholderDatabase/1.json). The real six-table schema lands in a later task; this task only settles tooling by running it, not by recall. Toolchain is fixed: Gradle 9.7.1, AGP 9.4.0 (built-in Kotlin; never apply org.jetbrains.kotlin.android), Kotlin 2.3.21, KSP 2.3.12, Room 2.8.5, JDK 21, compileSdk 37, minSdk 33. (1) Choose and wire a host-side (no device, runs under `./gradlew test`) approach for Room tests in core-data. Candidates: Robolectric + androidx.test core/ext-junit (MigrationTestHelper(Instrumentation, Class) with the schemas dir exposed as test assets), or Room's KMP-style bundled SQLite driver (androidx.sqlite:sqlite-bundled) with the JVM MigrationTestHelper constructor. Pick whichever actually works on this toolchain; the choice MUST support both an in-memory database with foreign keys enforced and MigrationTestHelper creating a DB at a given version from the exported JSON. Prove both with small tests against the placeholder database (these proof tests may be deleted later with the placeholder; say so in a comment). androidx.room:room-testing is already in the catalog (alias androidx-room-testing). Resolve exact current versions of any new library from the actual repository (e.g. Maven Central / Google Maven metadata), confirm they run, and pin them in gradle/libs.versions.toml; no version literals in core-data/build.gradle.kts. (2) Determine whether kotlin.uuid.Uuid at Kotlin 2.3.21 has a working UUIDv7 generator (e.g. Uuid.generateV7()) - prove by compiling and running a test, not by recall. Implement in package com.mcfrenchpants.activityledger.core.data.id: `IdFactory` interface (fun newId(): String returning canonical lowercase 36-char UUID text); a production implementation using V7 if available, else java.util.UUID.randomUUID().toString(); any @OptIn(ExperimentalUuidApi) confined to that one file; and a deterministic implementation usable by tests (may live in the test source set). Visibility internal where practical. Do NOT add a third-party UUID library. (3) Write docs/proposals/room-schema/TOOLING_NOTES.md (audience: future agents, short and factual): approach chosen and why (including what was tried and failed, with the error), every new catalog entry with exact version and how the version was determined, the UUIDv7 finding with evidence, and the exact test command (default `./gradlew test`; refine if a narrower variant task is needed).",
+  "non_goals": [
+    "Do not implement any real entity, DAO, table, type converter or enum; do not remove the placeholder database (later tasks do).",
+    "Do not change Kotlin, KSP, Room, AGP, Gradle wrapper, compileSdk/minSdk, or any existing catalog version.",
+    "Do not modify settings.gradle.kts, the root build.gradle.kts, gradle.properties, or any module other than core-data.",
+    "Do not add fallbackToDestructiveMigration anywhere, logging of row contents, network code, or INTERNET permission.",
+    "Do not disable, @Ignore or weaken tests or lint.",
+    "Do not edit any doc other than docs/proposals/room-schema/TOOLING_NOTES.md.",
+    "Do not commit."
+  ],
+  "dependencies": [],
+  "read_paths": ["settings.gradle.kts","build.gradle.kts","gradle","gradle.properties","core-data","core-domain","core-testing","docs/DECISIONS.md","docs/ARCHITECTURE.md","docs/proposals/gradle-scaffold/BUILD_NOTES.md","AGENTS.md","CLAUDE.md"],
+  "write_paths": ["gradle/libs.versions.toml","core-data/build.gradle.kts","core-data/src","docs/proposals/room-schema/TOOLING_NOTES.md"],
+  "forbidden_paths": ["BACKLOG.md","PROGRESS.md","CLAUDE.md","AGENTS.md","README.md","docs/DECISIONS.md","docs/DATA_MODEL.md","docs/ARCHITECTURE.md","docs/proposals/room-schema/PROGRESS.md","docs/proposals/room-schema/IMPLEMENTATION_PLAN.md","docs/proposals/room-schema/DESIGN_SPEC.md",".sdlc","agents","scripts",".claude","settings.gradle.kts","build.gradle.kts","gradle.properties","gradle/wrapper","gradlew","gradlew.bat","core-data/schemas","app-phone","app-wear","core-ai","core-speech","core-wear-protocol","core-domain","core-testing"],
+  "acceptance_criteria": [
+    "`./gradlew :core-data:test` runs at least one test that opens an in-memory Room database on the host and at least one test that uses MigrationTestHelper to create the placeholder database at version 1 from core-data/schemas; the JUnit XML under core-data/build/test-results shows them executed (not skipped) and passing - report the counts.",
+    "A test proves PRAGMA foreign_keys returns 1 for a database opened the way later tests will open it.",
+    "IdFactory production output is tested: 36 chars, lowercase, parses as a valid UUID; if V7 is used, the version nibble is 7 and a sequence of generated IDs sorts non-decreasing as strings.",
+    "Every new dependency is declared in gradle/libs.versions.toml with a pinned version; core-data/build.gradle.kts has no version literals; Kotlin/KSP/Room/AGP/compileSdk unchanged (git diff shows no change to existing [versions] lines).",
+    "`./gradlew test` for all modules passes, and TOOLING_NOTES.md exists with the approach, versions with provenance, UUIDv7 finding with evidence, and test command."
+  ],
+  "verification_commands": ["./gradlew :core-data:test","./gradlew test","git status --porcelain","git diff"],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
