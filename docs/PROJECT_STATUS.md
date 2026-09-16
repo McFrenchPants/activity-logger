@@ -76,7 +76,8 @@ None currently. (Resolved 2026-09-15: UX_SPEC §6 example showed a clock time fo
 
 ## Environment lessons
 
-None yet.
+- Pixel 10 Pro (primary AI test device): bootloader confirmed locked on 2026-09-15 via `adb shell getprop ro.boot.flash.locked` (prints `1`). Gemini Nano / AICore APIs refuse to run on an unlocked bootloader, so check this first on any new test device before debugging AI availability failures.
+- Pixel 7 Pro is a test-only device (Tensor G2, predates the Gemini Nano hardware baseline). Use it for the "AI unavailable" capability-detection path, not for validating interpretation.
 
 When tooling/build/device issues occur repeatedly, record causes and working solutions here or in a dedicated troubleshooting section.
 

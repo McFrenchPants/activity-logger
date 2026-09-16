@@ -33,17 +33,17 @@ Status vocabulary:
      options (Settings > System > About > tap Build number) then ADB/Wi-Fi
      debugging as soon as it arrives; do a trivial Data Layer round-trip
      before Step 8 depends on it.
-   - Bootloader lock status assumed locked (Verizon-channel Pixels typically
-     restrict OEM unlocking) but not yet confirmed on either phone — Gemini
-     Nano APIs hard-refuse on an unlocked bootloader. Confirm with
-     `adb shell getprop ro.boot.flash.locked` (`1` = locked) before relying
-     on the Pixel 10 Pro for AI testing.
+   - Bootloader confirmed locked on the Pixel 10 Pro (2026-09-15):
+     `adb shell getprop ro.boot.flash.locked` printed `1`. Gemini Nano APIs
+     hard-refuse on an unlocked bootloader, so this precondition is met and
+     AI testing on that device is unblocked. Pixel 7 Pro not checked — it is
+     a test-only device and not an AI target.
    - No Play Store distribution needed for MVP dev/testing — sideload via
      `adb`/Android Studio Run to both phones and the watch once paired.
 
    Given this hardware, real Gemini Nano validation does not need to wait —
    it can be attempted directly on the Pixel 10 Pro whenever Step 4 is
-   reached, once the bootloader check above is confirmed.
+   reached.
 
 2. **Gradle project scaffold** — `idea`
    Create the multi-module Android/Wear OS project structure per
