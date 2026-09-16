@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T18:13:34.502Z",
+  "updated_at": "2026-09-16T21:01:41.152Z",
   "work_items": [
     {
       "id": "SS1",
@@ -112,13 +112,13 @@
     {
       "id": "DB1",
       "title": "Room schema v1 + migration test infrastructure (backlog item 3)",
-      "lifecycle_state": "approved",
+      "lifecycle_state": "released",
       "tasks": [
         {
           "id": "DB1.1",
           "title": "Host-side Room test tooling + ID factory",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -133,7 +133,7 @@
           "id": "DB1.2",
           "title": "Domain vocabularies in core-domain",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "DB1.1"
           ],
@@ -150,7 +150,7 @@
           "id": "DB1.3",
           "title": "Schema v1: entities, converters, database",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "DB1.1",
             "DB1.2"
@@ -168,7 +168,7 @@
           "id": "DB1.4",
           "title": "Data-layer operations and integrity tests",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "DB1.3"
           ],
@@ -185,7 +185,7 @@
           "id": "DB1.5",
           "title": "Migration harness, production builder, destructive-fallback guard",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "DB1.4"
           ],
@@ -202,7 +202,7 @@
           "id": "DB1.6",
           "title": "Documentation: DATA_MODEL, identifier ADR, PROJECT_STATUS",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "DB1.5"
           ],

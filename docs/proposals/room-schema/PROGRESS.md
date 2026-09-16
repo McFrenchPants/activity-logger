@@ -35,6 +35,14 @@ trigger, and most of it touches raw-capture immutability.
 
 ## Session log
 
+### 2026-09-16 — merged to main
+
+Owner asked for the merge. `feature/room-schema` merged into `main` with
+`--no-ff` (fast-forward was possible; merge commit kept for a visible
+boundary). `./gradlew test` on main after merge: 65 tests, 0 failures.
+DB1 and its tasks set to `released`, backlog item 3 `done`, PROJECT_STATUS
+roadmap item 6 struck through. Not pushed to origin.
+
 ### 2026-09-16 — DB1.6 done; work item complete, awaiting owner merge
 
 DATA_MODEL.md now describes schema v1 as exported (captured_zone_id, all 12

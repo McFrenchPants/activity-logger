@@ -8,7 +8,7 @@
 
 Documentation baseline created. Platform/API validation complete: SDK baselines, build toolchain, AI stack and speech API are pinned (ADR-021 through ADR-024), The multi-module Gradle scaffold is built and merged (empty phone and watch apps plus the core modules; see `docs/proposals/gradle-scaffold/BUILD_NOTES.md`).
 
-No user-facing product behaviour has been implemented yet. Room schema v1 (backlog item 3, `docs/proposals/room-schema/`) is implemented and tested in `core-data` on branch `feature/room-schema`, pending the owner's merge to `main`; `docs/DATA_MODEL.md` describes it and ADR-026 records the row-identifier decision.
+No user-facing product behaviour has been implemented yet. Room schema v1 (backlog item 3, `docs/proposals/room-schema/`) is implemented, tested and merged to `main` (2026-09-16) in `core-data`; `docs/DATA_MODEL.md` describes it and ADR-026 records the row-identifier decision.
 
 ## Completed
 
@@ -36,7 +36,7 @@ Recommended tasks:
 3. ~~Verify Gemini Nano Prompt API + Structured Output availability on target phone.~~ Done — ADR-023. Library-level availability confirmed from Google's device list and the device's AICore install; a real inference call is still unproven until Step 4.
 4. ~~Verify selected on-device speech recognition approach.~~ Done — ADR-024.
 5. ~~Create Gradle project structure.~~ Done 2026-09-16 — work item SS1.
-6. Define Room schema version 1. **← implemented and tested on branch `feature/room-schema`, pending the owner's merge to `main`** (see `docs/DATA_MODEL.md`, ADR-026)
+6. ~~Define Room schema version 1.~~ Done 2026-09-16 — work item DB1 (see `docs/DATA_MODEL.md`, ADR-026).
 7. Define domain interfaces.
 8. Define watch/phone protocol.
 9. Build a minimal end-to-end technical spike:
