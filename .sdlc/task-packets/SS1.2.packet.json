@@ -1,0 +1,69 @@
+{
+  "task_id": "SS1.2",
+  "plan_revision": "f900e36",
+  "objective": "Create the two pure-Kotlin-JVM library modules of the Activity Ledger build: core-domain and core-wear-protocol. Both are plain Kotlin JVM modules -- they apply the `kotlin-jvm` plugin from the version catalog (alias libs.plugins.kotlin.jvm) and must NOT apply any Android plugin or declare an `android { }` block. Neither needs the Android framework, and keeping them off it makes them fast to unit-test and impossible to accidentally couple to platform types. Each module gets: a build.gradle.kts applying only the Kotlin JVM plugin and setting the JDK toolchain to 21 (read from the catalog's jdkToolchain version, not hardcoded); a package root directory under src/main/kotlin/; one minimal Kotlin source file whose only purpose is to prove the main source set compiles; and one minimal unit test under src/test/kotlin/ proving the test source set is wired and runs. Package roots: com.mcfrenchpants.activityledger.core.domain for core-domain, and com.mcfrenchpants.activityledger.core.wearprotocol for core-wear-protocol. Use `testImplementation(kotlin(\"test\"))` for the test dependency -- it resolves at the applied Kotlin plugin's own version, so it introduces no new version into the catalog and needs no verification. The placeholder source file in each module must carry a comment stating plainly that it is a scaffold placeholder with no product meaning, to be deleted when real code lands in that module, so a later reader does not mistake it for domain modelling. Do not model any real domain concept: the canonical activity / raw capture / occurrence model belongs to a later backlog item, and inventing a stand-in now would create a fake precedent for it. core-wear-protocol is intended to hold only the phone/watch message contract -- data shapes and path constants -- so it must not depend on Play Services, on any Android type, or on any other project module. core-domain likewise must not depend on any other project module. This task is also the FIRST time any Gradle plugin is actually applied and resolved from a repository: the catalog's AGP/Kotlin/KSP plugin coordinates have never been exercised, because SS1.1 declared them all `apply false`. If the Kotlin 2.3.21 plugin marker fails to resolve, that is a real finding about the catalog, not a transient error -- report it with the exact Gradle error rather than substituting a different version. Kotlin MUST NOT be moved off 2.3.21: KSP has no 2.4.x release and Room requires KSP, so bumping Kotlin is a hard build break. Each module directory currently holds a .gitkeep created by SS1.1 to satisfy Gradle 9's requirement that an included project directory exist. Once a module has real tracked content you may delete its .gitkeep, but only in the two modules this task touches.",
+  "non_goals": [
+    "Do not touch the other six modules (app-phone, app-wear, core-data, core-ai, core-speech, core-testing) or delete their .gitkeep files -- SS1.3 through SS1.5 own those.",
+    "Do not apply any Android Gradle Plugin, add an android { } block, or add any androidx / Play Services / ML Kit dependency to either module.",
+    "Do not model real product domain concepts (activities, captures, occurrences, corrections, aliases). Placeholders only.",
+    "Do not add any dependency beyond the Kotlin standard library and kotlin(\"test\").",
+    "Do not add telemetry, analytics, crash reporting, or any logging of user content.",
+    "Do not modify settings.gradle.kts, the root build.gradle.kts, gradle.properties, or the Gradle wrapper -- SS1.1 settled those.",
+    "Do not edit anything under docs/, .sdlc/, agents/, scripts/, BACKLOG.md, PROGRESS.md, CLAUDE.md or AGENTS.md.",
+    "Do not commit."
+  ],
+  "dependencies": ["SS1.1"],
+  "read_paths": [
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "gradle/libs.versions.toml",
+    "gradle.properties",
+    "docs/ARCHITECTURE.md",
+    "AGENTS.md",
+    "CLAUDE.md"
+  ],
+  "write_paths": [
+    "core-domain",
+    "core-wear-protocol",
+    "gradle/libs.versions.toml"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "README.md",
+    "docs",
+    ".sdlc",
+    "agents",
+    "scripts",
+    ".claude",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "gradle.properties",
+    "gradlew",
+    "gradlew.bat",
+    "gradle/wrapper",
+    "app-phone",
+    "app-wear",
+    "core-data",
+    "core-ai",
+    "core-speech",
+    "core-testing"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew :core-domain:test :core-wear-protocol:test` is BUILD SUCCESSFUL and both modules' tests actually execute (a module with zero tests trivially 'passes' -- confirm real test execution, e.g. via the generated test report or --info, and state the evidence).",
+    "Neither module's build.gradle.kts applies an Android plugin or declares an `android { }` block, and neither declares a dependency on any other project module. Verifiable by reading both files and by `./gradlew :core-domain:dependencies :core-wear-protocol:dependencies`.",
+    "Both modules set the JDK toolchain to 21 by reading the version from gradle/libs.versions.toml rather than hardcoding the number.",
+    "The Kotlin 2.3.21 plugin marker actually resolved from a repository -- report the evidence. Kotlin's version is unchanged at 2.3.21 in the catalog.",
+    "gradle/libs.versions.toml is unchanged unless a change was genuinely required; if it changed, every added version must have been verified as actually resolving, and the report must state what was added and why.",
+    "The placeholder source file in each module carries a comment identifying it as a scaffold placeholder to be deleted when real code lands."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test :core-wear-protocol:test",
+    "./gradlew :core-domain:dependencies :core-wear-protocol:dependencies",
+    "git status --porcelain"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

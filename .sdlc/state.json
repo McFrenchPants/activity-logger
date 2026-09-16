@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T06:08:06.333Z",
+  "updated_at": "2026-09-16T06:09:18.341Z",
   "work_items": [
     {
       "id": "SS1",
@@ -25,17 +25,17 @@
         {
           "id": "SS1.2",
           "title": "core-domain and core-wear-protocol (pure Kotlin JVM)",
-          "status": "todo",
-          "lifecycle_state": null,
+          "status": "in-progress",
+          "lifecycle_state": "implementing",
           "dependencies": [
             "SS1.1"
           ],
           "lease": {
-            "assigned_agent": null,
-            "run_id": null,
-            "attempt_count": 0
+            "assigned_agent": "implementer",
+            "run_id": "run-2026-09-16",
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/SS1.2.packet.json",
           "report_path": null,
           "notes": "No Android plugin in either module."
         },
