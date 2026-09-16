@@ -90,6 +90,8 @@ from Maven Central on first test run (then cached in the Gradle cache).
 
 ## UUIDv7 finding
 
+(Decision recorded as ADR-026 in `docs/DECISIONS.md`.)
+
 `kotlin.uuid.Uuid.generateV7()` exists and works at Kotlin 2.3.21 (still
 `@ExperimentalUuidApi`). Evidence:
 

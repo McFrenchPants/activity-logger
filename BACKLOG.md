@@ -64,8 +64,8 @@ Status vocabulary:
    dependency inside `core-ai` per ADR-023.
 
 3. **Room schema v1 + migration test infrastructure** — `in progress`
-   Work item DB1 on `feature/room-schema`; design spec at
-   `docs/proposals/room-schema/DESIGN_SPEC.md` awaiting owner sign-off.
+   Work item DB1 on `feature/room-schema`; implementation plan complete (DB1.1-DB1.6 done); awaiting
+   owner merge of `feature/room-schema` into `main`.
    Implement the Room schema for raw captures, canonical activities, aliases,
    interpretations, occurrences, and corrections per `docs/DATA_MODEL.md`, plus
    baseline migration tests. Source: `docs/IMPLEMENTATION_HANDOFF.md`

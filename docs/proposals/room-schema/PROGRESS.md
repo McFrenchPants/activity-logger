@@ -19,7 +19,7 @@ trigger, and most of it touches raw-capture immutability.
 | DB1.3 | Schema v1: entities, converters, database | done | Verifier pass. FixtureInsertDao is temporary; DB1.4 replaces it |
 | DB1.4 | Data-layer operations and integrity tests | done | Verifier pass. Guard tightening for occurrence updates carried into DB1.5 |
 | DB1.5 | Migration harness, production builder, destructive-fallback guard | done | Verifier pass; verifier independently reproduced both fallback bite checks |
-| DB1.6 | Documentation: DATA_MODEL, identifier ADR, PROJECT_STATUS | todo | Needs DB1.5 |
+| DB1.6 | Documentation: DATA_MODEL, identifier ADR, PROJECT_STATUS | done | Verifier pass. ADR-026 (UUIDv7). DATA_MODEL checked column by column against 1.json |
 
 ## Open items (carry forward)
 
@@ -35,10 +35,26 @@ trigger, and most of it touches raw-capture immutability.
 
 ## Session log
 
+### 2026-09-16 — DB1.6 done; work item complete, awaiting owner merge
+
+DATA_MODEL.md now describes schema v1 as exported (captured_zone_id, all 12
+NO ACTION FKs with their indexes, unique occurrence-per-capture, vocabulary
+table, no triggers, corrections don't fabricate interpretations). ADR-026
+records UUIDv7 identifiers and the UUIDv4 fallback rule. PROJECT_STATUS closes
+the UUID question and marks schema v1 implemented pending merge. Verifier
+pass; orchestrator fixed one grammar slip in ADR-026. Earlier tracking notes
+said "13 FKs" — a miscount; 1.json has 12, corrected here and in state.json.
+Backlog item 3 note updated (still `in progress` until merged). Verifier
+nit left as is: DATA_MODEL points to TEST_STRATEGY §11 for the migration
+harness, which states the requirement but doesn't name the harness file.
+First spawn again got an unsubstituted packet (orchestrator error, same as
+DB1.1); re-spawned with the packet inline — not counted as an attempt.
+When merged: set DB1 and its tasks to `released`, backlog item 3 to `done`.
+
 ### 2026-09-16 — DB1.2 to DB1.5 done; stopped at task budget
 
 Five tasks completed this run (budget `max_tasks_per_run: 5`), each passed the
-verifier. core-data now has: schema v1 (six tables, 13 NO ACTION FKs, Room
+verifier. core-data now has: schema v1 (six tables, 12 NO ACTION FKs, Room
 enforces FKs itself), blocking DAOs with a class-file-reading guard test that
 restricts the write surface (no @Update/@Upsert/@Delete, ABORT inserts only,
 occurrence/correction writes only in `LedgerWriteDao`), transactional

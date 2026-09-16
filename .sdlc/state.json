@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T16:54:41.973Z",
+  "updated_at": "2026-09-16T18:13:34.502Z",
   "work_items": [
     {
       "id": "SS1",
@@ -162,7 +162,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/DB1.3.packet.json",
           "report_path": null,
-          "notes": "Done, verifier pass. Six tables, 13 NO ACTION FKs, schema 1.json exported. Room enables foreign_keys itself; test callback removed. Temporary insert-only FixtureInsertDao in main must be replaced in DB1.4."
+          "notes": "Done, verifier pass. Six tables, 12 NO ACTION FKs, schema 1.json exported. Room enables foreign_keys itself; test callback removed. Temporary insert-only FixtureInsertDao in main must be replaced in DB1.4."
         },
         {
           "id": "DB1.4",
@@ -201,7 +201,7 @@
         {
           "id": "DB1.6",
           "title": "Documentation: DATA_MODEL, identifier ADR, PROJECT_STATUS",
-          "status": "todo",
+          "status": "done",
           "lifecycle_state": null,
           "dependencies": [
             "DB1.5"
@@ -209,11 +209,11 @@
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/DB1.6.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done, verifier pass. DATA_MODEL updated for schema v1 (12 FKs, indexes, vocab table, no triggers, no fabricated interpretations); ADR-026 UUIDv7 identifiers; PROJECT_STATUS UUID question closed, schema v1 pending merge. First spawn got an unsubstituted packet (orchestrator error), not counted as an attempt."
         }
       ]
     }
