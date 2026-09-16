@@ -27,12 +27,13 @@ core-data (`core-data/build/test-results/testDebugUnitTest/`).
   (`android.sourceSets.named("test") { assets.directories.add(...) }`) with
   `testOptions.unitTests.isIncludeAndroidResources = true`, so
   MigrationTestHelper finds `<db fqcn>/<version>.json`.
-- In-memory databases: always open via `inMemoryTestDatabase<T>()`
-  (`core-data/src/test/.../TestDatabases.kt`). It adds a callback that runs
-  `PRAGMA foreign_keys = ON` on every open, because Room only enables foreign
-  keys itself when the schema declares one. Proven by
-  `PlaceholderRoomToolingTest.inMemoryDatabaseEnforcesForeignKeys` (pragma
-  returns 1 and a dangling-reference insert is rejected).
+- In-memory databases: open via `inMemoryTestDatabase<T>()`
+  (`core-data/src/test/.../TestDatabases.kt`). No pragma callback: Room itself
+  runs `PRAGMA foreign_keys = ON` on open for a database whose schema declares
+  foreign keys. Proven on the real schema by
+  `ActivityLedgerDatabaseToolingTest.plainRoomBuildEnforcesForeignKeys` (DB1.3).
+  (DB1.1 briefly forced the pragma in tests while only the FK-less placeholder
+  existed; removed in DB1.3.)
 - Migration tests: use the **driver-based** constructor
   `MigrationTestHelper(instrumentation, file = targetContext.getDatabasePath(name), driver = AndroidSQLiteDriver(), databaseClass = X::class)`
   and `createDatabase(version)` / `runMigrationsAndValidate(version, migrations)`,
@@ -40,8 +41,8 @@ core-data (`core-data/build/test-results/testDebugUnitTest/`).
   from androidx.sqlite:sqlite-framework 2.6.2, already transitive from
   room-runtime (no catalog entry added). Note: a connection from
   MigrationTestHelper does not have foreign keys switched on automatically.
-- Proof tests live in `PlaceholderRoomToolingTest` and target the scaffold
-  placeholder database; delete them with the placeholder.
+- Tooling proof tests live in `ActivityLedgerDatabaseToolingTest` (re-targeted
+  from the placeholder database in DB1.3).
 
 ### What was tried and failed
 

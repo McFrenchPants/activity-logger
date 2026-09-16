@@ -1,0 +1,793 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "5122a06ec1d543878479ca5932605b43",
+    "entities": [
+      {
+        "tableName": "raw_captures",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `source` TEXT NOT NULL, `source_surface` TEXT, `captured_at` INTEGER NOT NULL, `captured_zone_id` TEXT NOT NULL, `raw_text` TEXT NOT NULL, `speech_confidence` REAL, `speech_alternatives_json` TEXT, `processing_state` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceSurface",
+            "columnName": "source_surface",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "capturedAt",
+            "columnName": "captured_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capturedZoneId",
+            "columnName": "captured_zone_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawText",
+            "columnName": "raw_text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "speechConfidence",
+            "columnName": "speech_confidence",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "speechAlternativesJson",
+            "columnName": "speech_alternatives_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "processingState",
+            "columnName": "processing_state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_raw_captures_captured_at",
+            "unique": false,
+            "columnNames": [
+              "captured_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_raw_captures_captured_at` ON `${TABLE_NAME}` (`captured_at`)"
+          },
+          {
+            "name": "index_raw_captures_processing_state",
+            "unique": false,
+            "columnNames": [
+              "processing_state"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_raw_captures_processing_state` ON `${TABLE_NAME}` (`processing_state`)"
+          }
+        ]
+      },
+      {
+        "tableName": "canonical_activities",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `display_name` TEXT NOT NULL, `normalized_name` TEXT NOT NULL, `status` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `merged_into_activity_id` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`merged_into_activity_id`) REFERENCES `canonical_activities`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "normalizedName",
+            "columnName": "normalized_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mergedIntoActivityId",
+            "columnName": "merged_into_activity_id",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_canonical_activities_normalized_name",
+            "unique": false,
+            "columnNames": [
+              "normalized_name"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_canonical_activities_normalized_name` ON `${TABLE_NAME}` (`normalized_name`)"
+          },
+          {
+            "name": "index_canonical_activities_status",
+            "unique": false,
+            "columnNames": [
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_canonical_activities_status` ON `${TABLE_NAME}` (`status`)"
+          },
+          {
+            "name": "index_canonical_activities_merged_into_activity_id",
+            "unique": false,
+            "columnNames": [
+              "merged_into_activity_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_canonical_activities_merged_into_activity_id` ON `${TABLE_NAME}` (`merged_into_activity_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "canonical_activities",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "merged_into_activity_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "activity_aliases",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `canonical_activity_id` TEXT NOT NULL, `alias_text` TEXT NOT NULL, `normalized_alias` TEXT NOT NULL, `source` TEXT NOT NULL, `confidence` REAL, `created_at` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`canonical_activity_id`) REFERENCES `canonical_activities`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "canonicalActivityId",
+            "columnName": "canonical_activity_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aliasText",
+            "columnName": "alias_text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "normalizedAlias",
+            "columnName": "normalized_alias",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_activity_aliases_canonical_activity_id_normalized_alias",
+            "unique": true,
+            "columnNames": [
+              "canonical_activity_id",
+              "normalized_alias"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_activity_aliases_canonical_activity_id_normalized_alias` ON `${TABLE_NAME}` (`canonical_activity_id`, `normalized_alias`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "canonical_activities",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "canonical_activity_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "interpretations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `raw_capture_id` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `interpreter_version` TEXT NOT NULL, `prompt_version` TEXT NOT NULL, `schema_version` INTEGER NOT NULL, `operation` TEXT NOT NULL, `activity_resolution` TEXT NOT NULL, `matched_activity_id` TEXT, `proposed_canonical_name` TEXT, `activity_state` TEXT, `temporal_expression` TEXT, `resolved_occurred_at` INTEGER, `time_precision` TEXT, `model_confidence_band` TEXT, `candidate_context_hash` TEXT, `structured_result_json` TEXT, `validation_status` TEXT NOT NULL, `validation_reason` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`raw_capture_id`) REFERENCES `raw_captures`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`matched_activity_id`) REFERENCES `canonical_activities`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawCaptureId",
+            "columnName": "raw_capture_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "interpreterVersion",
+            "columnName": "interpreter_version",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "promptVersion",
+            "columnName": "prompt_version",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schemaVersion",
+            "columnName": "schema_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "operation",
+            "columnName": "operation",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activityResolution",
+            "columnName": "activity_resolution",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "matchedActivityId",
+            "columnName": "matched_activity_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "proposedCanonicalName",
+            "columnName": "proposed_canonical_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "activityState",
+            "columnName": "activity_state",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "temporalExpression",
+            "columnName": "temporal_expression",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "resolvedOccurredAt",
+            "columnName": "resolved_occurred_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "timePrecision",
+            "columnName": "time_precision",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "modelConfidenceBand",
+            "columnName": "model_confidence_band",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "candidateContextHash",
+            "columnName": "candidate_context_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "structuredResultJson",
+            "columnName": "structured_result_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "validationStatus",
+            "columnName": "validation_status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "validationReason",
+            "columnName": "validation_reason",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_interpretations_raw_capture_id",
+            "unique": false,
+            "columnNames": [
+              "raw_capture_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_interpretations_raw_capture_id` ON `${TABLE_NAME}` (`raw_capture_id`)"
+          },
+          {
+            "name": "index_interpretations_matched_activity_id",
+            "unique": false,
+            "columnNames": [
+              "matched_activity_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_interpretations_matched_activity_id` ON `${TABLE_NAME}` (`matched_activity_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "raw_captures",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "raw_capture_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "canonical_activities",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "matched_activity_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "activity_occurrences",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `canonical_activity_id` TEXT NOT NULL, `raw_capture_id` TEXT NOT NULL, `effective_interpretation_id` TEXT NOT NULL, `captured_at` INTEGER NOT NULL, `occurred_at` INTEGER NOT NULL, `time_precision` TEXT NOT NULL, `activity_state` TEXT NOT NULL, `visibility_status` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`canonical_activity_id`) REFERENCES `canonical_activities`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`raw_capture_id`) REFERENCES `raw_captures`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`effective_interpretation_id`) REFERENCES `interpretations`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "canonicalActivityId",
+            "columnName": "canonical_activity_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawCaptureId",
+            "columnName": "raw_capture_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "effectiveInterpretationId",
+            "columnName": "effective_interpretation_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capturedAt",
+            "columnName": "captured_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "occurredAt",
+            "columnName": "occurred_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timePrecision",
+            "columnName": "time_precision",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activityState",
+            "columnName": "activity_state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "visibilityStatus",
+            "columnName": "visibility_status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_activity_occurrences_canonical_activity_id_occurred_at",
+            "unique": false,
+            "columnNames": [
+              "canonical_activity_id",
+              "occurred_at"
+            ],
+            "orders": [
+              "ASC",
+              "DESC"
+            ],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_activity_occurrences_canonical_activity_id_occurred_at` ON `${TABLE_NAME}` (`canonical_activity_id` ASC, `occurred_at` DESC)"
+          },
+          {
+            "name": "index_activity_occurrences_occurred_at",
+            "unique": false,
+            "columnNames": [
+              "occurred_at"
+            ],
+            "orders": [
+              "DESC"
+            ],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_activity_occurrences_occurred_at` ON `${TABLE_NAME}` (`occurred_at` DESC)"
+          },
+          {
+            "name": "index_activity_occurrences_raw_capture_id",
+            "unique": true,
+            "columnNames": [
+              "raw_capture_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_activity_occurrences_raw_capture_id` ON `${TABLE_NAME}` (`raw_capture_id`)"
+          },
+          {
+            "name": "index_activity_occurrences_effective_interpretation_id",
+            "unique": false,
+            "columnNames": [
+              "effective_interpretation_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_activity_occurrences_effective_interpretation_id` ON `${TABLE_NAME}` (`effective_interpretation_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "canonical_activities",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "canonical_activity_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "raw_captures",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "raw_capture_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "interpretations",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "effective_interpretation_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "corrections",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `occurrence_id` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `source` TEXT NOT NULL, `reason` TEXT, `previous_canonical_activity_id` TEXT, `new_canonical_activity_id` TEXT, `previous_occurred_at` INTEGER, `new_occurred_at` INTEGER, `previous_time_precision` TEXT, `new_time_precision` TEXT, `previous_activity_state` TEXT, `new_activity_state` TEXT, `previous_effective_interpretation_id` TEXT, `new_effective_interpretation_id` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`occurrence_id`) REFERENCES `activity_occurrences`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`previous_canonical_activity_id`) REFERENCES `canonical_activities`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`new_canonical_activity_id`) REFERENCES `canonical_activities`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`previous_effective_interpretation_id`) REFERENCES `interpretations`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`new_effective_interpretation_id`) REFERENCES `interpretations`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "occurrenceId",
+            "columnName": "occurrence_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reason",
+            "columnName": "reason",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "previousCanonicalActivityId",
+            "columnName": "previous_canonical_activity_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "newCanonicalActivityId",
+            "columnName": "new_canonical_activity_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "previousOccurredAt",
+            "columnName": "previous_occurred_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "newOccurredAt",
+            "columnName": "new_occurred_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "previousTimePrecision",
+            "columnName": "previous_time_precision",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "newTimePrecision",
+            "columnName": "new_time_precision",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "previousActivityState",
+            "columnName": "previous_activity_state",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "newActivityState",
+            "columnName": "new_activity_state",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "previousEffectiveInterpretationId",
+            "columnName": "previous_effective_interpretation_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "newEffectiveInterpretationId",
+            "columnName": "new_effective_interpretation_id",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_corrections_occurrence_id",
+            "unique": false,
+            "columnNames": [
+              "occurrence_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_corrections_occurrence_id` ON `${TABLE_NAME}` (`occurrence_id`)"
+          },
+          {
+            "name": "index_corrections_previous_canonical_activity_id",
+            "unique": false,
+            "columnNames": [
+              "previous_canonical_activity_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_corrections_previous_canonical_activity_id` ON `${TABLE_NAME}` (`previous_canonical_activity_id`)"
+          },
+          {
+            "name": "index_corrections_new_canonical_activity_id",
+            "unique": false,
+            "columnNames": [
+              "new_canonical_activity_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_corrections_new_canonical_activity_id` ON `${TABLE_NAME}` (`new_canonical_activity_id`)"
+          },
+          {
+            "name": "index_corrections_previous_effective_interpretation_id",
+            "unique": false,
+            "columnNames": [
+              "previous_effective_interpretation_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_corrections_previous_effective_interpretation_id` ON `${TABLE_NAME}` (`previous_effective_interpretation_id`)"
+          },
+          {
+            "name": "index_corrections_new_effective_interpretation_id",
+            "unique": false,
+            "columnNames": [
+              "new_effective_interpretation_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_corrections_new_effective_interpretation_id` ON `${TABLE_NAME}` (`new_effective_interpretation_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "activity_occurrences",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "occurrence_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "canonical_activities",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "previous_canonical_activity_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "canonical_activities",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "new_canonical_activity_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "interpretations",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "previous_effective_interpretation_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "interpretations",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "new_effective_interpretation_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5122a06ec1d543878479ca5932605b43')"
+    ]
+  }
+}
