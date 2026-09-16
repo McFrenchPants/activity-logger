@@ -127,7 +127,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/DB1.1.packet.json",
           "report_path": null,
-          "notes": "Done, verifier pass. Robolectric 4.17 (sdk=35; 36 fails under JDK 21) + driver-based MigrationTestHelper (Instance/Class ctor breaks on Windows paths). Uuid.generateV7() works at Kotlin 2.3.21 -> UUIDv7. MigrationTestHelper connections do not enable foreign_keys."
+          "notes": "Done, verifier pass. Robolectric 4.17 (sdk=35; 36 fails under JDK 21) + driver-based MigrationTestHelper (Instrumentation/Class ctor breaks on Windows paths). Uuid.generateV7() works at Kotlin 2.3.21 -> UUIDv7. MigrationTestHelper connections do not enable foreign_keys."
         },
         {
           "id": "DB1.2",
