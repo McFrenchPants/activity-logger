@@ -67,7 +67,7 @@ These should be resolved during architecture validation rather than guessed.
 
 **Resolved 2026-09-15** by Phase 1 platform validation (backlog item 1):
 
-- ~~exact Android min/target SDK~~ — ADR-021: phone `minSdk` 33, `targetSdk`/`compileSdk` 36.
+- ~~exact Android min/target SDK~~ — ADR-021: phone `minSdk` 33, `targetSdk` 36, `compileSdk` 37 (amended from 36).
 - ~~exact ML Kit Prompt API version~~ — ADR-023: `genai-prompt:1.0.0-beta4`, with `genai-schema-compiler:1.0.0-alpha1` for Structured Output, contained in `core-ai`.
 - ~~exact on-device speech API~~ — ADR-024: platform `SpeechRecognizer.createOnDeviceSpeechRecognizer()`.
 - ~~exact Wear OS minimum version~~ — ADR-021: `app-wear` `minSdk` 34 (Wear OS 5), matching the OnePlus Watch 3.

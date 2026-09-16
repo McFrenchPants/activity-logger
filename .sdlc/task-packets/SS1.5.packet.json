@@ -1,0 +1,91 @@
+{
+  "task_id": "SS1.5",
+  "plan_revision": "dd5b0a6",
+  "objective": "Create the two Android application modules: app-phone and app-wear. These are scaffolds, not features. app-phone: apply the catalog's android-application and kotlin-compose aliases only (NO kotlin-android plugin -- it does not exist in the catalog; AGP 9 has built-in Kotlin and hard-fails if org.jetbrains.kotlin.android is applied). namespace and applicationId com.mcfrenchpants.activityledger; minSdk from libs.versions.minSdkPhone (33); compileSdk/targetSdk from the catalog (36); JDK toolchain from libs.versions.jdkToolchain. Depends on project modules :core-domain, :core-data, :core-ai, :core-speech, :core-wear-protocol. One empty ComponentActivity using setContent that shows the app name as plain text via Compose (Compose BOM + activity-compose from the catalog, plus whatever minimal Compose UI/material3 artifacts are needed, versioned by the BOM). No product UI, no theme work beyond what compiles. app-wear: apply android-application and kotlin-compose only. Same applicationId com.mcfrenchpants.activityledger (a Wear companion app must share the phone app's id); namespace com.mcfrenchpants.activityledger.wear (namespace may differ from applicationId, and must so the two apps' R classes don't collide conceptually -- applicationId is what matters for pairing). minSdk from libs.versions.minSdkWatch (34). Depends on :core-domain, :core-wear-protocol and :core-speech ONLY -- it must NOT depend on :core-ai directly or transitively (AGENTS.md: the watch never runs inference). Uses Wear Compose Material3 (libs.androidx.wear.compose.material3) plus activity-compose for a single empty activity showing the app name. The app-wear manifest declares <uses-feature android:name=\"android.hardware.type.watch\" /> and <meta-data android:name=\"com.google.android.wearable.standalone\" android:value=\"false\" /> -- false because the watch is a companion that depends on the phone for interpretation and storage (docs/WATCH_SPEC.md; standalone operation is explicitly a possible future version only). ADR-025 (MUST implement): BOTH app manifests declare xmlns:tools and contain exactly <uses-permission android:name=\"android.permission.INTERNET\" tools:node=\"remove\" /> and <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" tools:node=\"remove\" />, because genai-prompt transitively brings Google's datatransport telemetry stack, whose manifests declare those permissions, and the manifest merger would otherwise silently grant app-phone network access. Apply this to app-wear too even though it does not consume core-ai, so a later dependency change cannot regress it. You must then PROVE it by inspecting the merged debug manifests AGP writes under each app's build/intermediates (search for merged_manifest or merged_manifests) and confirming neither contains a uses-permission for INTERNET or ACCESS_NETWORK_STATE. Also report whether app-phone's merged manifest still contains the datatransport services/receiver (TransportBackendDiscovery, JobInfoSchedulerService, AlarmManagerSchedulerBroadcastReceiver) -- do NOT remove those in this task, just report exactly what is present. VERSIONS: if you need any library not already in gradle/libs.versions.toml (e.g. androidx.compose.ui:ui, androidx.compose.material3:material3 -- both should be BOM-managed and need no version.ref; or androidx.wear.compose:compose-foundation if Wear Material3 does not bring it), you may ADD catalog entries. Prefer BOM-managed or already-pinned versions. Any genuinely new version you add must be verified to actually resolve in this build, never recalled from memory, and reported with its exact value. You may NOT change or remove any existing catalog entry, and Kotlin stays 2.3.21. Test dependency note: an Android module needs kotlin(\"test-junit\"), not kotlin(\"test\"); but no unit tests are required in the app modules for this task. Style reference for module build files: core-ai/build.gradle.kts and core-data/build.gradle.kts (header comment explaining the module's role, versions from the catalog only). Each app directory holds a .gitkeep from SS1.1; delete it in these two modules once they have real content. Placeholder source files must be clearly commented as scaffold placeholders with no product meaning. SCOPE CHANGE APPROVED BY ORCHESTRATOR: composeBom 2026.09.00 (Compose 1.12.1) requires compileSdk >= 37. Change ONLY the catalog value compileSdk from 36 to 37; targetSdk stays 36, minSdk values unchanged, composeBom unchanged. If AGP requires a minor API level (e.g. 37.2) rather than plain 37, use the smallest form that satisfies checkDebugAarMetadata; if that needs build-file syntax changes in the core-* modules, report scope_change_requested rather than editing them. Let AGP install the android-37 platform if it can, and report exactly what was downloaded. After the change, rebuild the WHOLE repo with ./gradlew assembleDebug so the core-* modules are proven against 37 too.",
+  "non_goals": [
+    "Do not implement any product UI, navigation, theming, capture flow, Data Layer transport, or ViewModel.",
+    "Do not follow docs/UX_VISUAL_SPEC.md -- that is a later step's input.",
+    "Do not add app-wear -> core-ai dependency by any route.",
+    "Do not remove or modify the datatransport services/receiver in the merged manifest; only report them.",
+    "Do not add any INTERNET permission, network code, telemetry, analytics, crash reporting, or logging of user content.",
+    "Do not configure release signing or run a release/R8 build.",
+    "Do not change or remove any existing entry in gradle/libs.versions.toml EXCEPT compileSdk (approved scope change: 36 -> 37), and do not move Kotlin off 2.3.21. targetSdk stays 36.",
+    "Do not modify settings.gradle.kts, the root build.gradle.kts, gradle.properties, or the Gradle wrapper.",
+    "Do not touch any core-* module.",
+    "Do not edit anything under docs/, .sdlc/, agents/, scripts/, .claude/, BACKLOG.md, PROGRESS.md, CLAUDE.md or AGENTS.md.",
+    "Do not commit."
+  ],
+  "dependencies": [
+    "SS1.4"
+  ],
+  "read_paths": [
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "gradle/libs.versions.toml",
+    "gradle.properties",
+    "core-ai",
+    "core-data",
+    "core-domain",
+    "core-speech",
+    "core-testing",
+    "core-wear-protocol",
+    ".gitignore",
+    "docs/ARCHITECTURE.md",
+    "docs/DECISIONS.md",
+    "docs/WATCH_SPEC.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "app-phone",
+    "app-wear"
+  ],
+  "write_paths": [
+    "app-phone",
+    "app-wear",
+    "gradle/libs.versions.toml"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "README.md",
+    "docs",
+    ".sdlc",
+    "agents",
+    "scripts",
+    ".claude",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "gradle.properties",
+    "gradle/wrapper",
+    "gradlew",
+    "gradlew.bat",
+    "core-ai",
+    "core-data",
+    "core-domain",
+    "core-speech",
+    "core-testing",
+    "core-wear-protocol"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew assembleDebug` is BUILD SUCCESSFUL and produces both app-phone and app-wear debug APKs; give the APK paths.",
+    "app-wear has no path to core-ai: `./gradlew :app-wear:dependencies --configuration debugRuntimeClasspath` output contains neither `project :core-ai` nor any com.google.mlkit artifact. State the grep result.",
+    "Both apps use applicationId com.mcfrenchpants.activityledger; app-phone minSdk comes from minSdkPhone (33) and app-wear from minSdkWatch (34); compileSdk/targetSdk/JDK toolchain come from the catalog and the literals 33, 34, 36, 37 and 21 do not appear in either app build file.",
+    "Both source manifests contain the two ADR-025 tools:node=\"remove\" entries for INTERNET and ACCESS_NETWORK_STATE, and both MERGED debug manifests contain no uses-permission for either. Give the merged manifest paths inspected and the grep result.",
+    "Report exactly which datatransport components (services, receivers, meta-data) remain in app-phone's merged debug manifest.",
+    "app-wear's manifest declares the android.hardware.type.watch feature and com.google.android.wearable.standalone meta-data set to false.",
+    "Neither app module applies a kotlin-android plugin. `git diff -- gradle/libs.versions.toml` shows, apart from additions, exactly one changed line: compileSdk 36 -> 37 (targetSdk still 36). Every added version is reported and confirmed to resolve.",
+    "No com.google.mlkit coordinate appears in either app build file, and no .kt file in either app imports an ML Kit type.",
+    "Every placeholder source file is clearly marked as a scaffold placeholder; the .gitkeep in app-phone and app-wear is deleted.",
+    "Report which Android SDK components (platform, build-tools) the build downloaded, with exact versions."
+  ],
+  "verification_commands": [
+    "./gradlew assembleDebug",
+    "./gradlew :app-wear:dependencies --configuration debugRuntimeClasspath",
+    "./gradlew :app-phone:dependencies --configuration debugRuntimeClasspath",
+    "git status --porcelain",
+    "git diff -- gradle/libs.versions.toml"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

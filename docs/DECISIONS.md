@@ -224,20 +224,22 @@ Details: `docs/UX_VISUAL_SPEC.md` §3 D2.
 
 ---
 
-## ADR-021 — SDK baselines: phone `minSdk` 33, watch `minSdk` 34, `compileSdk`/`targetSdk` 36
+## ADR-021 — SDK baselines: phone `minSdk` 33, watch `minSdk` 34, `targetSdk` 36, `compileSdk` 37
 
-**Status:** Accepted
+**Status:** Accepted (amended 2026-09-16: `compileSdk` 36 → 37)
 
 | Module | minSdk | targetSdk | compileSdk |
 |---|---|---|---|
-| `app-phone` | 33 (Android 13) | 36 | 36 |
-| `app-wear` | 34 (Android 14 / Wear OS 5) | 36 | 36 |
+| `app-phone` | 33 (Android 13) | 36 | 37 |
+| `app-wear` | 34 (Android 14 / Wear OS 5) | 36 | 37 |
 
 Phone `minSdk` 33 is set by the speech decision in ADR-024: from API 33, `createOnDeviceSpeechRecognizer()` forces on-device recognition and fails cleanly when no local engine exists, rather than silently falling back to a network recognizer. Silent network fallback would breach ADR-005 and AGENTS.md #11, so the API level that makes the failure explicit is the floor.
 
 Watch `minSdk` 34 matches Wear OS 5, which is what the OnePlus Watch 3 test hardware ships with. Wear OS 6 (API 36) is promised for that device but has not landed; targeting 36 as a minimum would make the only available watch untestable.
 
 `compileSdk`/`targetSdk` 36 rather than 37: API 36 is the highest platform installed in the local SDK, and is Google Play's current target-API requirement. The primary test device runs Android 17 (API 37) and runs API 36 apps under normal forward compatibility, so nothing is lost by not chasing 37 before there is a reason to.
+
+**Amendment (2026-09-16):** that reason arrived for `compileSdk` only. The Compose BOM pinned by ADR-022 (2026.09.00, Compose 1.12.1) declares a minimum `compileSdk` of 37 in its AAR metadata, so `app-phone` fails `checkDebugAarMetadata` at 36. `compileSdk` is therefore 37 for every Android module (they all read it from the version catalog). `targetSdk` stays 36: `compileSdk` only sets which APIs code may compile against, while `targetSdk` sets runtime behaviour and the Play requirement, so the runtime reasoning above is unchanged. Keeping the BOM pin was preferred over pinning an older BOM to stay on 36. AGP auto-installed Android SDK Platform 37.0 (revision 2); a fresh machine or CI needs that platform too.
 
 **Reason:** Each floor is set by a hard constraint — an explicit on-device speech failure, real watch hardware, and the installed/required platform — not by a general preference for newness.
 

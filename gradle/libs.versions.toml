@@ -14,7 +14,7 @@ ksp = "2.3.12"
 jdkToolchain = "21"
 
 # SDK levels
-compileSdk = "36"
+compileSdk = "37"
 targetSdk = "36"
 minSdkPhone = "33"
 minSdkWatch = "34"
@@ -31,6 +31,9 @@ mlkitGenaiSchemaCompiler = "1.0.0-alpha1"
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+# Versioned by androidx-compose-bom (no version.ref): declare with platform(libs.androidx.compose.bom).
+androidx-compose-ui = { module = "androidx.compose.ui:ui" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }

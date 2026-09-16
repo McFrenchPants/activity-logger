@@ -41,7 +41,7 @@ From ADR-021/022/023, plus the Gradle version resolved during planning on
 | `com.google.mlkit:genai-prompt` | 1.0.0-beta4 | ADR-023 — `core-ai` only |
 | `com.google.mlkit:genai-schema-compiler` | 1.0.0-alpha1 | ADR-023 — `core-ai` only |
 | phone `minSdk` / watch `minSdk` | 33 / 34 | ADR-021 |
-| `compileSdk` / `targetSdk` | 36 / 36 | ADR-021 |
+| `compileSdk` / `targetSdk` | 37 / 36 | ADR-021 (compileSdk amended 36 → 37 during SS1.5) |
 
 Local Android SDK lives at `C:\Dev\Android SDK` (note the space in the path).
 `platforms/android-36` is installed; `build-tools` currently tops out at

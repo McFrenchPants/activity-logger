@@ -19,10 +19,53 @@ legacy proposal-folder delegation path.
 | SS1.2 | `core-domain`, `core-wear-protocol` (pure Kotlin JVM) | done | Kotlin 2.3.21 plugin marker resolved for the first time. AGP and KSP still unproven. |
 | SS1.3 | `core-data` (Room + KSP), `core-testing` | done | Verifier pass, all 8 criteria. AGP 9 rejects the `kotlin-android` plugin; alias removed from the catalog. |
 | SS1.4 | `core-ai` (ML Kit containment), `core-speech` | done | Accepted after ADR-023 was amended (the original wording was not implementable for generated code). ADR-025 added: the apps strip the `INTERNET` permission ML Kit brings in. |
-| SS1.5 | `app-phone`, `app-wear` | todo | Depends on SS1.4. |
+| SS1.5 | `app-phone`, `app-wear` | done | `compileSdk` raised to 37 (ADR-021 amended) because the pinned Compose BOM requires it; `targetSdk` stays 36. Both merged manifests verified free of `INTERNET`/`ACCESS_NETWORK_STATE`. |
 | SS1.6 | Full-build verification pass + `BUILD_NOTES.md` | todo | Depends on SS1.5. |
 
 ## Session log
+
+### 2026-09-16 — SS1.5 done; ADR-021 amended (compileSdk 37)
+
+`app-phone` and `app-wear` exist and `./gradlew assembleDebug` builds both
+debug APKs plus every core module. Routed through the default (orchestrator
+spot-check) path, not the verifier: no persistence, auth, deploy, AI-output,
+capture-immutability, transport or query code is involved. The orchestrator
+independently re-ran `assembleDebug` (exit 0), re-grepped both merged debug
+manifests for `INTERNET`/`ACCESS_NETWORK_STATE` (0 each), and re-checked
+`:app-wear:dependencies --configuration debugRuntimeClasspath` for `core-ai`
+or `mlkit` (0).
+
+**Scope change approved mid-task: `compileSdk` 36 → 37.** The implementer
+stopped correctly when `:app-phone:checkDebugAarMetadata` failed: Compose BOM
+2026.09.00 resolves Compose 1.12.1, whose AARs require `compileSdk` ≥ 37. The
+alternative, an older BOM, would have contradicted ADR-022's pin. `targetSdk`
+is unchanged at 36, so runtime behaviour is unchanged. Plain `37` was enough; no
+minor-API-level syntax was needed. ADR-021, `PROJECT_STATUS.md` and the plan's
+toolchain table were updated. AGP auto-installed **Android SDK Platform 37.0
+rev 2**; no new build-tools.
+
+**The watch does not use the Compose BOM.** Wear Compose Material3 1.6.2 plus
+activity-compose resolves Compose 1.9.2 on `app-wear`, while `app-phone` is on
+1.12.1. Harmless for empty scaffolds, but the two apps run different Compose
+versions. Worth a deliberate decision when real UI lands (e.g. applying the BOM
+to `app-wear` too).
+
+**ADR-025 is implemented and proven on debug builds.** Both source manifests
+carry the two `tools:node="remove"` entries. The datatransport components
+remain declared in `app-phone`'s merged manifest, inert without network
+permission: `TransportBackendDiscovery` (with the `cct` backend meta-data),
+`JobInfoSchedulerService` and `AlarmManagerSchedulerBroadcastReceiver`. The
+merged manifest also carries `com.google.android.apps.aicore.service.BIND_SERVICE`,
+expected for on-device Gemini Nano. The release-build merged-manifest check that
+ADR-025 requires still belongs to the hardening step.
+
+Catalog additions: `androidx-compose-ui` and `androidx-compose-material3`, both
+BOM-managed with no new version strings (resolved ui 1.12.1, material3 1.4.0).
+Both apps: `versionCode` 1, `versionName` "0.1.0", `allowBackup="false"`, and
+`app-wear` declares `standalone=false` as a companion app.
+
+Next: SS1.6 (full-build verification pass + `BUILD_NOTES.md`), which must
+record compileSdk 37 as differing from the original plan table.
 
 ### 2026-09-16 — SS1.4 accepted; ADR-023 amended, ADR-025 added
 
