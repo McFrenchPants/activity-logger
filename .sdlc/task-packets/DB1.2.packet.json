@@ -1,0 +1,25 @@
+{
+  "task_id": "DB1.2",
+  "plan_revision": "5dd7990",
+  "objective": "Add the domain vocabularies to core-domain as plain, public Kotlin enums in package com.mcfrenchpants.activityledger.core.domain.model (one file per enum, or a small number of files; your call). core-domain is a pure Kotlin/JVM module (plugin kotlin-jvm, testImplementation(kotlin(\"test\"))). These enums will be persisted by a later task as their constant `name` text (never ordinal), so the names are a stored contract. Exact enums and constants, in this order:\n- ActivityState: COMPLETED, IN_PROGRESS\n- ActivityResolution: EXISTING_ACTIVITY, NEW_ACTIVITY, AMBIGUOUS, UNRESOLVED\n- ProcessingState: CAPTURED, QUEUED_FOR_PHONE, TRANSCRIBED, INTERPRETING, INTERPRETED, PERSISTED, NEEDS_REVIEW, FAILED_RETRYABLE, FAILED_FINAL\n- TimePrecision: EXACT, APPROXIMATE, DATE_ONLY, INFERRED_NOW\n- VisibilityStatus: ACTIVE, HIDDEN\n- CanonicalActivityStatus: ACTIVE, MERGED, ARCHIVED\n- AliasSource: USER_CORRECTION, AI_CONFIRMED, SEEDED, MANUAL\n- CorrectionSource: USER, REINTERPRETATION\n- CaptureSource: PHONE_VOICE, PHONE_TEXT, WATCH_VOICE\n- InterpretationOperation: LOG_ACTIVITY, QUERY_HISTORY, UNSUPPORTED\n- ValidationStatus: VALID, INVALID, NEEDS_REVIEW\n- ConfidenceBand: HIGH, MEDIUM, LOW\nEach enum gets a short KDoc: what it classifies, and a one-line warning that constant names are persisted as text so renaming or removing a constant is a data migration. Keep constants bare (no constructor properties, no display strings - UI wording is not this module's job). Add a golden-name test in core-domain/src/test that pins, per enum, the exact list of constant names (entries.map { it.name }), so renaming, removing or adding a constant fails a test and forces a deliberate update. Do not assert ordinals. Delete the scaffold placeholder core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/ScaffoldPlaceholder.kt and its test core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/ScaffoldPlaceholderTest.kt. Note: in this pure JVM module `kotlin.test.Test` resolved previously (the placeholder test used it); if it does not, use whatever the module already supports without adding dependencies.",
+  "non_goals": [
+    "Do not add data classes, entities, interfaces, repositories, validators or any other domain types beyond these twelve enums.",
+    "Do not add fields, display names, parsing helpers or companion lookup functions to the enums.",
+    "Do not change core-domain/build.gradle.kts (no new plugins or dependencies), and do not touch any other module.",
+    "Do not edit gradle/libs.versions.toml or any doc.",
+    "Do not commit."
+  ],
+  "dependencies": ["DB1.1"],
+  "read_paths": ["core-domain","docs/DOMAIN_MODEL.md","docs/DATA_MODEL.md","AGENTS.md","CLAUDE.md","gradle/libs.versions.toml"],
+  "write_paths": ["core-domain/src"],
+  "forbidden_paths": ["BACKLOG.md","PROGRESS.md","CLAUDE.md","AGENTS.md","README.md","docs",".sdlc","agents","scripts",".claude","settings.gradle.kts","build.gradle.kts","gradle.properties","gradle","gradlew","gradlew.bat","core-domain/build.gradle.kts","core-data","core-testing","core-ai","core-speech","core-wear-protocol","app-phone","app-wear"],
+  "acceptance_criteria": [
+    "The twelve enums exist, public, in package com.mcfrenchpants.activityledger.core.domain.model, with exactly the listed constants in the listed order and no extra members.",
+    "A test pins every enum's constant-name list exactly; demonstrate it bites by temporarily renaming one constant, running the test, capturing the failure, and reverting (the temporary change must not be in the final diff).",
+    "ScaffoldPlaceholder.kt and ScaffoldPlaceholderTest.kt are deleted; core-domain/build.gradle.kts is unchanged; core-domain has no Android, Room or ML Kit imports.",
+    "`./gradlew :core-domain:test` passes with JUnit XML showing the new tests executed (report counts), and `./gradlew test` passes for all modules."
+  ],
+  "verification_commands": ["./gradlew :core-domain:test","./gradlew test","git status --porcelain","git diff"],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

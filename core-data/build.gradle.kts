@@ -21,6 +21,19 @@ android {
     defaultConfig {
         minSdk = libs.versions.minSdkPhone.get().toInt()
     }
+
+    // Host-side Room tests (Robolectric, run by `./gradlew test`, no device).
+    // The tracked exported schema JSON is exposed as test assets so
+    // androidx.room.testing.MigrationTestHelper can build a database at any
+    // exported version. See docs/proposals/room-schema/TOOLING_NOTES.md.
+    sourceSets {
+        named("test") {
+            assets.directories.add(layout.projectDirectory.dir("schemas").asFile.path)
+        }
+    }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 kotlin {
@@ -45,4 +58,9 @@ dependencies {
     // Resolves at the applied Kotlin plugin's own version, so it adds no new
     // version to gradle/libs.versions.toml.
     testImplementation(kotlin("test"))
+    testImplementation(libs.junit4)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(libs.androidx.room.testing)
 }

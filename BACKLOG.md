@@ -52,7 +52,9 @@ Status vocabulary:
    it can be attempted directly on the Pixel 10 Pro whenever Step 4 is
    reached.
 
-2. **Gradle project scaffold** — `ready`
+2. **Gradle project scaffold** — `done`
+   Completed and merged to `main` 2026-09-16 (work item SS1, see
+   `docs/proposals/gradle-scaffold/`). Original entry below for reference.
    Create the multi-module Android/Wear OS project structure per
    `docs/ARCHITECTURE.md` section 3 (`app-phone`, `app-wear`, `core-domain`,
    `core-data`, `core-ai`, `core-speech`, `core-wear-protocol`,
@@ -61,7 +63,9 @@ Status vocabulary:
    versions pinned in ADR-021 and ADR-022 exactly, and keep every ML Kit
    dependency inside `core-ai` per ADR-023.
 
-3. **Room schema v1 + migration test infrastructure** — `idea`
+3. **Room schema v1 + migration test infrastructure** — `in progress`
+   Work item DB1 on `feature/room-schema`; implementation plan complete (DB1.1-DB1.6 done); awaiting
+   owner merge of `feature/room-schema` into `main`.
    Implement the Room schema for raw captures, canonical activities, aliases,
    interpretations, occurrences, and corrections per `docs/DATA_MODEL.md`, plus
    baseline migration tests. Source: `docs/IMPLEMENTATION_HANDOFF.md`

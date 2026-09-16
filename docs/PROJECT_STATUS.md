@@ -6,9 +6,9 @@
 
 ## Overall status
 
-Documentation baseline created. Platform/API validation complete: SDK baselines, build toolchain, AI stack and speech API are pinned (ADR-021 through ADR-024), which unblocks the Gradle scaffold.
+Documentation baseline created. Platform/API validation complete: SDK baselines, build toolchain, AI stack and speech API are pinned (ADR-021 through ADR-024), The multi-module Gradle scaffold is built and merged (empty phone and watch apps plus the core modules; see `docs/proposals/gradle-scaffold/BUILD_NOTES.md`).
 
-No application code has been written yet.
+No user-facing product behaviour has been implemented yet. Room schema v1 (backlog item 3, `docs/proposals/room-schema/`) is implemented and tested in `core-data` on branch `feature/room-schema`, pending the owner's merge to `main`; `docs/DATA_MODEL.md` describes it and ADR-026 records the row-identifier decision.
 
 ## Completed
 
@@ -35,8 +35,8 @@ Recommended tasks:
 2. ~~Select exact `minSdk`, `targetSdk`, Wear OS baseline.~~ Done — ADR-021.
 3. ~~Verify Gemini Nano Prompt API + Structured Output availability on target phone.~~ Done — ADR-023. Library-level availability confirmed from Google's device list and the device's AICore install; a real inference call is still unproven until Step 4.
 4. ~~Verify selected on-device speech recognition approach.~~ Done — ADR-024.
-5. Create Gradle project structure. **← next**
-6. Define Room schema version 1.
+5. ~~Create Gradle project structure.~~ Done 2026-09-16 — work item SS1.
+6. Define Room schema version 1. **← implemented and tested on branch `feature/room-schema`, pending the owner's merge to `main`** (see `docs/DATA_MODEL.md`, ADR-026)
 7. Define domain interfaces.
 8. Define watch/phone protocol.
 9. Build a minimal end-to-end technical spike:
@@ -73,9 +73,12 @@ These should be resolved during architecture validation rather than guessed.
 - ~~exact Wear OS minimum version~~ — ADR-021: `app-wear` `minSdk` 34 (Wear OS 5), matching the OnePlus Watch 3.
 - ~~whether the watch uses in-app on-device speech or system dictation UI~~ — the designed in-app Listening screen is *feasible*: the platform on-device recognizer is a Wear OS API and ADR-024 uses one implementation across phone and watch. Not yet confirmed on the actual OnePlus Watch 3, which has not arrived; verify a real on-device recognition round-trip on that hardware before Step 8 commits to the Listening screen.
 
+**Resolved 2026-09-16** by the Room schema v1 work (backlog item 3):
+
+- ~~UUID vs UUIDv7 library/implementation~~ — ADR-026: app-generated UUIDv7 text via Kotlin stdlib `kotlin.uuid.Uuid`, behind an `IdFactory` seam; UUIDv4 via `java.util.UUID` is the fallback, no third-party library.
+
 **Still open:**
 
-- UUID vs UUIDv7 library/implementation — not in scope of the platform-validation pass; decide during Step 2 (Room schema), since it affects primary-key generation.
 - whether `IN_PROGRESS` ships in first functional milestone or immediately after completed-state capture — product decision, not a platform constraint.
 - exact policy thresholds for auto-accept vs needs-review — needs the semantic seed corpus (Step 5) to calibrate against; guessing before there is measurable data would set them arbitrarily.
 

@@ -1,17 +1,17 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T13:18:49.532Z",
+  "updated_at": "2026-09-16T18:13:34.502Z",
   "work_items": [
     {
       "id": "SS1",
       "title": "Gradle project scaffold (backlog item 2)",
-      "lifecycle_state": "implementing",
+      "lifecycle_state": "released",
       "tasks": [
         {
           "id": "SS1.1",
           "title": "Gradle foundation: wrapper, settings, version catalog",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -26,7 +26,7 @@
           "id": "SS1.2",
           "title": "core-domain and core-wear-protocol (pure Kotlin JVM)",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "SS1.1"
           ],
@@ -43,7 +43,7 @@
           "id": "SS1.3",
           "title": "core-data (Room + KSP) and core-testing",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "SS1.2"
           ],
@@ -60,7 +60,7 @@
           "id": "SS1.4",
           "title": "core-ai (ML Kit containment) and core-speech",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "SS1.3"
           ],
@@ -77,7 +77,7 @@
           "id": "SS1.5",
           "title": "app-phone and app-wear",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "SS1.4"
           ],
@@ -94,7 +94,7 @@
           "id": "SS1.6",
           "title": "Full-build verification pass and BUILD_NOTES.md",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "SS1.5"
           ],
@@ -106,6 +106,114 @@
           "task_packet_path": ".sdlc/task-packets/SS1.6.packet.json",
           "report_path": null,
           "notes": "Done. clean build green (lint + unminified release), 7 unit tests in 5 modules. BUILD_NOTES.md written; only plan difference is compileSdk 37. Release merged manifests checked: no INTERNET/ACCESS_NETWORK_STATE. R8 still unexercised."
+        }
+      ]
+    },
+    {
+      "id": "DB1",
+      "title": "Room schema v1 + migration test infrastructure (backlog item 3)",
+      "lifecycle_state": "approved",
+      "tasks": [
+        {
+          "id": "DB1.1",
+          "title": "Host-side Room test tooling + ID factory",
+          "status": "done",
+          "lifecycle_state": null,
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/DB1.1.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier pass. Robolectric 4.17 (sdk=35; 36 fails under JDK 21) + driver-based MigrationTestHelper (Instrumentation/Class ctor breaks on Windows paths). Uuid.generateV7() works at Kotlin 2.3.21 -> UUIDv7. MigrationTestHelper connections do not enable foreign_keys."
+        },
+        {
+          "id": "DB1.2",
+          "title": "Domain vocabularies in core-domain",
+          "status": "done",
+          "lifecycle_state": null,
+          "dependencies": [
+            "DB1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/DB1.2.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier pass. Twelve enums in core-domain model package; VocabularyNamesTest pins constant names."
+        },
+        {
+          "id": "DB1.3",
+          "title": "Schema v1: entities, converters, database",
+          "status": "done",
+          "lifecycle_state": null,
+          "dependencies": [
+            "DB1.1",
+            "DB1.2"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/DB1.3.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier pass. Six tables, 12 NO ACTION FKs, schema 1.json exported. Room enables foreign_keys itself; test callback removed. Temporary insert-only FixtureInsertDao in main must be replaced in DB1.4."
+        },
+        {
+          "id": "DB1.4",
+          "title": "Data-layer operations and integrity tests",
+          "status": "done",
+          "lifecycle_state": null,
+          "dependencies": [
+            "DB1.3"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/DB1.4.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier pass. Blocking DAOs; LedgerWriteDao @Transaction ops with protected primitives; ActivityLedgerWriter facade. Guard reads CLASS-retention Room annotations from class files. Follow-up folded into DB1.5: guard should allow activity_occurrences UPDATE only inside LedgerWriteDao."
+        },
+        {
+          "id": "DB1.5",
+          "title": "Migration harness, production builder, destructive-fallback guard",
+          "status": "done",
+          "lifecycle_state": null,
+          "dependencies": [
+            "DB1.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/DB1.5.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier pass (verifier re-ran both bite checks on a scratch copy). ActivityLedgerDatabaseFactory (activity_ledger.db, empty MIGRATIONS). Harness compares shared columns only; tighten for dropped/renamed columns at first real migration."
+        },
+        {
+          "id": "DB1.6",
+          "title": "Documentation: DATA_MODEL, identifier ADR, PROJECT_STATUS",
+          "status": "done",
+          "lifecycle_state": null,
+          "dependencies": [
+            "DB1.5"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/DB1.6.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier pass. DATA_MODEL updated for schema v1 (12 FKs, indexes, vocab table, no triggers, no fabricated interpretations); ADR-026 UUIDv7 identifiers; PROJECT_STATUS UUID question closed, schema v1 pending merge. First spawn got an unsubstituted packet (orchestrator error), not counted as an attempt."
         }
       ]
     }
