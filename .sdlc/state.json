@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T06:26:58.087Z",
+  "updated_at": "2026-09-16T06:27:56.403Z",
   "work_items": [
     {
       "id": "SS1",
@@ -59,17 +59,17 @@
         {
           "id": "SS1.4",
           "title": "core-ai (ML Kit containment) and core-speech",
-          "status": "todo",
-          "lifecycle_state": null,
+          "status": "in-progress",
+          "lifecycle_state": "implementing",
           "dependencies": [
             "SS1.3"
           ],
           "lease": {
-            "assigned_agent": null,
-            "run_id": null,
-            "attempt_count": 0
+            "assigned_agent": "implementer",
+            "run_id": "run-2026-09-16",
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/SS1.4.packet.json",
           "report_path": null,
           "notes": "Verifier tier: ai_output_validation_and_persistence (ADR-023 containment)."
         },
