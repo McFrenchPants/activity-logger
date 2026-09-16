@@ -11,7 +11,14 @@ Status vocabulary:
 
 ## Items
 
-1. **Platform/API validation and version pinning** — `idea`
+1. **Platform/API validation and version pinning** — `done`
+   Completed 2026-09-15. Outcome: ADR-021 (SDK baselines), ADR-022 (Kotlin/KSP
+   toolchain pin), ADR-023 (ML Kit GenAI Prompt API + Structured Output,
+   contained in `core-ai`), ADR-024 (platform on-device `SpeechRecognizer`);
+   `docs/PROJECT_STATUS.md` updated. Items 2-4 are unblocked. Two constraints
+   worth carrying forward: Kotlin is pinned to 2.3.21 because KSP has no 2.4.x
+   release, and ML Kit Structured Output is alpha with no SLA. Original entry
+   below for reference.
    Verify current official support for: Android API baseline (minSdk/targetSdk),
    Gemini Nano / AICore Prompt API availability + Structured Output support on
    the target phone, on-device speech recognition API, Wear OS minimum API.
@@ -45,13 +52,14 @@ Status vocabulary:
    it can be attempted directly on the Pixel 10 Pro whenever Step 4 is
    reached.
 
-2. **Gradle project scaffold** — `idea`
+2. **Gradle project scaffold** — `ready`
    Create the multi-module Android/Wear OS project structure per
    `docs/ARCHITECTURE.md` section 3 (`app-phone`, `app-wear`, `core-domain`,
    `core-data`, `core-ai`, `core-speech`, `core-wear-protocol`,
    `core-testing`), plus test infrastructure. Source:
-   `docs/IMPLEMENTATION_HANDOFF.md` "Step 1 — Scaffold". Depends on item 1 for
-   pinned SDK/Compose/Kotlin versions.
+   `docs/IMPLEMENTATION_HANDOFF.md` "Step 1 — Scaffold". Item 1 is done; use the
+   versions pinned in ADR-021 and ADR-022 exactly, and keep every ML Kit
+   dependency inside `core-ai` per ADR-023.
 
 3. **Room schema v1 + migration test infrastructure** — `idea`
    Implement the Room schema for raw captures, canonical activities, aliases,
@@ -76,3 +84,22 @@ Status vocabulary:
    (navigation), ADR-020 (Wear entry surface). Carried into implementation:
    verify color contrast with final Compose values during Step 7; the watch
    Listening screen depends on item 1's on-device speech findings.
+
+6. **Compare ML Kit Advanced-mode speech against the platform recognizer** — `idea`
+   ADR-024 pins `SpeechRecognizer.createOnDeviceSpeechRecognizer()` for the MVP
+   because `com.google.mlkit:genai-speech-recognition` is alpha and its
+   Advanced mode runs only on Pixel 10/11, so the Pixel 7 Pro and the watch
+   would need the platform path regardless. Once Step 6 provides a real capture
+   pipeline, measure both against the semantic seed corpus and decide whether
+   the quality gain justifies a second transcription implementation on the
+   phone. Blocked until Step 6. Source: ADR-024.
+
+7. **Verify on-device speech on the OnePlus Watch 3** — `idea`
+   The designed watch Listening screen assumes in-app on-device recognition
+   works on Wear OS 5. That is expected but unverified — the watch had not
+   arrived when item 1 ran. When it does: enable Developer options, pair over
+   ADB, and do a real `createOnDeviceSpeechRecognizer()` round-trip plus the
+   trivial Data Layer round-trip already noted in item 1. Do this before Step 8
+   depends on either. If on-device recognition turns out to be unavailable
+   there, ADR-024 and the Wear Listening screen (ADR-020, UX_VISUAL_SPEC §3 D2)
+   both need revisiting. Blocked on hardware.

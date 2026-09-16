@@ -221,3 +221,88 @@ The Step 8 Wear milestone ships the app launcher entry and a watch-face complica
 Details: `docs/UX_VISUAL_SPEC.md` §3 D2.
 
 **Reason:** A complication is one tap from the watch face the user is already looking at, which is the fastest practical capture path (WATCH_SPEC §3) and satisfies "one intentional action before speaking". It is a small data source with a tap action; a Tile adds a swipe before the tap and a separate ProtoLayout surface to build.
+
+---
+
+## ADR-021 — SDK baselines: phone `minSdk` 33, watch `minSdk` 34, `compileSdk`/`targetSdk` 36
+
+**Status:** Accepted
+
+| Module | minSdk | targetSdk | compileSdk |
+|---|---|---|---|
+| `app-phone` | 33 (Android 13) | 36 | 36 |
+| `app-wear` | 34 (Android 14 / Wear OS 5) | 36 | 36 |
+
+Phone `minSdk` 33 is set by the speech decision in ADR-024: from API 33, `createOnDeviceSpeechRecognizer()` forces on-device recognition and fails cleanly when no local engine exists, rather than silently falling back to a network recognizer. Silent network fallback would breach ADR-005 and AGENTS.md #11, so the API level that makes the failure explicit is the floor.
+
+Watch `minSdk` 34 matches Wear OS 5, which is what the OnePlus Watch 3 test hardware ships with. Wear OS 6 (API 36) is promised for that device but has not landed; targeting 36 as a minimum would make the only available watch untestable.
+
+`compileSdk`/`targetSdk` 36 rather than 37: API 36 is the highest platform installed in the local SDK, and is Google Play's current target-API requirement. The primary test device runs Android 17 (API 37) and runs API 36 apps under normal forward compatibility, so nothing is lost by not chasing 37 before there is a reason to.
+
+**Reason:** Each floor is set by a hard constraint — an explicit on-device speech failure, real watch hardware, and the installed/required platform — not by a general preference for newness.
+
+---
+
+## ADR-022 — Kotlin 2.3.21 / KSP 2.3.12, pinned together
+
+**Status:** Accepted
+
+Pinned build toolchain (verified against Google Maven and Maven Central on 2026-09-15):
+
+| Component | Version |
+|---|---|
+| Kotlin | 2.3.21 |
+| KSP plugin | 2.3.12 |
+| Android Gradle Plugin | 9.4.0 |
+| JDK (toolchain) | 21 |
+| Room | 2.8.5 |
+| Compose BOM | 2026.09.00 |
+| Wear Compose Material3 | 1.6.2 |
+| androidx.activity-compose | 1.13.0 |
+
+Kotlin is deliberately **not** on its latest release (2.4.20). KSP has no 2.4.x release — it stops at 2.3.12 — and Room's compiler requires KSP. Kotlin therefore cannot move ahead of KSP without giving up KSP-based Room compilation. Kotlin 2.3.21 is the newest version KSP 2.3.12 supports.
+
+Do not bump Kotlin past 2.3.x until a matching KSP release exists. This constraint is independent of the AI decisions in ADR-023; Room alone creates it.
+
+**Reason:** Pinning Kotlin ahead of KSP is a build break, not a gradual deprecation, and the annotation processors involved (Room, and the schema compiler in ADR-023) are load-bearing.
+
+---
+
+## ADR-023 — Gemini Nano is reached through ML Kit GenAI Prompt API; Structured Output is contained in `core-ai`
+
+**Status:** Accepted
+
+Pinned AI dependencies (verified on Google Maven, 2026-09-15):
+
+| Artifact | Version | Stability |
+|---|---|---|
+| `com.google.mlkit:genai-prompt` | `1.0.0-beta4` | Beta |
+| `com.google.mlkit:genai-schema-compiler` | `1.0.0-alpha1` | **Alpha** |
+
+Structured Output (`@Generable` / `@Guide` data classes compiled by KSP into a response schema) is the mechanism that satisfies ADR-010's typed-schema requirement. Google offers it in alpha, "not subject to any SLA or deprecation policy", and warns that backward-incompatible changes may be made.
+
+It is adopted anyway, under one containment rule: **every `@Generable` type, every `genai-*` import, and all schema-compiler output stay inside `core-ai`.** No other module may reference an ML Kit type. `core-ai` exposes only plain domain types to the rest of the app. A breaking change in the alpha library is then a single-module repair, not an app-wide one.
+
+The alpha library is a *parser*, never a trust boundary. Its typed output is still subject in full to the deterministic schema and business validation required by AGENTS.md #5 and ADR-010 — including candidate-ID validation (no model-invented activity IDs) and temporal-precision checks (ADR-018). Adopting a typed decoder does not reduce the validation surface by one check.
+
+Capability detection uses `checkStatus()` (`AVAILABLE` / `DOWNLOADABLE` / `DOWNLOADING` / `UNAVAILABLE`) plus `isStructuredOutputFeatureAvailable()`, feeding the AI-unavailable states in ARCHITECTURE.md §21. Both APIs hard-refuse on an unlocked bootloader.
+
+Constraints carried into implementation: Kotlin-only (no Java in `core-ai`); no circular references between `@Generable` classes; supported field types are `String`, `Double`, `Float`, `Int`, `Long`, `Boolean`, `List<T>` and nested `@Generable` classes, with `description` / `enumValues` / `minimum` / `maximum` / `minItems` / `maxItems` constraints; ProGuard/R8 keep rules are required for annotated classes.
+
+**Reason:** Constrained decoding produces a far more reliable database contract than prompting for JSON and repairing it by hand, which is the failure mode ADR-010 exists to prevent. The alpha risk is real but bounded by module isolation, and it is not a correctness risk, because nothing downstream trusts the library's output without validating it.
+
+---
+
+## ADR-024 — On-device speech uses the platform `SpeechRecognizer`
+
+**Status:** Accepted
+
+`SpeechTranscriber` is implemented with `android.speech.SpeechRecognizer.createOnDeviceSpeechRecognizer()` on both phone and watch.
+
+The alternative considered was `com.google.mlkit:genai-speech-recognition:1.0.0-alpha1` in "Advanced mode", which offers better transcription quality and broader language coverage. It was rejected for the MVP: it is alpha, and Advanced mode runs only on Pixel 10 and Pixel 11. The Pixel 7 Pro capability-fallback device and the OnePlus Watch 3 would both need the platform implementation regardless, so adopting it would mean maintaining two transcription paths to benefit one device.
+
+On the primary test device the on-device recognizer role is held by `com.google.android.tts` (verified 2026-09-15), so no additional recognizer install is required.
+
+Revisiting this is a measurement question, not a design one: once Step 6 provides a real capture pipeline, ML Kit Advanced mode can be compared against the platform recognizer on the semantic seed corpus. Recorded as backlog item 6.
+
+**Reason:** ADR-006 keeps transcription separate from interpretation precisely so the transcriber can be swapped later. That makes the stable, universally-available implementation the correct starting point, and defers the quality comparison to a point where it can actually be measured.
