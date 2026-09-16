@@ -1,0 +1,79 @@
+{
+  "task_id": "SS1.3",
+  "plan_revision": "ec0183b",
+  "objective": "Create two modules: core-data (an Android library applying Room via KSP) and core-testing (a shared test-fixtures module). core-data: apply the catalog's android-library, kotlin-android and ksp plugin aliases; namespace com.mcfrenchpants.activityledger.core.data; compileSdk from the catalog's compileSdk (36) and minSdk from minSdkPhone (33) -- read both from gradle/libs.versions.toml, never hardcoded; JDK 21 toolchain read from the catalog; depend on core-domain as a project dependency, plus androidx.room.runtime and androidx.room.ktx from the catalog, with androidx.room.compiler applied through ksp(...). The point of this task is NOT to design the database: the real schema for raw captures, canonical activities, aliases, interpretations, occurrences and corrections is a separate, later backlog item and must not be pre-empted or guessed at here. This module must contain exactly one trivial @Entity plus one @Dao plus one @Database, whose only purpose is to prove that KSP actually runs the Room annotation processor and emits a schema. Mark all three clearly in comments as scaffold placeholders with no product meaning, to be deleted when the real schema lands. Room MUST be configured with exportSchema = true and the KSP argument room.schemaLocation pointing at the core-data/schemas directory, because this project forbids destructive migrations and the exported schema JSON is what future migration tests read -- a scaffold that silently leaves exportSchema off would quietly remove the foundation those tests depend on. The emitted schema JSON must be a tracked file, not build output. core-data must NOT declare any com.google.mlkit dependency: ADR-023 confines every ML Kit artifact, import and @Generable type to core-ai alone, and that containment is this scaffold's most important invariant. core-testing: a shared test-fixtures module consumed by other modules as a testImplementation dependency. Make it a plain Kotlin/JVM module (same shape as core-domain) exposing kotlin(\"test\") as an `api` dependency plus one clearly-marked placeholder fixture and one unit test proving it compiles and runs. Deliberately do NOT add coroutines-test, Truth, Robolectric, androidx.test or any other test library: none of them is pinned by an ADR, nothing needs them yet, and each would put an unverified version into the catalog. The task that first genuinely needs one introduces it then, after verifying it resolves. This task is the FIRST time AGP 9.4.0 and KSP 2.3.12 are resolved from a repository -- until now only the Kotlin JVM plugin has been exercised. If either fails to resolve, that is a real finding about the version catalog, not a transient error: report the exact Gradle error and stop. Do NOT change any version in the catalog to work around a failure, and in particular do NOT move Kotlin off 2.3.21 -- KSP has no 2.4.x release and Room requires KSP, so bumping Kotlin is a hard build break. Note two things about this machine: the Android SDK is at 'C:\\Dev\\Android SDK' (with a space) and has platforms/android-36 installed but build-tools only up to 35.0.1, so the first Android build may need AGP to fetch a 36.x build-tools package; there is no cmdline-tools directory there, so if AGP cannot self-service that download, report blocked with the exact error rather than hand-installing anything. Also, gradle.properties enables org.gradle.configuration-cache; if AGP 9 or KSP proves incompatible with it, report that as a finding rather than silently disabling it. Each of these two module directories currently holds a .gitkeep from SS1.1 (present only to satisfy Gradle 9's requirement that an included project directory exist); delete it once the module has real tracked content, but only in these two modules.",
+  "non_goals": [
+    "Do not design or implement the real database schema -- no RawCapture, ActivityOccurrence, CanonicalActivity, Alias, Interpretation or Correction entity. That is a separate backlog item.",
+    "Do not write migrations or migration tests.",
+    "Do not add any com.google.mlkit dependency, import or @Generable type to core-data or core-testing -- ADR-023 confines those to core-ai.",
+    "Do not add coroutines-test, Truth, Robolectric, androidx.test, mockk or any other test library to core-testing.",
+    "Do not touch the other six modules or delete their .gitkeep files.",
+    "Do not change any existing version in gradle/libs.versions.toml, and above all do not move Kotlin off 2.3.21.",
+    "Do not modify settings.gradle.kts, the root build.gradle.kts, gradle.properties or the Gradle wrapper.",
+    "Do not add telemetry, analytics, crash reporting, or any logging of user content.",
+    "Do not edit anything under docs/, .sdlc/, agents/, scripts/, BACKLOG.md, PROGRESS.md, CLAUDE.md or AGENTS.md.",
+    "Do not commit."
+  ],
+  "dependencies": ["SS1.2"],
+  "read_paths": [
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "gradle/libs.versions.toml",
+    "gradle.properties",
+    "core-domain",
+    "core-wear-protocol",
+    ".gitignore",
+    "docs/ARCHITECTURE.md",
+    "docs/DECISIONS.md",
+    "AGENTS.md",
+    "CLAUDE.md"
+  ],
+  "write_paths": [
+    "core-data",
+    "core-testing",
+    "gradle/libs.versions.toml"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "README.md",
+    "docs",
+    ".sdlc",
+    "agents",
+    "scripts",
+    ".claude",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "gradle.properties",
+    "gradlew",
+    "gradlew.bat",
+    "gradle/wrapper",
+    "app-phone",
+    "app-wear",
+    "core-domain",
+    "core-wear-protocol",
+    "core-ai",
+    "core-speech"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew :core-data:assembleDebug` is BUILD SUCCESSFUL and KSP demonstrably ran the Room compiler -- state the evidence (the executed :core-data:kspDebugKotlin task and the generated Room output), not just the exit code.",
+    "A Room schema JSON was actually emitted under core-data/schemas/ and is a tracked, non-ignored file. Confirm with `git status --porcelain` / `git check-ignore` that it is stageable and not swallowed by .gitignore's build/ rule. Room's exportSchema is true and the KSP room.schemaLocation argument points there.",
+    "core-data declares a project dependency on core-domain and no com.google.mlkit artifact. Verify with `./gradlew :core-data:dependencies` and by grepping every build.gradle.kts in the repo: core-ai must be the only module that ever names an ML Kit coordinate, and core-ai has no build file yet, so the correct result right now is ZERO ML Kit references anywhere.",
+    "core-data reads compileSdk, minSdk and the JDK toolchain from gradle/libs.versions.toml; the literals 36, 33 and 21 do not appear in its build file.",
+    "`./gradlew :core-testing:test` is BUILD SUCCESSFUL with at least one test actually executing -- confirm via the generated JUnit XML (tests=\"1\" or more, skipped=\"0\"), since a module with zero tests also reports BUILD SUCCESSFUL.",
+    "core-testing adds no test library beyond kotlin(\"test\"), and gradle/libs.versions.toml gained no new version entry. If the catalog did change, state exactly what changed and why, and how each added version was verified to resolve.",
+    "AGP 9.4.0 and KSP 2.3.12 both resolved from a repository -- report the evidence. No version in the catalog was changed to achieve this.",
+    "The scaffold @Entity, @Dao and @Database are each marked in comments as placeholders with no product meaning, and model none of the real domain concepts."
+  ],
+  "verification_commands": [
+    "./gradlew :core-data:assembleDebug",
+    "./gradlew :core-testing:test",
+    "./gradlew :core-data:dependencies",
+    "git status --porcelain",
+    "git diff -- gradle/libs.versions.toml"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

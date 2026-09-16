@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T06:13:55.208Z",
+  "updated_at": "2026-09-16T06:15:15.585Z",
   "work_items": [
     {
       "id": "SS1",
@@ -42,17 +42,17 @@
         {
           "id": "SS1.3",
           "title": "core-data (Room + KSP) and core-testing",
-          "status": "todo",
-          "lifecycle_state": null,
+          "status": "in-progress",
+          "lifecycle_state": "implementing",
           "dependencies": [
             "SS1.2"
           ],
           "lease": {
-            "assigned_agent": null,
-            "run_id": null,
-            "attempt_count": 0
+            "assigned_agent": "implementer",
+            "run_id": "run-2026-09-16",
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/SS1.3.packet.json",
           "report_path": null,
           "notes": "Verifier tier: data_persistence_migrations."
         },
