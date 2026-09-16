@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T16:19:46.902Z",
+  "updated_at": "2026-09-16T16:36:26.753Z",
   "work_items": [
     {
       "id": "SS1",
@@ -167,7 +167,7 @@
         {
           "id": "DB1.4",
           "title": "Data-layer operations and integrity tests",
-          "status": "todo",
+          "status": "done",
           "lifecycle_state": null,
           "dependencies": [
             "DB1.3"
@@ -175,11 +175,11 @@
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/DB1.4.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done, verifier pass. Blocking DAOs; LedgerWriteDao @Transaction ops with protected primitives; ActivityLedgerWriter facade. Guard reads CLASS-retention Room annotations from class files. Follow-up folded into DB1.5: guard should allow activity_occurrences UPDATE only inside LedgerWriteDao."
         },
         {
           "id": "DB1.5",

@@ -4,7 +4,13 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.mcfrenchpants.activityledger.core.data.db.converter.EnumConverters
-import com.mcfrenchpants.activityledger.core.data.db.dao.FixtureInsertDao
+import com.mcfrenchpants.activityledger.core.data.db.dao.ActivityAliasDao
+import com.mcfrenchpants.activityledger.core.data.db.dao.ActivityOccurrenceDao
+import com.mcfrenchpants.activityledger.core.data.db.dao.CanonicalActivityDao
+import com.mcfrenchpants.activityledger.core.data.db.dao.CorrectionDao
+import com.mcfrenchpants.activityledger.core.data.db.dao.InterpretationDao
+import com.mcfrenchpants.activityledger.core.data.db.dao.LedgerWriteDao
+import com.mcfrenchpants.activityledger.core.data.db.dao.RawCaptureDao
 import com.mcfrenchpants.activityledger.core.data.db.entity.ActivityAliasEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.ActivityOccurrenceEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.CanonicalActivityEntity
@@ -35,5 +41,17 @@ import com.mcfrenchpants.activityledger.core.data.db.entity.RawCaptureEntity
 )
 @TypeConverters(EnumConverters::class)
 internal abstract class ActivityLedgerDatabase : RoomDatabase() {
-    abstract fun fixtureInsertDao(): FixtureInsertDao
+    // The data layer's complete write surface. There is no @Update, @Upsert,
+    // @Delete or DELETE query anywhere, and every @Insert uses the default ABORT
+    // strategy (REPLACE would delete-and-rewrite rows). Occurrences and
+    // corrections are written only by LedgerWriteDao's two @Transaction
+    // operations. DaoWriteSurfaceGuardTest enforces this by inspecting every
+    // DAO returned from this class.
+    abstract fun rawCaptureDao(): RawCaptureDao
+    abstract fun canonicalActivityDao(): CanonicalActivityDao
+    abstract fun activityAliasDao(): ActivityAliasDao
+    abstract fun interpretationDao(): InterpretationDao
+    abstract fun activityOccurrenceDao(): ActivityOccurrenceDao
+    abstract fun correctionDao(): CorrectionDao
+    abstract fun ledgerWriteDao(): LedgerWriteDao
 }

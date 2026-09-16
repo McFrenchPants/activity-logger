@@ -40,7 +40,7 @@ class ActivityLedgerDatabaseToolingTest {
     fun inMemoryDatabaseOpensAndRoundTrips() {
         val db = inMemoryTestDatabase<ActivityLedgerDatabase>()
         try {
-            db.fixtureInsertDao().insertRawCapture(Fixtures.rawCapture(Fixtures.id(1)))
+            db.openHelper.writableDatabase.insertRawCapture(Fixtures.rawCapture(Fixtures.id(1)))
             db.openHelper.writableDatabase.query("SELECT id, raw_text FROM raw_captures").use { c ->
                 assertEquals(1, c.count)
                 assertTrue(c.moveToFirst())
@@ -66,7 +66,7 @@ class ActivityLedgerDatabaseToolingTest {
                 assertEquals(1, c.getInt(0))
             }
             assertFailsWith<Exception>("dangling interpretations.raw_capture_id must be rejected") {
-                db.fixtureInsertDao().insertInterpretation(
+                db.openHelper.writableDatabase.insertInterpretation(
                     Fixtures.interpretation(Fixtures.id(10), rawCaptureId = Fixtures.id(999), matchedActivityId = null),
                 )
             }

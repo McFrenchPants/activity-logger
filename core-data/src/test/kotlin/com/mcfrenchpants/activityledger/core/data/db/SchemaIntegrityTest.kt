@@ -17,7 +17,6 @@ import kotlin.test.assertTrue
 class SchemaIntegrityTest {
 
     private lateinit var db: ActivityLedgerDatabase
-    private val dao get() = db.fixtureInsertDao()
     private val sql get() = db.openHelper.writableDatabase
 
     private val activity = id(1)
@@ -37,10 +36,10 @@ class SchemaIntegrityTest {
 
     /** Activity + capture + interpretation + occurrence all linked together. */
     private fun insertLinkedGraph() {
-        dao.insertCanonicalActivity(Fixtures.canonicalActivity(activity))
-        dao.insertRawCapture(Fixtures.rawCapture(capture))
-        dao.insertInterpretation(Fixtures.interpretation(interpretation, capture, activity))
-        dao.insertActivityOccurrence(Fixtures.occurrence(occurrence, activity, capture, interpretation))
+        sql.insertCanonicalActivity(Fixtures.canonicalActivity(activity))
+        sql.insertRawCapture(Fixtures.rawCapture(capture))
+        sql.insertInterpretation(Fixtures.interpretation(interpretation, capture, activity))
+        sql.insertActivityOccurrence(Fixtures.occurrence(occurrence, activity, capture, interpretation))
     }
 
     private fun count(table: String, where: String = "1"): Int =
@@ -51,8 +50,8 @@ class SchemaIntegrityTest {
 
     @Test
     fun deletingRawCaptureReferencedByInterpretationFails() {
-        dao.insertRawCapture(Fixtures.rawCapture(capture))
-        dao.insertInterpretation(Fixtures.interpretation(interpretation, capture, matchedActivityId = null))
+        sql.insertRawCapture(Fixtures.rawCapture(capture))
+        sql.insertInterpretation(Fixtures.interpretation(interpretation, capture, matchedActivityId = null))
         assertFailsWith<SQLiteConstraintException> {
             sql.execSQL("DELETE FROM raw_captures WHERE id = ?", arrayOf(capture))
         }
@@ -66,8 +65,8 @@ class SchemaIntegrityTest {
         // so the failure can only come from the activity_occurrences.raw_capture_id foreign key.
         val secondCapture = id(20)
         val secondOccurrence = id(21)
-        dao.insertRawCapture(Fixtures.rawCapture(secondCapture))
-        dao.insertActivityOccurrence(Fixtures.occurrence(secondOccurrence, activity, secondCapture, interpretation))
+        sql.insertRawCapture(Fixtures.rawCapture(secondCapture))
+        sql.insertActivityOccurrence(Fixtures.occurrence(secondOccurrence, activity, secondCapture, interpretation))
         assertEquals(0, count("interpretations", "raw_capture_id = '$secondCapture'"))
         assertFailsWith<SQLiteConstraintException> {
             sql.execSQL("DELETE FROM raw_captures WHERE id = ?", arrayOf(secondCapture))
@@ -86,11 +85,11 @@ class SchemaIntegrityTest {
 
     @Test
     fun deletingCanonicalActivityReferencedByOccurrenceFails() {
-        dao.insertCanonicalActivity(Fixtures.canonicalActivity(activity))
-        dao.insertRawCapture(Fixtures.rawCapture(capture))
+        sql.insertCanonicalActivity(Fixtures.canonicalActivity(activity))
+        sql.insertRawCapture(Fixtures.rawCapture(capture))
         // Interpretation deliberately does not reference the activity, so the occurrence is the only referrer.
-        dao.insertInterpretation(Fixtures.interpretation(interpretation, capture, matchedActivityId = null))
-        dao.insertActivityOccurrence(Fixtures.occurrence(occurrence, activity, capture, interpretation))
+        sql.insertInterpretation(Fixtures.interpretation(interpretation, capture, matchedActivityId = null))
+        sql.insertActivityOccurrence(Fixtures.occurrence(occurrence, activity, capture, interpretation))
         assertFailsWith<SQLiteConstraintException> {
             sql.execSQL("DELETE FROM canonical_activities WHERE id = ?", arrayOf(activity))
         }
@@ -99,11 +98,11 @@ class SchemaIntegrityTest {
 
     @Test
     fun insertingOccurrenceWithUnknownCanonicalActivityFails() {
-        dao.insertCanonicalActivity(Fixtures.canonicalActivity(activity))
-        dao.insertRawCapture(Fixtures.rawCapture(capture))
-        dao.insertInterpretation(Fixtures.interpretation(interpretation, capture, matchedActivityId = null))
+        sql.insertCanonicalActivity(Fixtures.canonicalActivity(activity))
+        sql.insertRawCapture(Fixtures.rawCapture(capture))
+        sql.insertInterpretation(Fixtures.interpretation(interpretation, capture, matchedActivityId = null))
         assertFailsWith<SQLiteConstraintException> {
-            dao.insertActivityOccurrence(Fixtures.occurrence(occurrence, id(999), capture, interpretation))
+            sql.insertActivityOccurrence(Fixtures.occurrence(occurrence, id(999), capture, interpretation))
         }
         assertEquals(0, count("activity_occurrences"))
     }
@@ -112,7 +111,7 @@ class SchemaIntegrityTest {
     fun secondOccurrenceForSameRawCaptureFails() {
         insertLinkedGraph()
         assertFailsWith<SQLiteConstraintException> {
-            dao.insertActivityOccurrence(Fixtures.occurrence(id(5), activity, capture, interpretation))
+            sql.insertActivityOccurrence(Fixtures.occurrence(id(5), activity, capture, interpretation))
         }
         assertEquals(1, count("activity_occurrences"))
     }
@@ -120,20 +119,20 @@ class SchemaIntegrityTest {
     @Test
     fun duplicateNormalizedAliasIsRejectedPerActivityButAllowedAcrossActivities() {
         val otherActivity = id(6)
-        dao.insertCanonicalActivity(Fixtures.canonicalActivity(activity))
-        dao.insertCanonicalActivity(Fixtures.canonicalActivity(otherActivity))
-        dao.insertActivityAlias(Fixtures.alias(id(7), activity, "run"))
+        sql.insertCanonicalActivity(Fixtures.canonicalActivity(activity))
+        sql.insertCanonicalActivity(Fixtures.canonicalActivity(otherActivity))
+        sql.insertActivityAlias(Fixtures.alias(id(7), activity, "run"))
         assertFailsWith<SQLiteConstraintException> {
-            dao.insertActivityAlias(Fixtures.alias(id(8), activity, "run"))
+            sql.insertActivityAlias(Fixtures.alias(id(8), activity, "run"))
         }
-        dao.insertActivityAlias(Fixtures.alias(id(9), otherActivity, "run"))
+        sql.insertActivityAlias(Fixtures.alias(id(9), otherActivity, "run"))
         assertEquals(2, count("activity_aliases", "normalized_alias = 'run'"))
     }
 
     @Test
     fun canonicalActivitiesMayShareNormalizedName() {
-        dao.insertCanonicalActivity(Fixtures.canonicalActivity(id(1), normalizedName = "walk"))
-        dao.insertCanonicalActivity(Fixtures.canonicalActivity(id(2), normalizedName = "walk"))
+        sql.insertCanonicalActivity(Fixtures.canonicalActivity(id(1), normalizedName = "walk"))
+        sql.insertCanonicalActivity(Fixtures.canonicalActivity(id(2), normalizedName = "walk"))
         assertEquals(2, count("canonical_activities", "normalized_name = 'walk'"))
     }
 
@@ -144,10 +143,10 @@ class SchemaIntegrityTest {
             status = com.mcfrenchpants.activityledger.core.domain.model.CanonicalActivityStatus.MERGED,
             mergedIntoActivityId = activity,
         )
-        dao.insertCanonicalActivity(merged)
-        dao.insertActivityAlias(Fixtures.alias(id(31), activity, "stroll"))
+        sql.insertCanonicalActivity(merged)
+        sql.insertActivityAlias(Fixtures.alias(id(31), activity, "stroll"))
         val correction = Fixtures.correction(id(32), occurrence, activity, interpretation)
-        dao.insertCorrection(correction)
+        sql.insertCorrection(correction)
 
         val raw = Fixtures.rawCapture(capture)
         val interp = Fixtures.interpretation(interpretation, capture, activity)
