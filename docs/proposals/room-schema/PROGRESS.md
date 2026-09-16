@@ -2,8 +2,8 @@
 
 Task status vocabulary: `todo`, `in-progress`, `blocked`, `done`.
 
-Design spec: [`DESIGN_SPEC.md`](DESIGN_SPEC.md) — **awaiting owner sign-off**.
-Implementation plan: not yet written (written only after sign-off).
+Design spec: [`DESIGN_SPEC.md`](DESIGN_SPEC.md) — signed off by owner 2026-09-16.
+Implementation plan: [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md).
 Branch: `feature/room-schema`, off `main` at 2640ca2.
 
 This work item is **sdlc-tracked** (`DB1` in `.sdlc/state.json`). Every task
@@ -14,9 +14,24 @@ trigger, and most of it touches raw-capture immutability.
 
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
-| — | Tasks are defined in the implementation plan after design sign-off. | — | — |
+| DB1.1 | Host-side Room test tooling + ID factory | todo | Settles spec §6 by running it |
+| DB1.2 | Domain vocabularies in core-domain | todo | After DB1.1 |
+| DB1.3 | Schema v1: entities, converters, database | todo | Needs DB1.1, DB1.2 |
+| DB1.4 | Data-layer operations and integrity tests | todo | Needs DB1.3 |
+| DB1.5 | Migration harness, production builder, destructive-fallback guard | todo | Needs DB1.4 |
+| DB1.6 | Documentation: DATA_MODEL, identifier ADR, PROJECT_STATUS | todo | Needs DB1.5 |
 
 ## Session log
+
+### 2026-09-16 — design signed off; plan written
+
+Owner approved the design spec. Implementation plan written with six tasks
+and a vocabulary table (orchestrator decision: the docs name only some enum
+values; the rest are the minimal set Steps 3-4 need, stored as text so they
+are additive). Tasks added to `.sdlc/state.json` with `lifecycle_state: null`
+until packeted. Note: `validate-state.mjs` against HEAD reports the SS1
+`released` states lack `.sdlc/evidence/` files — pre-existing, not caused by
+this change; left as is.
 
 ### 2026-09-16 — design spec drafted; stopped for sign-off
 

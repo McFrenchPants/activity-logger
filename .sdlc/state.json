@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T15:29:03.139Z",
+  "updated_at": "2026-09-16T15:48:09.735Z",
   "work_items": [
     {
       "id": "SS1",
@@ -112,8 +112,110 @@
     {
       "id": "DB1",
       "title": "Room schema v1 + migration test infrastructure (backlog item 3)",
-      "lifecycle_state": "design_review",
-      "tasks": []
+      "lifecycle_state": "approved",
+      "tasks": [
+        {
+          "id": "DB1.1",
+          "title": "Host-side Room test tooling + ID factory",
+          "status": "todo",
+          "lifecycle_state": null,
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "DB1.2",
+          "title": "Domain vocabularies in core-domain",
+          "status": "todo",
+          "lifecycle_state": null,
+          "dependencies": [
+            "DB1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "DB1.3",
+          "title": "Schema v1: entities, converters, database",
+          "status": "todo",
+          "lifecycle_state": null,
+          "dependencies": [
+            "DB1.1",
+            "DB1.2"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "DB1.4",
+          "title": "Data-layer operations and integrity tests",
+          "status": "todo",
+          "lifecycle_state": null,
+          "dependencies": [
+            "DB1.3"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "DB1.5",
+          "title": "Migration harness, production builder, destructive-fallback guard",
+          "status": "todo",
+          "lifecycle_state": null,
+          "dependencies": [
+            "DB1.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "DB1.6",
+          "title": "Documentation: DATA_MODEL, identifier ADR, PROJECT_STATUS",
+          "status": "todo",
+          "lifecycle_state": null,
+          "dependencies": [
+            "DB1.5"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        }
+      ]
     }
   ]
 }

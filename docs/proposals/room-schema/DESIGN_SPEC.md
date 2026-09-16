@@ -1,6 +1,6 @@
 # Design spec — Room schema v1 + migration test infrastructure (backlog item 3)
 
-Status: **draft — awaiting owner sign-off** (2026-09-16).
+Status: **approved by owner** (2026-09-16).
 Branch: `feature/room-schema`, off `main` at 2640ca2.
 Source: `docs/IMPLEMENTATION_HANDOFF.md` "Step 2 — Persistence",
 `docs/DATA_MODEL.md`, `docs/DOMAIN_MODEL.md`, `docs/ARCHITECTURE.md` §10-12,
