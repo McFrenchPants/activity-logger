@@ -18,11 +18,76 @@ legacy proposal-folder delegation path.
 | SS1.1 | Gradle foundation: wrapper, settings, version catalog | done | Gradle 9 requires every included project directory to exist, so the eight module dirs were created here with a `.gitkeep` each. Plugin markers still unresolved — nothing applies a plugin yet. |
 | SS1.2 | `core-domain`, `core-wear-protocol` (pure Kotlin JVM) | done | Kotlin 2.3.21 plugin marker resolved for the first time. AGP and KSP still unproven. |
 | SS1.3 | `core-data` (Room + KSP), `core-testing` | done | Verifier pass, all 8 criteria. AGP 9 rejects the `kotlin-android` plugin; alias removed from the catalog. |
-| SS1.4 | `core-ai` (ML Kit containment), `core-speech` | todo | Depends on SS1.3. Verifier tier: ADR-023 containment. |
+| SS1.4 | `core-ai` (ML Kit containment), `core-speech` | blocked | Code is written, builds and is committed. Verifier **fail** on one criterion: ADR-023's "no ML Kit type in a public signature" is not satisfiable for schema-compiler *generated* code. Needs an owner decision on amending ADR-023 before it can be accepted as done. |
 | SS1.5 | `app-phone`, `app-wear` | todo | Depends on SS1.4. |
 | SS1.6 | Full-build verification pass + `BUILD_NOTES.md` | todo | Depends on SS1.5. |
 
 ## Session log
+
+### 2026-09-16 — SS1.4 implemented, BLOCKED on an ADR-023 decision
+
+`core-ai` and `core-speech` are written, build green, and are committed. The
+independent verifier returned **fail** on one of ten criteria, so the task is
+**not accepted as done**. The failure is a problem with the specification, not
+with the code — but it is not the orchestrator's to waive.
+
+**The finding: a `@Generable` class cannot be `internal`.** The ML Kit schema
+compiler emits, into the annotated class's own package, a
+`public class <Name>_GeneratedProvider` that implements
+`com.google.mlkit.genai.schema.guided.GenerableProvider` and returns
+`GenerableDetail<*>` from a public method. An `internal` `@Generable` class
+therefore fails to compile: *"'public' property exposes its 'internal' type
+argument"*. The provider is also registered for reflective discovery via
+`META-INF/services`, so it cannot be hidden.
+
+Both the implementer and the verifier reached this independently, and the
+verifier confirmed it by disassembling the built AAR rather than by reading
+source. The consequence is that **every future real Structured Output schema
+type is necessarily part of `core-ai`'s public ABI**, and generated code
+unavoidably carries ML Kit types in public signatures. ADR-023's sentence
+*"`core-ai` exposes only plain domain types to the rest of the app"* is not
+satisfiable as literally written while using the schema compiler at all.
+
+**Containment nonetheless holds in substance, and this was proved, not
+assumed.** `:core-ai:dependencies --configuration debugApiElements` reports
+*"No dependencies"* — a consumer's compile classpath is built from
+`apiElements`, so no ML Kit type reaches any consuming module at compile time.
+`genai-prompt` is an `implementation` dependency and appears only on
+`runtimeElements`. A consumer can see the generated class's *name* but cannot
+use it: its supertype and return type are unresolvable there. The AAR is 6.6 KB
+and contains no ML Kit classes. So ADR-023's actual purpose — a breaking change
+in the alpha library is a single-module repair — is intact.
+
+**Owner decision needed** (see the run summary): amend ADR-023 so containment is
+stated as a mechanically checkable property (no ML Kit on `apiElements`, plus
+no ML Kit in *hand-written* public signatures) rather than a rule that generated
+code cannot satisfy. Until then SS1.4 stays `blocked` and SS1.5 does not start,
+since `app-phone` is the first module that would consume `core-ai`.
+
+**A second, separate concern the verifier surfaced, which is a real ADR-013 /
+AGENTS.md #11 matter.** `genai-prompt` pulls in `transport-backend-cct`, which
+declares `android.permission.INTERNET` and `ACCESS_NETWORK_STATE` plus a
+`TransportBackendDiscovery` service pointing at Google's Clearcut telemetry
+backend; `transport-runtime` adds a scheduler service and an alarm receiver.
+None of this affects `core-ai`'s own merged manifest — verified as `<uses-sdk>`
+only — so it is not a violation today. But **when `app-phone` first depends on
+`core-ai`, its merged manifest will gain `INTERNET` unless it is explicitly
+suppressed** with `tools:node="remove"`. For a project whose whole premise is
+that nothing leaves the device, that should be a deliberate decision recorded
+before the AI vertical slice lands, not a surprise discovered later.
+
+Smaller items worth carrying:
+
+- `kotlin("test")` does not work in an Android library module — it resolves no
+  framework variant and `kotlin.test.Test` is unresolved. Android modules need
+  `kotlin("test-junit")`. `core-data` did not reveal this because it has no test
+  source set yet.
+- The R8 keep rules have never been exercised: nothing in the repo runs R8, and
+  a wrong keep rule fails **only** in a release build. They are correct by
+  construction, not by test. Nothing keeps the `META-INF/services` resource that
+  actually discovers the provider.
+- `core-speech`'s capability probe has zero coverage, since local unit tests stub
+  the framework.
 
 ### 2026-09-16 — SS1.3 done (verifier pass)
 

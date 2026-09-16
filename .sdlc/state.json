@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T06:27:56.403Z",
+  "updated_at": "2026-09-16T06:43:40.682Z",
   "work_items": [
     {
       "id": "SS1",
@@ -59,19 +59,19 @@
         {
           "id": "SS1.4",
           "title": "core-ai (ML Kit containment) and core-speech",
-          "status": "in-progress",
-          "lifecycle_state": "implementing",
+          "status": "blocked",
+          "lifecycle_state": "verifying",
           "dependencies": [
             "SS1.3"
           ],
           "lease": {
-            "assigned_agent": "implementer",
-            "run_id": "run-2026-09-16",
+            "assigned_agent": null,
+            "run_id": null,
             "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/SS1.4.packet.json",
           "report_path": null,
-          "notes": "Verifier tier: ai_output_validation_and_persistence (ADR-023 containment)."
+          "notes": "Implemented, builds green, committed. Verifier FAIL on criterion 4: ADR-023 no-ML-Kit-in-public-signature is not satisfiable for schema-compiler generated code (a @Generable class cannot be internal). Containment proven intact via empty apiElements. Blocked on an owner decision to amend ADR-023."
         },
         {
           "id": "SS1.5",
@@ -88,7 +88,7 @@
           },
           "task_packet_path": null,
           "report_path": null,
-          "notes": "app-wear must not depend on core-ai."
+          "notes": "Depends on SS1.4, which is blocked. app-phone is the first module to consume core-ai, so it is also where the transitive INTERNET permission from genai-prompt would first appear in a merged manifest -- decide that before starting."
         },
         {
           "id": "SS1.6",
