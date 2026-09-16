@@ -281,7 +281,14 @@ Pinned AI dependencies (verified on Google Maven, 2026-09-15):
 
 Structured Output (`@Generable` / `@Guide` data classes compiled by KSP into a response schema) is the mechanism that satisfies ADR-010's typed-schema requirement. Google offers it in alpha, "not subject to any SLA or deprecation policy", and warns that backward-incompatible changes may be made.
 
-It is adopted anyway, under one containment rule: **every `@Generable` type, every `genai-*` import, and all schema-compiler output stay inside `core-ai`.** No other module may reference an ML Kit type. `core-ai` exposes only plain domain types to the rest of the app. A breaking change in the alpha library is then a single-module repair, not an app-wide one.
+It is adopted anyway, under one containment rule: **every `@Generable` type, every `genai-*` import, and all schema-compiler output stay inside `core-ai`.** No other module may reference an ML Kit type. A breaking change in the alpha library is then a single-module repair, not an app-wide one.
+
+**Amended 2026-09-16.** This originally also said "`core-ai` exposes only plain domain types to the rest of the app". That sentence was not implementable and has been replaced by the two checkable conditions below. The schema compiler generates, for each `@Generable` class, a `public <Name>_GeneratedProvider` in that class's own package which implements an ML Kit interface and is discovered reflectively via `META-INF/services`. A `@Generable` class therefore cannot be `internal` — it fails to compile with *"'public' property exposes its 'internal' type argument"* — and generated ML Kit types unavoidably appear in `core-ai`'s compiled public surface. Containment is therefore defined as:
+
+1. **No ML Kit type on `core-ai`'s `apiElements`.** The `genai-*` artifacts are `implementation` dependencies, never `api`, so nothing ML Kit reaches a consuming module's compile classpath. This is mechanically checkable: `./gradlew :core-ai:dependencies --configuration debugApiElements` must report "No dependencies". A consumer can see a generated class's name but cannot use it, because its supertype and return types are unresolvable there.
+2. **No ML Kit type in any hand-written public signature of `core-ai`.** Generated schema-compiler output is exempt; hand-written code is not.
+
+Together these preserve the decision's actual purpose. The first condition is the one that matters and the one to check in review.
 
 The alpha library is a *parser*, never a trust boundary. Its typed output is still subject in full to the deterministic schema and business validation required by AGENTS.md #5 and ADR-010 — including candidate-ID validation (no model-invented activity IDs) and temporal-precision checks (ADR-018). Adopting a typed decoder does not reduce the validation surface by one check.
 
@@ -306,3 +313,24 @@ On the primary test device the on-device recognizer role is held by `com.google.
 Revisiting this is a measurement question, not a design one: once Step 6 provides a real capture pipeline, ML Kit Advanced mode can be compared against the platform recognizer on the semantic seed corpus. Recorded as backlog item 6.
 
 **Reason:** ADR-006 keeps transcription separate from interpretation precisely so the transcriber can be swapped later. That makes the stable, universally-available implementation the correct starting point, and defers the quality comparison to a point where it can actually be measured.
+
+---
+
+## ADR-025 — The apps strip the `INTERNET` permission that arrives with ML Kit
+
+**Status:** Accepted
+
+`com.google.mlkit:genai-prompt` depends transitively on Google's `datatransport` stack (`transport-backend-cct`, `transport-runtime`). Those libraries declare `android.permission.INTERNET` and `ACCESS_NETWORK_STATE` in their own manifests, plus a `TransportBackendDiscovery` service pointing at the Clearcut telemetry backend, a `JobInfoSchedulerService` and an alarm receiver. Android's manifest merger folds all of that into any app that depends on `core-ai`, so `app-phone` would silently gain network permission the first time it uses the AI path.
+
+`app-phone` and `app-wear` therefore explicitly remove them in their own manifests:
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
+```
+
+The merged manifest of every release build must be checked for `INTERNET` as part of the privacy/logging review in the hardening step. A dependency bump is the realistic way this regresses.
+
+Gemini Nano inference is local and binds to AICore over IPC, so nothing in the MVP needs network access to work. The permissions are an artifact of a shared telemetry library, not a requirement of the feature.
+
+**Reason:** ADR-013 and the product's core promise are that captured activity text never leaves the device. A privacy guarantee that depends on a transitive dependency not choosing to use a permission it holds is not a guarantee. Removing the permission makes the guarantee enforced by the platform rather than by trust, and turns any future need for it into a deliberate, visible change.

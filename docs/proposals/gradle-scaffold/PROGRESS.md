@@ -18,13 +18,34 @@ legacy proposal-folder delegation path.
 | SS1.1 | Gradle foundation: wrapper, settings, version catalog | done | Gradle 9 requires every included project directory to exist, so the eight module dirs were created here with a `.gitkeep` each. Plugin markers still unresolved — nothing applies a plugin yet. |
 | SS1.2 | `core-domain`, `core-wear-protocol` (pure Kotlin JVM) | done | Kotlin 2.3.21 plugin marker resolved for the first time. AGP and KSP still unproven. |
 | SS1.3 | `core-data` (Room + KSP), `core-testing` | done | Verifier pass, all 8 criteria. AGP 9 rejects the `kotlin-android` plugin; alias removed from the catalog. |
-| SS1.4 | `core-ai` (ML Kit containment), `core-speech` | blocked | Code is written, builds and is committed. Verifier **fail** on one criterion: ADR-023's "no ML Kit type in a public signature" is not satisfiable for schema-compiler *generated* code. Needs an owner decision on amending ADR-023 before it can be accepted as done. |
+| SS1.4 | `core-ai` (ML Kit containment), `core-speech` | done | Accepted after ADR-023 was amended (the original wording was not implementable for generated code). ADR-025 added: the apps strip the `INTERNET` permission ML Kit brings in. |
 | SS1.5 | `app-phone`, `app-wear` | todo | Depends on SS1.4. |
 | SS1.6 | Full-build verification pass + `BUILD_NOTES.md` | todo | Depends on SS1.5. |
 
 ## Session log
 
-### 2026-09-16 — SS1.4 implemented, BLOCKED on an ADR-023 decision
+### 2026-09-16 — SS1.4 accepted; ADR-023 amended, ADR-025 added
+
+Both open items below were technical, not product, questions and have been
+settled here rather than escalated. SS1.4 is now `done`.
+
+**ADR-023 amended.** Its sentence "`core-ai` exposes only plain domain types to
+the rest of the app" was replaced, because it cannot be satisfied by generated
+code — see the finding recorded below. Containment is now stated as two
+conditions that can actually be checked: no ML Kit on `core-ai`'s `apiElements`
+(verifiable with one Gradle command, and already true), and no ML Kit in any
+*hand-written* public signature. The decision's purpose is unchanged; only its
+wording was wrong.
+
+**ADR-025 added: `app-phone` and `app-wear` strip the `INTERNET` and
+`ACCESS_NETWORK_STATE` permissions** that arrive transitively with
+`genai-prompt`'s telemetry stack, using `tools:node="remove"`. SS1.5 must
+implement this when it creates the two app manifests, and the hardening step
+must check the merged manifest of a release build. A privacy promise that relies
+on a third-party library choosing not to use a permission it holds is not a
+promise.
+
+### 2026-09-16 — SS1.4 implementation notes (superseded by the entry above)
 
 `core-ai` and `core-speech` are written, build green, and are committed. The
 independent verifier returned **fail** on one of ten criteria, so the task is

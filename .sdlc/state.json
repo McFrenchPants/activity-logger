@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T06:43:40.682Z",
+  "updated_at": "2026-09-16T12:57:35.666Z",
   "work_items": [
     {
       "id": "SS1",
@@ -59,7 +59,7 @@
         {
           "id": "SS1.4",
           "title": "core-ai (ML Kit containment) and core-speech",
-          "status": "blocked",
+          "status": "done",
           "lifecycle_state": "verifying",
           "dependencies": [
             "SS1.3"
@@ -71,7 +71,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/SS1.4.packet.json",
           "report_path": null,
-          "notes": "Implemented, builds green, committed. Verifier FAIL on criterion 4: ADR-023 no-ML-Kit-in-public-signature is not satisfiable for schema-compiler generated code (a @Generable class cannot be internal). Containment proven intact via empty apiElements. Blocked on an owner decision to amend ADR-023."
+          "notes": "Done. Accepted after ADR-023 was amended: its no-ML-Kit-in-public-signature wording is not satisfiable for schema-compiler generated code, and is now stated as two checkable conditions. ADR-025 added: apps strip the INTERNET permission ML Kit brings in."
         },
         {
           "id": "SS1.5",
@@ -88,7 +88,7 @@
           },
           "task_packet_path": null,
           "report_path": null,
-          "notes": "Depends on SS1.4, which is blocked. app-phone is the first module to consume core-ai, so it is also where the transitive INTERNET permission from genai-prompt would first appear in a merged manifest -- decide that before starting."
+          "notes": "Depends on SS1.4 (done). MUST implement ADR-025: both app manifests remove INTERNET and ACCESS_NETWORK_STATE via tools:node=remove. Android library modules need kotlin(test-junit), not kotlin(test)."
         },
         {
           "id": "SS1.6",

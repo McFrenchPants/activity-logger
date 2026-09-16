@@ -1,5 +1,45 @@
 # CLAUDE.md
 
+## How to talk to the owner — read this before writing anything they will see
+
+The person who owns this project is not a developer and does not keep these
+docs in their head. **Every message, summary, question, or status report you
+write for them must be readable by someone who has never opened this
+repository.** This rule outranks the framework mechanics below. If following
+the sdlc-supervisor process produces a jargon-filled report, the report is
+wrong, not the owner.
+
+Concretely:
+
+- **Never refer to an ADR, spec section, file path, or task ID as if it means
+  something on its own.** Not "ADR-023's containment rule" — instead, "the rule
+  that the Google AI library stays sealed inside one part of the app". If you
+  must cite the reference at all, put it in brackets after the plain-English
+  version, never instead of it.
+- **No unexplained tool, library, or build jargon.** Words like KSP, AGP,
+  apiElements, merged manifest, consumer keep rules and task packet mean
+  nothing to the owner. Either explain the thing in ordinary words or leave it
+  out of their summary entirely and keep it in the tracking docs, which are
+  written for agents.
+- **Decide technical questions yourself.** Anything about how the code is
+  built, structured, named, or documented is your call — that is the whole
+  point of having a developer. Do not hand the owner a decision just because it
+  is architecturally interesting or because a rule you wrote earlier turned out
+  to be imprecise. Fix it, record it, and say what you did.
+- **Escalate only genuine product questions**: what the app should do for the
+  person using it, what it should look like, what it should be called, what to
+  prioritise, or anything that costs real money or touches their hardware or
+  accounts. Phrase these as one clear question with the trade-off in plain
+  words.
+- **A summary should lead with what now works**, then anything that is broken
+  or unfinished, then what you need from them — often nothing. If a section
+  would only be meaningful to another agent, it belongs in
+  `docs/proposals/<slug>/PROGRESS.md`, not in the reply.
+
+The tracking documents under `docs/` and `.sdlc/` are the opposite: they are
+written for agents and should stay precise and technical. Keep the two
+audiences separate rather than splitting the difference.
+
 ## Project-specific rules
 
 This project's product/architecture rules for any coding agent (human-invoked
