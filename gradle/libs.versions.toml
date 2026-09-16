@@ -45,7 +45,13 @@ mlkit-genai-schema-compiler = { module = "com.google.mlkit:genai-schema-compiler
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+# NOTE: there is deliberately no `kotlin-android` alias here. AGP 9 has built-in
+# Kotlin support and hard-fails if org.jetbrains.kotlin.android is applied
+# alongside it: "The 'org.jetbrains.kotlin.android' plugin is no longer required
+# for Kotlin support since AGP 9.0". An Android module applies only
+# android-library (or android-application) and gets Kotlin 2.3.21 from the
+# toolchain. See https://kotl.in/gradle/agp-built-in-kotlin. Removed after SS1.3
+# hit this; do not add it back.
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

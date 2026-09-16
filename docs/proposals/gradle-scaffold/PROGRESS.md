@@ -17,12 +17,57 @@ legacy proposal-folder delegation path.
 |---|---|---|---|
 | SS1.1 | Gradle foundation: wrapper, settings, version catalog | done | Gradle 9 requires every included project directory to exist, so the eight module dirs were created here with a `.gitkeep` each. Plugin markers still unresolved — nothing applies a plugin yet. |
 | SS1.2 | `core-domain`, `core-wear-protocol` (pure Kotlin JVM) | done | Kotlin 2.3.21 plugin marker resolved for the first time. AGP and KSP still unproven. |
-| SS1.3 | `core-data` (Room + KSP), `core-testing` | todo | Depends on SS1.2. Verifier tier: data persistence. |
+| SS1.3 | `core-data` (Room + KSP), `core-testing` | done | Verifier pass, all 8 criteria. AGP 9 rejects the `kotlin-android` plugin; alias removed from the catalog. |
 | SS1.4 | `core-ai` (ML Kit containment), `core-speech` | todo | Depends on SS1.3. Verifier tier: ADR-023 containment. |
 | SS1.5 | `app-phone`, `app-wear` | todo | Depends on SS1.4. |
 | SS1.6 | Full-build verification pass + `BUILD_NOTES.md` | todo | Depends on SS1.5. |
 
 ## Session log
+
+### 2026-09-16 — SS1.3 done (verifier pass)
+
+`core-data` (Android library, Room via KSP) and `core-testing` (shared test
+fixtures) exist. This task was routed to the independent `verifier` agent
+because it falls in the `data_persistence_migrations` floor tier, and it
+returned **pass** on all eight acceptance criteria with no forbidden-path
+violations — including an independent re-run with `--rerun-tasks`, so the
+verdict does not rest on an UP-TO-DATE build.
+
+**AGP 9 removed the need for the `kotlin-android` plugin, and hard-fails if you
+apply it.** The exact error: *"The 'org.jetbrains.kotlin.android' plugin is no
+longer required for Kotlin support since AGP 9.0"*. An Android module now
+applies only `android-library` / `android-application` and still compiles
+Kotlin 2.3.21. The SS1.3 packet was wrong to ask for the alias; the implementer
+dropped it and said so. The orchestrator then removed the dead alias from
+`gradle/libs.versions.toml` **and** the matching `apply false` line from the
+root build script, because leaving it there was a landmine for `app-phone` and
+`app-wear` in SS1.5. Verified green afterwards. Do not add it back.
+
+**The exported Room schema is load-bearing and is now wired correctly.**
+`exportSchema = true`, and the KSP argument `room.schemaLocation` points at
+`core-data/schemas/` in the source tree, not into `build/`. The emitted
+`1.json` is confirmed stageable and not caught by `.gitignore`. This matters
+because the project forbids destructive migrations, so future migration tests
+read these files — a scaffold that quietly left `exportSchema` off would have
+removed that foundation without anyone noticing.
+
+Also resolved for the first time: **AGP 9.4.0 and KSP 2.3.12**, both clean, with
+no catalog version changed and Kotlin still at 2.3.21. AGP self-serviced the
+missing Android SDK build-tools, accepting the license and installing 36.0.0
+into `C:\Dev\Android SDK` despite there being no `cmdline-tools` directory — so
+the concern raised when this work was planned turned out not to bite.
+
+Open items this task surfaced:
+
+- Nothing fails if someone later flips `exportSchema` to false or repoints
+  `room.schemaLocation` into `build/`. The real-schema backlog item should guard
+  that invariant itself, not only the migrations.
+- Room is proven only at compile/KSP time. No instrumented test has opened the
+  database, so runtime Room behaviour against `minSdk` 33 is still unproven.
+- A CI machine without network access to the Android SDK repo, or without
+  license auto-acceptance, would fail its first Android build.
+
+Next: SS1.4.
 
 ### 2026-09-16 — SS1.2 done
 

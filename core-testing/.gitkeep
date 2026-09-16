@@ -1,2 +1,0 @@
-# Placeholder so this module directory survives a clone. Gradle 9 requires every
-# included project's directory to exist. Module build files are added by SS1.2+.

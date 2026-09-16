@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T06:15:15.585Z",
+  "updated_at": "2026-09-16T06:26:58.087Z",
   "work_items": [
     {
       "id": "SS1",
@@ -42,19 +42,19 @@
         {
           "id": "SS1.3",
           "title": "core-data (Room + KSP) and core-testing",
-          "status": "in-progress",
-          "lifecycle_state": "implementing",
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [
             "SS1.2"
           ],
           "lease": {
-            "assigned_agent": "implementer",
-            "run_id": "run-2026-09-16",
+            "assigned_agent": null,
+            "run_id": null,
             "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/SS1.3.packet.json",
           "report_path": null,
-          "notes": "Verifier tier: data_persistence_migrations."
+          "notes": "Done, verifier pass (data-persistence floor tier). AGP 9 rejects kotlin-android; alias removed from catalog and root build script."
         },
         {
           "id": "SS1.4",
