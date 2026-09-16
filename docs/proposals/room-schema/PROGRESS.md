@@ -18,10 +18,37 @@ trigger, and most of it touches raw-capture immutability.
 | DB1.2 | Domain vocabularies in core-domain | done | Verifier pass. Names pinned by VocabularyNamesTest |
 | DB1.3 | Schema v1: entities, converters, database | done | Verifier pass. FixtureInsertDao is temporary; DB1.4 replaces it |
 | DB1.4 | Data-layer operations and integrity tests | done | Verifier pass. Guard tightening for occurrence updates carried into DB1.5 |
-| DB1.5 | Migration harness, production builder, destructive-fallback guard | todo | Needs DB1.4 |
+| DB1.5 | Migration harness, production builder, destructive-fallback guard | done | Verifier pass; verifier independently reproduced both fallback bite checks |
 | DB1.6 | Documentation: DATA_MODEL, identifier ADR, PROJECT_STATUS | todo | Needs DB1.5 |
 
+## Open items (carry forward)
+
+- Migration harness compares only columns present in both versions; at the
+  first real migration, add an explicit check so a dropped/renamed column
+  cannot lose data silently. Its value comparison cannot fail until a real
+  migration exists.
+- `ActivityLedgerDatabaseFactory.builder()` is visible module-wide; when the
+  phone app wires the database, it must go through `create()` (the
+  behavioral fallback guard only exercises the factory itself).
+- `applyCorrection` does not refuse corrections to HIDDEN occurrences —
+  policy question for Step 3's correction service, not the data layer.
+
 ## Session log
+
+### 2026-09-16 — DB1.2 to DB1.5 done; stopped at task budget
+
+Five tasks completed this run (budget `max_tasks_per_run: 5`), each passed the
+verifier. core-data now has: schema v1 (six tables, 13 NO ACTION FKs, Room
+enforces FKs itself), blocking DAOs with a class-file-reading guard test that
+restricts the write surface (no @Update/@Upsert/@Delete, ABORT inserts only,
+occurrence/correction writes only in `LedgerWriteDao`), transactional
+`acceptInterpretation` (idempotent per capture) and `applyCorrection`
+(always writes a correction row), the TEST_STRATEGY §8 scenario, a production
+factory with an empty migrations list, a seeded v1 migration harness, a
+schema-version consistency test, and a behavioral no-destructive-fallback
+guard. 47 core-data tests. TOOLING_NOTES.md corrected after DB1.3 (FK
+callback removed). Next: DB1.6 (docs + identifier ADR), then the work item
+is complete.
 
 ### 2026-09-16 — DB1.1 done
 

@@ -18,7 +18,16 @@ internal object ClassFileAnnotations {
     /** An annotation: its JVM type descriptor (e.g. "Landroidx/room/Query;") and element values. */
     data class Annotation(val descriptor: String, val values: Map<String, Any?>)
 
-    data class Method(val name: String, val descriptor: String, val annotations: List<Annotation>)
+    /**
+     * A method: [descriptor] is the erased JVM descriptor; [signature] is the generic
+     * signature (e.g. with `List<...>` type arguments) when the compiler emitted one.
+     */
+    data class Method(
+        val name: String,
+        val descriptor: String,
+        val annotations: List<Annotation>,
+        val signature: String? = null,
+    )
 
     data class ClassInfo(val annotations: List<Annotation>, val methods: List<Method>)
 
@@ -46,9 +55,10 @@ internal object ClassFileAnnotations {
             input.readUnsignedShort()
             val name = pool[input.readUnsignedShort()] as String
             val descriptor = pool[input.readUnsignedShort()] as String
-            Method(name, descriptor, readAttributes(input, pool))
+            val attributes = readAttributes(input, pool)
+            Method(name, descriptor, attributes.annotations, attributes.signature)
         }
-        val classAnnotations = readAttributes(input, pool)
+        val classAnnotations = readAttributes(input, pool).annotations
         return ClassInfo(classAnnotations, methods)
     }
 
@@ -73,19 +83,23 @@ internal object ClassFileAnnotations {
         return pool
     }
 
-    /** Reads an attribute table, returning the annotations found in it (visible and invisible). */
-    private fun readAttributes(input: DataInputStream, pool: Array<Any?>): List<Annotation> {
+    private class Attributes(val annotations: List<Annotation>, val signature: String?)
+
+    /** Reads an attribute table: the annotations found in it (visible and invisible) and any Signature. */
+    private fun readAttributes(input: DataInputStream, pool: Array<Any?>): Attributes {
         val result = mutableListOf<Annotation>()
+        var signature: String? = null
         repeat(input.readUnsignedShort()) {
             val name = pool[input.readUnsignedShort()] as String
             val length = input.readInt()
-            if (name == "RuntimeInvisibleAnnotations" || name == "RuntimeVisibleAnnotations") {
-                repeat(input.readUnsignedShort()) { result += readAnnotation(input, pool) }
-            } else {
-                input.readFully(ByteArray(length))
+            when (name) {
+                "RuntimeInvisibleAnnotations", "RuntimeVisibleAnnotations" ->
+                    repeat(input.readUnsignedShort()) { result += readAnnotation(input, pool) }
+                "Signature" -> signature = pool[input.readUnsignedShort()] as String
+                else -> input.readFully(ByteArray(length))
             }
         }
-        return result
+        return Attributes(result, signature)
     }
 
     private fun readAnnotation(input: DataInputStream, pool: Array<Any?>): Annotation {

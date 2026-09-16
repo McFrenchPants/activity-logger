@@ -2,6 +2,8 @@ package com.mcfrenchpants.activityledger.core.data.db.dao
 
 import androidx.room.OnConflictStrategy
 import com.mcfrenchpants.activityledger.core.data.db.ActivityLedgerDatabase
+import com.mcfrenchpants.activityledger.core.data.db.entity.ActivityOccurrenceEntity
+import com.mcfrenchpants.activityledger.core.data.db.entity.CorrectionEntity
 import org.junit.Test
 import java.lang.reflect.Modifier
 import kotlin.test.assertEquals
@@ -19,7 +21,11 @@ import kotlin.test.assertTrue
  * DELETE, INSERT or REPLACE; an UPDATE @Query may target only raw_captures
  * (setting only processing_state and updated_at) or activity_occurrences (never
  * setting id, raw_capture_id, captured_at or created_at); every @Insert uses
- * the default ABORT conflict strategy.
+ * the default ABORT conflict strategy. Occurrences and corrections are written
+ * only by LedgerWriteDao: an UPDATE of activity_occurrences, or an @Insert
+ * taking ActivityOccurrenceEntity or CorrectionEntity (directly, as an array, or
+ * as a type argument such as List<CorrectionEntity>), anywhere else is a
+ * violation.
  */
 class DaoWriteSurfaceGuardTest {
 
@@ -67,6 +73,11 @@ class DaoWriteSurfaceGuardTest {
                             if (strategy != OnConflictStrategy.ABORT) {
                                 violations += "$where @Insert onConflict=$strategy (must be ABORT)"
                             }
+                            val parameters = (method.signature ?: method.descriptor).substringBefore(')')
+                            val ledgerOnly = LEDGER_ONLY_ENTITIES.filter { parameters.contains(it) }
+                            if (ledgerOnly.isNotEmpty() && dao != LedgerWriteDao::class.java) {
+                                violations += "$where @Insert of $ledgerOnly outside LedgerWriteDao"
+                            }
                         }
                         QUERY -> {
                             val sql = (annotation.values["value"] as String).trim().replace(Regex("\\s+"), " ")
@@ -75,7 +86,7 @@ class DaoWriteSurfaceGuardTest {
                                 "DELETE", "INSERT", "REPLACE" -> violations += "$where @Query starts with $verb"
                                 "UPDATE" -> {
                                     updates++
-                                    checkUpdate(sql)?.let { violations += "$where: $it" }
+                                    checkUpdate(dao, sql)?.let { violations += "$where: $it" }
                                 }
                             }
                         }
@@ -90,7 +101,7 @@ class DaoWriteSurfaceGuardTest {
     }
 
     /** Returns a violation description, or null if the UPDATE statement is allowed. */
-    private fun checkUpdate(sql: String): String? {
+    private fun checkUpdate(dao: Class<*>, sql: String): String? {
         val match = UPDATE_SQL.matchEntire(sql) ?: return "unrecognised UPDATE form: $sql"
         val table = match.groupValues[1]
         val columns = match.groupValues[2].split(',').map { it.substringBefore('=').trim().trim('`') }.toSet()
@@ -99,6 +110,7 @@ class DaoWriteSurfaceGuardTest {
                 if (columns.isNotEmpty() && RAW_CAPTURE_UPDATABLE.containsAll(columns)) null
                 else "UPDATE raw_captures may set only $RAW_CAPTURE_UPDATABLE, sets $columns"
             "activity_occurrences" -> {
+                if (dao != LedgerWriteDao::class.java) return "UPDATE activity_occurrences outside LedgerWriteDao"
                 val bad = columns intersect OCCURRENCE_IMMUTABLE
                 if (bad.isEmpty()) null else "UPDATE activity_occurrences sets immutable columns $bad"
             }
@@ -119,6 +131,12 @@ class DaoWriteSurfaceGuardTest {
         private val UPDATE_SQL = Regex("^UPDATE `?(\\w+)`? SET (.+?) WHERE .+$", RegexOption.IGNORE_CASE)
         private val RAW_CAPTURE_UPDATABLE = setOf("processing_state", "updated_at")
         private val OCCURRENCE_IMMUTABLE = setOf("id", "raw_capture_id", "captured_at", "created_at")
+
+        /** Type descriptors of entities only LedgerWriteDao may insert (matched inside descriptor/signature). */
+        private val LEDGER_ONLY_ENTITIES = listOf(
+            "L" + ActivityOccurrenceEntity::class.java.name.replace('.', '/') + ";",
+            "L" + CorrectionEntity::class.java.name.replace('.', '/') + ";",
+        )
 
         /** The SQL of the @Query on [methodName] of [dao], as written in the source. */
         fun querySql(dao: Class<*>, methodName: String): String =
