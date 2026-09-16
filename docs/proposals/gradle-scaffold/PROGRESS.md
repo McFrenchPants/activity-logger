@@ -16,13 +16,36 @@ legacy proposal-folder delegation path.
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
 | SS1.1 | Gradle foundation: wrapper, settings, version catalog | done | Gradle 9 requires every included project directory to exist, so the eight module dirs were created here with a `.gitkeep` each. Plugin markers still unresolved — nothing applies a plugin yet. |
-| SS1.2 | `core-domain`, `core-wear-protocol` (pure Kotlin JVM) | todo | Depends on SS1.1. |
+| SS1.2 | `core-domain`, `core-wear-protocol` (pure Kotlin JVM) | done | Kotlin 2.3.21 plugin marker resolved for the first time. AGP and KSP still unproven. |
 | SS1.3 | `core-data` (Room + KSP), `core-testing` | todo | Depends on SS1.2. Verifier tier: data persistence. |
 | SS1.4 | `core-ai` (ML Kit containment), `core-speech` | todo | Depends on SS1.3. Verifier tier: ADR-023 containment. |
 | SS1.5 | `app-phone`, `app-wear` | todo | Depends on SS1.4. |
 | SS1.6 | Full-build verification pass + `BUILD_NOTES.md` | todo | Depends on SS1.5. |
 
 ## Session log
+
+### 2026-09-16 — SS1.2 done
+
+`core-domain` and `core-wear-protocol` exist as plain Kotlin/JVM modules — no
+Android plugin, no `android { }` block, no dependency on any other project
+module. Each has a scaffold placeholder plus one unit test.
+
+Re-verified by the orchestrator rather than accepted on report: tests were
+re-run with `--rerun-tasks` to BUILD SUCCESSFUL, and the generated JUnit XML
+shows `tests="1" skipped="0" failures="0"` for each module. That check matters
+here specifically because a module containing zero tests also reports BUILD
+SUCCESSFUL — the passing exit code alone would not have distinguished the two.
+
+**The Kotlin 2.3.21 plugin marker resolved from a repository for the first
+time.** Until this task every plugin was `apply false`, so the catalog's
+coordinates were unexercised. Kotlin is now proven; **AGP 9.4.0 and KSP 2.3.12
+still are not** — SS1.3 is their first real test, and a failure there is a
+finding about the catalog, not a flaky build.
+
+The two `.gitkeep` files in these modules were deleted, now that each has real
+tracked content. The other six remain and must stay until their module does.
+
+Next: SS1.3.
 
 ### 2026-09-16 — SS1.1 done
 
