@@ -6,9 +6,9 @@
 
 ## Overall status
 
-Documentation baseline created. Platform/API validation complete: SDK baselines, build toolchain, AI stack and speech API are pinned (ADR-021 through ADR-024), which unblocks the Gradle scaffold.
+Documentation baseline created. Platform/API validation complete: SDK baselines, build toolchain, AI stack and speech API are pinned (ADR-021 through ADR-024), The multi-module Gradle scaffold is built and merged (empty phone and watch apps plus the core modules; see `docs/proposals/gradle-scaffold/BUILD_NOTES.md`).
 
-No application code has been written yet.
+No product behaviour has been implemented yet. In progress: Room schema v1 (backlog item 3, `docs/proposals/room-schema/`), design spec awaiting owner sign-off.
 
 ## Completed
 
@@ -35,8 +35,8 @@ Recommended tasks:
 2. ~~Select exact `minSdk`, `targetSdk`, Wear OS baseline.~~ Done — ADR-021.
 3. ~~Verify Gemini Nano Prompt API + Structured Output availability on target phone.~~ Done — ADR-023. Library-level availability confirmed from Google's device list and the device's AICore install; a real inference call is still unproven until Step 4.
 4. ~~Verify selected on-device speech recognition approach.~~ Done — ADR-024.
-5. Create Gradle project structure. **← next**
-6. Define Room schema version 1.
+5. ~~Create Gradle project structure.~~ Done 2026-09-16 — work item SS1.
+6. Define Room schema version 1. **← in progress** (design spec drafted)
 7. Define domain interfaces.
 8. Define watch/phone protocol.
 9. Build a minimal end-to-end technical spike:

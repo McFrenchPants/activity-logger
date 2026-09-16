@@ -1,17 +1,17 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T13:18:49.532Z",
+  "updated_at": "2026-09-16T15:29:03.139Z",
   "work_items": [
     {
       "id": "SS1",
       "title": "Gradle project scaffold (backlog item 2)",
-      "lifecycle_state": "implementing",
+      "lifecycle_state": "released",
       "tasks": [
         {
           "id": "SS1.1",
           "title": "Gradle foundation: wrapper, settings, version catalog",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -26,7 +26,7 @@
           "id": "SS1.2",
           "title": "core-domain and core-wear-protocol (pure Kotlin JVM)",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "SS1.1"
           ],
@@ -43,7 +43,7 @@
           "id": "SS1.3",
           "title": "core-data (Room + KSP) and core-testing",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "SS1.2"
           ],
@@ -60,7 +60,7 @@
           "id": "SS1.4",
           "title": "core-ai (ML Kit containment) and core-speech",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "SS1.3"
           ],
@@ -77,7 +77,7 @@
           "id": "SS1.5",
           "title": "app-phone and app-wear",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "SS1.4"
           ],
@@ -94,7 +94,7 @@
           "id": "SS1.6",
           "title": "Full-build verification pass and BUILD_NOTES.md",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "SS1.5"
           ],
@@ -108,6 +108,12 @@
           "notes": "Done. clean build green (lint + unminified release), 7 unit tests in 5 modules. BUILD_NOTES.md written; only plan difference is compileSdk 37. Release merged manifests checked: no INTERNET/ACCESS_NETWORK_STATE. R8 still unexercised."
         }
       ]
+    },
+    {
+      "id": "DB1",
+      "title": "Room schema v1 + migration test infrastructure (backlog item 3)",
+      "lifecycle_state": "design_review",
+      "tasks": []
     }
   ]
 }
