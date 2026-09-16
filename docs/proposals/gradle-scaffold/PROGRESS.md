@@ -20,9 +20,41 @@ legacy proposal-folder delegation path.
 | SS1.3 | `core-data` (Room + KSP), `core-testing` | done | Verifier pass, all 8 criteria. AGP 9 rejects the `kotlin-android` plugin; alias removed from the catalog. |
 | SS1.4 | `core-ai` (ML Kit containment), `core-speech` | done | Accepted after ADR-023 was amended (the original wording was not implementable for generated code). ADR-025 added: the apps strip the `INTERNET` permission ML Kit brings in. |
 | SS1.5 | `app-phone`, `app-wear` | done | `compileSdk` raised to 37 (ADR-021 amended) because the pinned Compose BOM requires it; `targetSdk` stays 36. Both merged manifests verified free of `INTERNET`/`ACCESS_NETWORK_STATE`. |
-| SS1.6 | Full-build verification pass + `BUILD_NOTES.md` | todo | Depends on SS1.5. |
+| SS1.6 | Full-build verification pass + `BUILD_NOTES.md` | done | `clean build` green incl. lint and unminified release APKs; 7 unit tests in 5 modules. Release merged manifests also free of `INTERNET`. |
 
 ## Session log
+
+### 2026-09-16 — SS1.6 done; scaffold work item complete
+
+`./gradlew clean build` is BUILD SUCCESSFUL (461 tasks, including `lint`,
+`lintVitalAnalyzeRelease` and `assembleRelease` for both apps) with no fixes
+needed. Unit tests: 7 tests in 5 modules, 0 failures and 0 skipped, read from
+JUnit XML rather than the exit code (core-ai 3, core-speech 1, core-domain 1,
+core-testing 1, core-wear-protocol 1). `app-phone`, `app-wear` and `core-data`
+have no test sources. `BUILD_NOTES.md` records every final catalog version with
+its resolved value; the only difference from the plan is `compileSdk` 37.
+
+Orchestrator spot-check: re-ran `./gradlew test` (exit 0) and read
+`BUILD_NOTES.md`. **Because `build` produced release variants, the
+orchestrator also grepped both *release* merged manifests
+(`merged_manifest/release/processReleaseMainManifest`) for
+`INTERNET`/`ACCESS_NETWORK_STATE`: 0 each.** This is an early pass of the
+ADR-025 release check, not a substitute for the hardening step's: release is
+still unsigned and **not minified** (`isMinifyEnabled` is off), so R8 and
+`core-ai`'s consumer keep rules remain unexercised, as noted under SS1.4.
+
+Carried forward to later work items:
+
+- `app-wear` resolves Compose 1.9.2 while `app-phone` resolves 1.12.1.
+- `app-wear` prints two harmless manifest-merger warnings on every build
+  (`tools:node="remove"` with nothing to remove). They are kept on purpose as a
+  regression guard.
+- `core-data` has no tests, and Room has never opened a database at runtime.
+- A fresh machine or CI needs Android SDK Platform 37 and build-tools 36.0.0.
+
+All six SS1 tasks are `done`. In lite release mode this is the stopping point:
+`feature/gradle-scaffold` (branched off the unmerged
+`feature/platform-validation`) is ready for the owner to merge by hand.
 
 ### 2026-09-16 — SS1.5 done; ADR-021 amended (compileSdk 37)
 

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T13:13:05.121Z",
+  "updated_at": "2026-09-16T13:18:49.532Z",
   "work_items": [
     {
       "id": "SS1",
@@ -93,19 +93,19 @@
         {
           "id": "SS1.6",
           "title": "Full-build verification pass and BUILD_NOTES.md",
-          "status": "todo",
-          "lifecycle_state": null,
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [
             "SS1.5"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/SS1.6.packet.json",
           "report_path": null,
-          "notes": "Records final catalog versions, including ones no ADR pins, and flags compileSdk 37 as differing from the original plan."
+          "notes": "Done. clean build green (lint + unminified release), 7 unit tests in 5 modules. BUILD_NOTES.md written; only plan difference is compileSdk 37. Release merged manifests checked: no INTERNET/ACCESS_NETWORK_STATE. R8 still unexercised."
         }
       ]
     }

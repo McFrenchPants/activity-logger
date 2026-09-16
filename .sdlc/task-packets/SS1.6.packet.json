@@ -1,0 +1,28 @@
+{
+  "task_id": "SS1.6",
+  "plan_revision": "1616d21",
+  "objective": "Final verification pass for the Gradle scaffold. (1) Run `./gradlew clean build` from a clean state and make it pass. (2) Run `./gradlew test` and confirm tests actually executed: for every module that has a test source set, read the generated JUnit XML under build/test-results and report tests/failures/skipped counts -- a module with zero tests also reports BUILD SUCCESSFUL, so the exit code alone is not evidence. Note that `build` on Android modules also runs lint and may run release variants; if a release-variant or lint failure appears, report it precisely. You may fix small, clearly-scaffold-level problems ONLY inside app-phone, app-wear, core-*, or gradle/libs.versions.toml additions; any fix that would change an existing pinned version, the root build files, gradle.properties, or the wrapper must be reported as scope_change_requested instead. Do not disable lint checks, tests, or tasks to get green -- report instead. (3) Write docs/proposals/gradle-scaffold/BUILD_NOTES.md: a short technical note (audience: future agents) listing EVERY version in the final gradle/libs.versions.toml (versions table and BOM-managed library entries with the version the BOM actually resolved, taken from `./gradlew :app-phone:dependencies` / `:app-wear:dependencies`, not recalled), and a comparison against this original plan table -- Gradle 9.7.1, AGP 9.4.0, Kotlin 2.3.21, KSP 2.3.12, JDK toolchain 21, Room 2.8.5, Compose BOM 2026.09.00, Wear Compose Material3 1.6.2, activity-compose 1.13.0, genai-prompt 1.0.0-beta4, genai-schema-compiler 1.0.0-alpha1, minSdk phone/watch 33/34, compileSdk/targetSdk 36/36 -- flagging each difference with its reason. Known difference to record: compileSdk is 37 (ADR-021 amended 2026-09-16) because Compose BOM 2026.09.00 / Compose 1.12.1 requires compileSdk >= 37; targetSdk stays 36. Also record: app-wear resolves Compose 1.9.2 via Wear Compose Material3 while app-phone resolves 1.12.1 via the BOM; and SDK components the builds downloaded: build-tools 36.0.0 (during SS1.3) and Android SDK Platform 37.0 revision 2 (during SS1.5) into the local Android SDK directory. Report any further downloads observed in this run. Keep it short and factual.",
+  "non_goals": [
+    "Do not add product code, tests with product meaning, or new modules.",
+    "Do not change or remove any existing version in gradle/libs.versions.toml; do not move Kotlin off 2.3.21.",
+    "Do not modify settings.gradle.kts, the root build.gradle.kts, gradle.properties or the Gradle wrapper.",
+    "Do not disable, baseline or suppress lint, tests or tasks to obtain a green build.",
+    "Do not add INTERNET permission, network code, telemetry, or logging of user content.",
+    "Do not edit any doc other than docs/proposals/gradle-scaffold/BUILD_NOTES.md.",
+    "Do not commit."
+  ],
+  "dependencies": ["SS1.5"],
+  "read_paths": ["settings.gradle.kts","build.gradle.kts","gradle","gradle.properties","app-phone","app-wear","core-ai","core-data","core-domain","core-speech","core-testing","core-wear-protocol","docs/DECISIONS.md","AGENTS.md","CLAUDE.md",".gitignore"],
+  "write_paths": ["docs/proposals/gradle-scaffold/BUILD_NOTES.md","app-phone","app-wear","core-ai","core-data","core-domain","core-speech","core-testing","core-wear-protocol","gradle/libs.versions.toml"],
+  "forbidden_paths": ["BACKLOG.md","PROGRESS.md","CLAUDE.md","AGENTS.md","README.md","docs/DECISIONS.md","docs/ARCHITECTURE.md","docs/proposals/gradle-scaffold/PROGRESS.md","docs/proposals/gradle-scaffold/IMPLEMENTATION_PLAN.md",".sdlc","agents","scripts",".claude","settings.gradle.kts","build.gradle.kts","gradle.properties","gradle/wrapper","gradlew","gradlew.bat"],
+  "acceptance_criteria": [
+    "`./gradlew clean build` is BUILD SUCCESSFUL; state the evidence and any task that failed on the way plus how it was resolved.",
+    "`./gradlew test` passes, and JUnit XML counts (tests/failures/skipped) are reported per module that has tests; modules with no tests are named as such.",
+    "BUILD_NOTES.md lists every version in the final catalog, including BOM-resolved versions of BOM-managed entries, taken from actual dependency output.",
+    "BUILD_NOTES.md flags every difference from the original plan table with its reason (at minimum compileSdk 37), and records SDK components downloaded.",
+    "If any source/build fix was made, `git diff` shows no change to an existing catalog version and no disabled lint/test; list each fix."
+  ],
+  "verification_commands": ["./gradlew clean build","./gradlew test","./gradlew :app-phone:dependencies --configuration debugRuntimeClasspath","./gradlew :app-wear:dependencies --configuration debugRuntimeClasspath","git status --porcelain","git diff"],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
