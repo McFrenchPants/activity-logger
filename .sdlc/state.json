@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-16T05:59:42.907Z",
+  "updated_at": "2026-09-16T06:08:06.333Z",
   "work_items": [
     {
       "id": "SS1",
@@ -10,17 +10,17 @@
         {
           "id": "SS1.1",
           "title": "Gradle foundation: wrapper, settings, version catalog",
-          "status": "in-progress",
-          "lifecycle_state": "implementing",
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [],
           "lease": {
-            "assigned_agent": "implementer",
-            "run_id": "run-2026-09-16",
+            "assigned_agent": null,
+            "run_id": null,
             "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/SS1.1.packet.json",
           "report_path": null,
-          "notes": "No dependencies. Gradle 9.7.1 wrapper, all eight modules declared."
+          "notes": "Done. Gradle 9 requires included project dirs to exist, so the eight module dirs were created here with a .gitkeep each (approved scope widening). Plugin markers still unresolved."
         },
         {
           "id": "SS1.2",

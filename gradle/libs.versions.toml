@@ -1,0 +1,51 @@
+# Single source of truth for every pinned version in this build.
+# No version string may be duplicated in any module build file -- read them from here.
+#
+# Kotlin is pinned at 2.3.21 and MUST NOT be bumped past 2.3.x: KSP has no 2.4.x
+# release and Room requires KSP, so bumping Kotlin is a hard build break, not a
+# deprecation warning.
+
+[versions]
+# Build tooling
+gradle = "9.7.1"
+agp = "9.4.0"
+kotlin = "2.3.21"
+ksp = "2.3.12"
+jdkToolchain = "21"
+
+# SDK levels
+compileSdk = "36"
+targetSdk = "36"
+minSdkPhone = "33"
+minSdkWatch = "34"
+
+# Libraries
+room = "2.8.5"
+composeBom = "2026.09.00"
+wearComposeMaterial3 = "1.6.2"
+activityCompose = "1.13.0"
+mlkitGenaiPrompt = "1.0.0-beta4"
+mlkitGenaiSchemaCompiler = "1.0.0-alpha1"
+
+[libraries]
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "room" }
+
+androidx-wear-compose-material3 = { module = "androidx.wear.compose:compose-material3", version.ref = "wearComposeMaterial3" }
+
+mlkit-genai-prompt = { module = "com.google.mlkit:genai-prompt", version.ref = "mlkitGenaiPrompt" }
+mlkit-genai-schema-compiler = { module = "com.google.mlkit:genai-schema-compiler", version.ref = "mlkitGenaiSchemaCompiler" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

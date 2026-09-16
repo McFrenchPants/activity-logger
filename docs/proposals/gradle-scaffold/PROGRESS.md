@@ -15,7 +15,7 @@ legacy proposal-folder delegation path.
 
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
-| SS1.1 | Gradle foundation: wrapper, settings, version catalog | todo | No dependencies. |
+| SS1.1 | Gradle foundation: wrapper, settings, version catalog | done | Gradle 9 requires every included project directory to exist, so the eight module dirs were created here with a `.gitkeep` each. Plugin markers still unresolved — nothing applies a plugin yet. |
 | SS1.2 | `core-domain`, `core-wear-protocol` (pure Kotlin JVM) | todo | Depends on SS1.1. |
 | SS1.3 | `core-data` (Room + KSP), `core-testing` | todo | Depends on SS1.2. Verifier tier: data persistence. |
 | SS1.4 | `core-ai` (ML Kit containment), `core-speech` | todo | Depends on SS1.3. Verifier tier: ADR-023 containment. |
@@ -23,6 +23,40 @@ legacy proposal-folder delegation path.
 | SS1.6 | Full-build verification pass + `BUILD_NOTES.md` | todo | Depends on SS1.5. |
 
 ## Session log
+
+### 2026-09-16 — SS1.1 done
+
+Gradle foundation in place and independently re-verified by the orchestrator,
+not accepted on the implementer's word: the wrapper jar's SHA-256 was recomputed
+and matches Gradle's published `7a9ce74c…62c5d`, all eight module directories
+contain only a `.gitkeep`, and `./gradlew projects` was re-run to `BUILD
+SUCCESSFUL` listing all eight subprojects under root project `activity-ledger`.
+
+**One scope change was approved during the task.** The packet originally
+forbade the eight module directories, on the assumption that a Gradle
+subproject with no directory is legal. It is not, as of Gradle 9: *"Configuring
+project ':core-ai' without an existing directory is not allowed"* is a hard
+error with no opt-out, where 8.x only warned. The implementer correctly stopped
+and asked rather than writing outside its packet. The packet was widened to
+exactly the eight `.gitkeep` paths — not the directories wholesale — so module
+build files, sources and manifests stay owned by SS1.2–SS1.5.
+
+Carried forward:
+
+- **The catalog's plugin coordinates are still unproven.** Every plugin is
+  `apply false` and no module applies one, so AGP 9.4.0 / Kotlin 2.3.21 /
+  KSP 2.3.12 have never been resolved from a repository. A typo there would
+  not have surfaced yet; SS1.2 is the first real test.
+- `org.gradle.configuration-cache=true` is on before any Android module exists.
+  Accepted as AGP 9 hygiene, but it is the first thing to disable if an
+  SS1.2+ module turns out to be incompatible.
+- The `.gitkeep` files become dead weight once each module has real tracked
+  content, but removing one before then re-breaks the build.
+- Nothing mechanically enforces the Kotlin 2.3.x ceiling — it is a comment at
+  the top of `libs.versions.toml`. A dependency-bump tool could still break the
+  build. Worth a later task.
+
+Next: SS1.2.
 
 ### 2026-09-16 — scaffold planned
 

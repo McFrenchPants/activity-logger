@@ -3,7 +3,7 @@
   "plan_revision": "82afb2d",
   "objective": "Create the Gradle foundation for the Activity Ledger multi-module Android/Wear OS project: the Gradle 9.7.1 wrapper, settings.gradle.kts declaring all eight modules, a root build.gradle.kts that applies no plugin itself (all plugins declared `apply false`), gradle.properties, a single gradle/libs.versions.toml version catalog holding every pinned version, a .gitignore, and a git-ignored local.properties pointing at the local Android SDK. Module directories and per-module build files are NOT created by this task -- only settings.gradle.kts's include() lines must reference them. The eight modules are: app-phone, app-wear, core-domain, core-data, core-ai, core-speech, core-wear-protocol, core-testing. Versions to pin in the catalog, all already decided by this project's ADRs and not open for substitution: Gradle wrapper 9.7.1; Android Gradle Plugin 9.4.0; Kotlin 2.3.21 (MUST NOT be bumped past 2.3.x -- KSP has no 2.4.x release and Room requires KSP; bumping Kotlin is a hard build break, not a deprecation); KSP 2.3.12; JDK toolchain 21; Room 2.8.5; Compose BOM 2026.09.00; Wear Compose Material3 1.6.2; androidx.activity-compose 1.13.0; com.google.mlkit:genai-prompt 1.0.0-beta4; com.google.mlkit:genai-schema-compiler 1.0.0-alpha1. Also record compileSdk 36, targetSdk 36, phone minSdk 33 and watch minSdk 34 as catalog versions so per-module build files read them from one place. The local Android SDK is at 'C:\\Dev\\Android SDK' -- note the space in that path; local.properties needs it escaped per Java properties rules (backslashes doubled). Fetch the Gradle 9.7.1 wrapper jar and verify it against the published wrapper SHA-256 7a9ce74cff467ca1bf60a4fcd9f05185acceda4d0f382434d393e17864262c5d before keeping it; if the checksum does not match, stop and report blocked rather than committing an unverified jar. Also set distributionSha256Sum in gradle/wrapper/gradle-wrapper.properties to acd53f1edaf02f1a8ff99879f8a34b302661a057d9b063ae9e35b552f804d20a (the published checksum of gradle-9.7.1-bin.zip). There is no Gradle on PATH on this machine, so the wrapper must be bootstrapped by downloading its files rather than by running `gradle wrapper`.",
   "non_goals": [
-    "Do not create any module directory, module build.gradle.kts, source file, or AndroidManifest.xml -- later tasks SS1.2 through SS1.5 own those.",
+    "Do not create any module build.gradle.kts, source file, or AndroidManifest.xml -- later tasks SS1.2 through SS1.5 own those. The eight module directories themselves, each holding only a .gitkeep, ARE in scope (widened by the orchestrator after the Gradle 9 hard error).",
     "Do not implement any product behavior.",
     "Do not add any dependency that is not in the pinned list above; unpinned libraries (coroutines, lifecycle, core-ktx, Wear Data Layer, test libraries) are introduced by the later task that actually needs them.",
     "Do not add telemetry, analytics, crash reporting, or any build-time reporting plugin.",
@@ -25,7 +25,15 @@
     "gradlew",
     "gradlew.bat",
     ".gitignore",
-    "local.properties"
+    "local.properties",
+    "app-phone/.gitkeep",
+    "app-wear/.gitkeep",
+    "core-domain/.gitkeep",
+    "core-data/.gitkeep",
+    "core-ai/.gitkeep",
+    "core-speech/.gitkeep",
+    "core-wear-protocol/.gitkeep",
+    "core-testing/.gitkeep"
   ],
   "forbidden_paths": [
     "BACKLOG.md",
@@ -37,19 +45,11 @@
     ".sdlc",
     "agents",
     "scripts",
-    ".claude",
-    "app-phone",
-    "app-wear",
-    "core-domain",
-    "core-data",
-    "core-ai",
-    "core-speech",
-    "core-wear-protocol",
-    "core-testing"
+    ".claude"
   ],
   "acceptance_criteria": [
     "`./gradlew --version` reports Gradle 9.7.1 and JVM 21.",
-    "`./gradlew projects` runs successfully and lists all eight modules (app-phone, app-wear, core-domain, core-data, core-ai, core-speech, core-wear-protocol, core-testing). Module directories and module build files do not exist yet and this task must not create them; a Gradle subproject with no build script is legal. If Gradle nonetheless refuses to configure an included project whose directory is absent, report status scope_change_requested describing exactly what it needs -- do not create the directories yourself.",
+    "`./gradlew projects` runs successfully and lists all eight modules. Gradle 9 requires each included project directory to exist, so this task creates the eight module directories, each containing ONLY a .gitkeep file so the empty directory survives a clone. It must NOT create any build.gradle.kts, source file, or manifest in them -- those belong to SS1.2 through SS1.5.",
     "gradle/libs.versions.toml contains every version listed in the objective, and no version string is duplicated anywhere else in the build.",
     "local.properties exists, points sdk.dir at the local Android SDK, and is listed in .gitignore. .gitignore also covers .gradle/, build/, and *.iml. `git status --porcelain` must not show local.properties as an untracked-but-unignored file.",
     "The wrapper jar's SHA-256 was actually computed and matched against 7a9ce74cff467ca1bf60a4fcd9f05185acceda4d0f382434d393e17864262c5d, and the report states the computed value.",
