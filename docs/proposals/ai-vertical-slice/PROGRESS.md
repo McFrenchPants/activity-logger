@@ -46,6 +46,40 @@ tier: spec §7 (verifier for every non-doc task).
 
 ## Session log
 
+### 2026-09-17 (later) — re-checked: still NOT_INSTALLED, and a likely cause
+
+Wireless debugging came back on a new port. `CaptureVerticalSliceTest` was run
+again purely as a read-only check (it reports readiness and never downloads):
+the device still reports **NOT_INSTALLED**, so the earlier 50-minute attempt did
+not land.
+
+Device state at the time of that attempt, read from the phone: **not charging**
+(`AC powered: false`, `USB powered: false`, battery 73%), Wi-Fi connected and
+unmetered. Google's published docs do not state charging/idle conditions for the
+model download, so that is a suspicion, not a fact.
+
+The stronger suspicion, and the actionable one: Google documents that GenAI API
+**inference is permitted only when the app is the top foreground application** —
+a background call returns `BACKGROUND_USE_BLOCKED`. Our download ran from an
+instrumented test that never starts an Activity, so the app had no foreground
+window for those 50 minutes. The docs say this about inference rather than
+download, but it is the most plausible explanation for a flow that emitted no
+event at all: not a started event, not a progress event, not a failure code.
+
+What the next attempt should change, in order:
+1. Put a foreground Activity up for the duration — e.g. launch `MainActivity`
+   with `ActivityScenario` in the download test and keep it resumed while the
+   flow is collected — so the request is made from a foreground app.
+2. Have the phone on charge, on Wi-Fi, before starting.
+3. If it still emits nothing, add a bounded timeout around the collection so the
+   test reports "no events in N minutes" instead of hanging for 50, which is
+   what made the last run uninformative.
+
+The device also has an AICore settings screen
+(`com.google.android.aicore/...app.settings.AiCoreSettingsActivity`, registered
+under `APPLICATION_PREFERENCES`), reachable from Settings via the Android AICore
+app entry — a route for the owner to inspect or trigger model state by hand.
+
 ### 2026-09-17 — model download attempted; phone dropped off Wi-Fi debugging
 
 The owner explicitly approved fetching the on-device model to the Pixel 10 Pro
