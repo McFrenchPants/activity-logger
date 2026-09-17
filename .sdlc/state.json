@@ -336,7 +336,7 @@
         {
           "id": "AI1.1",
           "title": "Structured output type and decode mapping",
-          "status": "in-progress",
+          "status": "done",
           "lifecycle_state": null,
           "dependencies": [],
           "lease": {
@@ -346,7 +346,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/AI1.1.packet.json",
           "report_path": null,
-          "notes": null
+          "notes": "Done, verifier pass. core.ai.InterpretationResponse (@Generable, 7 nullable String fields) + internal InterpretationResponseDecoder returning InterpretationDecodeResult.Decoded/Failed with a payload-free InterpretationDecodeFailure enum. Scaffold placeholders deleted. Nullable String fields are supported by the alpha schema compiler (generated provider records nullable=true), so no sentinel needed. Packet defect to avoid: docs listed in both read_paths and forbidden_paths."
         },
         {
           "id": "AI1.2",

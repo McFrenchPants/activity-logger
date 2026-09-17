@@ -13,7 +13,7 @@ tier: spec §7 (verifier for every non-doc task).
 
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
-| AI1.1 | Structured output type and decode mapping | todo | Deletes the core-ai scaffold placeholder |
+| AI1.1 | Structured output type and decode mapping | done | Verifier pass. Schema type `InterpretationResponse` (7 nullable String fields); decoder internal, returns Decoded/Failed with value-free reason codes |
 | AI1.2 | Prompt: system instruction, builder, versioning | todo | Depends on AI1.1 |
 | AI1.3 | Capability detection and model client lifecycle | todo | Owner decision: never download implicitly |
 | AI1.4 | GeminiNanoActivityInterpreter | todo | Depends on AI1.1-AI1.3 |
@@ -29,6 +29,30 @@ tier: spec §7 (verifier for every non-doc task).
   only be settled against a real run (spec §6).
 
 ## Session log
+
+### 2026-09-17 — AI1.1 done
+
+`InterpretationResponse` (`@Generable`, seven nullable `String` fields, one per
+`InterpretationCandidate` field) plus an internal decoder returning
+`Decoded`/`Failed`. Failure reasons are a closed enum of six field-shaped codes
+carrying no payload at all, so no captured value can reach a reason string even
+by a later careless edit. The alpha schema compiler does accept nullable String
+fields — the generated provider records `nullable = true` for all seven — so no
+sentinel was needed. 21 tests; the three scaffold placeholder files are gone.
+Verifier pass.
+
+Two things worth carrying forward:
+
+- **Packet defect, mine, repeated from DS1.6.** The packet listed `docs` in
+  both `read_paths` and `forbidden_paths`, so the implementer correctly
+  declined to read the spec it was pointed at. From AI1.2 on, `forbidden_paths`
+  must forbid only what must not be *written*; `write_paths` already scopes
+  writes, and the hook enforces it.
+- The schema test maps field names to constructor positions via a
+  hand-maintained list (Java reflection exposes parameter annotations
+  positionally and Kotlin does not retain parameter names). Reordering the
+  schema class's parameters without updating that list could assert the wrong
+  field's guide. Flagged by the verifier, not blocking.
 
 ### 2026-09-17 — AI1 scaffolded
 
