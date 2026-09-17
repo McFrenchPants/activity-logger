@@ -185,7 +185,8 @@ Resolved times are never after `now`; a phrase whose resolution would be after
 Bands and anchors (anchors sit inside each band so a display layer can recover
 the band from the local hour): morning 05:00-12:00 anchor 09:00, afternoon
 12:00-17:00 anchor 15:00, evening 17:00-21:00 anchor 19:00, tonight
-21:00-24:00 anchor 21:00. If `now` is inside the band and before the anchor,
+17:00-24:00 anchor 21:00 (overlaps evening on purpose: "tonight" said at
+20:00 means earlier this evening, not the future). If `now` is inside the band and before the anchor,
 the result is `now` (still APPROXIMATE) — "this morning" said at 08:30 is not
 `Future`. Only a band that starts after `now` is `Future`.
 "Start of day" uses `LocalDate.atStartOfDay(zone)`, which handles DST gaps.
