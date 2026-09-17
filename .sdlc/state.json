@@ -404,7 +404,7 @@
         {
           "id": "AI1.5",
           "title": "Phone wiring and the on-device vertical slice",
-          "status": "in-progress",
+          "status": "done",
           "lifecycle_state": null,
           "dependencies": [
             "AI1.4"
@@ -416,7 +416,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/AI1.5.packet.json",
           "report_path": null,
-          "notes": null
+          "notes": "Done, verifier pass -- but the end-to-end behaviour is UNPROVEN. app-phone CapturePipeline.create(context, clock, interpreterDecorator) is the single composition point (AutoCloseable, no DI). androidTest infra added; CaptureVerticalSliceTest ran on the attached Pixel 10 Pro via connectedDebugAndroidTest and SKIPPED at its org.junit.Assume because readiness() = NOT_INSTALLED. Nothing was downloaded (owner decision). No timing numbers exist. Host-side InterpreterUnavailableGuardTest passes. Known: AGP 9 exits 1 on an Assume-aborted instrumented test."
         },
         {
           "id": "AI1.6",

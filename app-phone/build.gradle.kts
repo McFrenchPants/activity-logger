@@ -30,6 +30,11 @@ android {
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0"
+
+        // Runs the on-device vertical-slice test (src/androidTest). It is the only
+        // instrumented test here and it SKIPS itself (org.junit.Assume) on any device whose
+        // on-device model is not ready, so it is safe to run anywhere.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildFeatures {
@@ -52,4 +57,19 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
+
+    // Host-side (JVM, no device) guard for the interpreter-unavailable path. Deliberately
+    // minimal: JUnit 4 plus the shared pure-JVM fixtures, nothing else.
+    testImplementation(project(":core-testing"))
+    testImplementation(libs.junit4)
+    testImplementation(libs.kotlinx.coroutines.core)
+
+    // On-device test only. Only what the vertical-slice test actually uses: the runner that
+    // executes it, the AndroidJUnit4 runner class, ApplicationProvider, JUnit 4 assertions and
+    // runBlocking. Catalog entries androidx-test-core and androidx-test-ext-junit are reused.
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.junit4)
+    androidTestImplementation(libs.kotlinx.coroutines.core)
 }

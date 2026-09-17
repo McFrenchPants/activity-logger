@@ -17,14 +17,18 @@ tier: spec §7 (verifier for every non-doc task).
 | AI1.2 | Prompt: system instruction, builder, versioning | done | Verifier pass; orchestrator sent back two fixes (empty-candidate wording, weak few-shot assertions). Prompt version 2 |
 | AI1.3 | Capability detection and model client lifecycle | done | Verifier pass. `OnDeviceModelCapability`; download flow is cold so nothing starts implicitly. Orchestrator made cancellation propagate |
 | AI1.4 | GeminiNanoActivityInterpreter | done | Verifier pass. One shot, no retry; structuredResultJson is honestly null; coroutines now declared explicitly |
-| AI1.5 | Phone wiring and the on-device vertical slice | todo | Adds androidTest infrastructure; device run needs the Pixel 10 Pro |
+| AI1.5 | Phone wiring and the on-device vertical slice | done (unproven) | Verifier pass. Ran on the Pixel 10 Pro and **skipped**: the device reports the model NOT_INSTALLED. End-to-end behaviour still unproven |
 | AI1.6 | Documentation | todo | Must not claim a device run that did not happen |
 
 ## Open items (carry forward)
 
-- The real device run (Pixel 10 Pro, USB) is the actual proof of this work
-  item and needs the owner present. Until it happens, AI1.5 is code that
-  builds, not behaviour that is verified.
+- **The model is not installed on the Pixel 10 Pro.** The device run happened
+  and skipped. Until the owner decides to download the model, the vertical
+  slice cannot be proven, and nothing may describe it as working.
+- `core-data`'s `ActivityLedgerDatabaseFactory` KDoc still says it is "not yet
+  wired into app-phone", which is now stale (AI1.5 wired it).
+- The catalog now holds a separate `androidxTestRunner` key with the same value
+  as `androidxTestCore`; two places to bump when that release train moves.
 - `includeSchemaInPrompt` on vs off, and the exact temperature/topK/seed, can
   only be settled against a real run (spec §6).
 - `includeSchemaInPrompt` is provisionally on; only a real device run can settle
@@ -37,6 +41,48 @@ tier: spec §7 (verifier for every non-doc task).
   generic failure text.
 
 ## Session log
+
+### 2026-09-17 — AI1.5 done, but the slice has never actually run
+
+`CapturePipeline.create(context, clock, interpreterDecorator)` in `app-phone` is
+the one place the repository, the model capability, the interpreter, a system
+clock and the orchestrator are wired. It is `AutoCloseable` and documents its
+one-per-process lifetime. No dependency-injection framework. The decorator
+parameter is an identity-by-default observation seam, which is how the device
+test times the model call without standing up a second pipeline.
+
+Instrumented-test infrastructure now exists in `app-phone` (runner, androidTest
+source set, reusing the catalog's existing AndroidX test entries). The
+vertical-slice test seeds "Mow lawn" through the public repository API, creates
+the capture `I cut the grass yesterday.`, runs the orchestrator, and asserts
+AutoAccepted, the seeded activity (not a new one), yesterday's local date at
+DATE_ONLY precision, the right raw-capture link, and byte-identical raw text. A
+NeedsReview outcome fails the test and surfaces its reasons as enum names.
+Timings are emitted as bare numbers.
+
+**The device run happened and the test skipped.** The Pixel 10 Pro was attached
+over Wi-Fi ADB for this run, so `connectedDebugAndroidTest` really executed
+there — and `readiness()` returned `NOT_INSTALLED`: the Gemini Nano model is not
+present on that phone for this app. The test aborted at its assumption, exactly
+as designed, and **nothing was downloaded**, because that is the owner's call
+(spec §5.4). So the central claim of this work item — one sentence in, a
+correctly matched and dated occurrence out — is **built, installed and
+unproven**. No timing numbers exist. Nothing in the docs or the code claims
+otherwise.
+
+Two things a future session needs:
+
+- AGP 9 reports an `Assume`-aborted instrumented test as a *failing* task
+  (exit 1), even though the engine records it correctly as an abort. A CI gate
+  on a device without the model would go red for a skip.
+- The host-side unavailable guard (capture retained, no occurrence, no
+  interpretation row, still reprocessable) passes, using the in-memory
+  repository because "no interpretation row" is not observable through the
+  domain repository interface.
+
+The database isolation used on device (a context wrapper that prefixes every
+database file name) is reasoned-correct but was never exercised, since the test
+skipped before writing anything.
 
 ### 2026-09-17 — AI1.4 done
 
