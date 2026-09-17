@@ -327,6 +327,115 @@
           "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE \u00c2\u00a75/\u00c2\u00a76/\u00c2\u00a715/\u00c2\u00a716, AI_INTERPRETATION_SPEC \u00c2\u00a710/\u00c2\u00a711/\u00c2\u00a717, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
         }
       ]
+    },
+    {
+      "id": "AI1",
+      "title": "AI vertical slice (backlog item 4)",
+      "lifecycle_state": null,
+      "tasks": [
+        {
+          "id": "AI1.1",
+          "title": "Structured output type and decode mapping",
+          "status": "todo",
+          "lifecycle_state": null,
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": null
+        },
+        {
+          "id": "AI1.2",
+          "title": "Prompt: system instruction, builder, versioning",
+          "status": "todo",
+          "lifecycle_state": null,
+          "dependencies": [
+            "AI1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": null
+        },
+        {
+          "id": "AI1.3",
+          "title": "Capability detection and model client lifecycle",
+          "status": "todo",
+          "lifecycle_state": null,
+          "dependencies": [
+            "AI1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": null
+        },
+        {
+          "id": "AI1.4",
+          "title": "GeminiNanoActivityInterpreter",
+          "status": "todo",
+          "lifecycle_state": null,
+          "dependencies": [
+            "AI1.1",
+            "AI1.2",
+            "AI1.3"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": null
+        },
+        {
+          "id": "AI1.5",
+          "title": "Phone wiring and the on-device vertical slice",
+          "status": "todo",
+          "lifecycle_state": null,
+          "dependencies": [
+            "AI1.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": null
+        },
+        {
+          "id": "AI1.6",
+          "title": "Documentation",
+          "status": "todo",
+          "lifecycle_state": null,
+          "dependencies": [
+            "AI1.5"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": null
+        }
+      ]
     }
   ]
 }
