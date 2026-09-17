@@ -1,0 +1,82 @@
+{
+  "task_id": "DS1.3",
+  "plan_revision": "145d07c",
+  "objective": "Implement the candidate selector and the interpretation validator in core-domain: the deterministic code that decides which known activities are shown to the on-device AI, and whether the AI's structured answer may be saved automatically, must wait for the user's review, or is rejected. Owner decision: there are only these three outcomes; there is NO \"save but mark for review\" tier. Anything short of confident goes to review and nothing is logged.\n\nCONTEXT (existing public API, do not modify):\n- package com.mcfrenchpants.activityledger.core.domain.interpretation: data class InterpretationCandidate(operation: InterpretationOperation, activityResolution: ActivityResolution, matchedActivityId: String?, proposedCanonicalName: String?, activityState: ActivityState?, temporalExpression: String?, confidenceBand: ConfidenceBand?); data class CandidateActivity(id: String, displayName: String, aliases: List<String>).\n- package ...core.domain.repository: data class CatalogActivity(id, displayName, normalizedName, normalizedAliases: List<String>, lastOccurredAt: Instant?) — the repository returns ACTIVE activities only, so the selector need not filter status.\n- package ...core.domain.naming: object NameNormalizer { fun normalize(text: String): String }; object NewActivityNameCheck { fun check(name: String): Result } where Result is sealed Ok | Invalid(reason).\n- package ...core.domain.temporal: sealed interface TemporalResolution { data class Resolved(occurredAt: Instant, precision: TimePrecision); data object Future; data object Unresolvable }.\n- package ...core.domain.model enums: InterpretationOperation(LOG_ACTIVITY, QUERY_HISTORY, UNSUPPORTED), ActivityResolution(EXISTING_ACTIVITY, NEW_ACTIVITY, AMBIGUOUS, UNRESOLVED), ConfidenceBand(HIGH, MEDIUM, LOW), ValidationStatus(VALID, INVALID, NEEDS_REVIEW), ActivityState(COMPLETED, IN_PROGRESS).\n- Tests: kotlin.test, as existing core-domain tests.\n\nBUILD 1 — CandidateSelector (package ...core.domain.candidates, public):\n- class CandidateSelector(val bound: Int = 40) (require bound >= 1); fun select(catalog: List<CatalogActivity>, rawText: String): CandidateSelection.\n- data class CandidateSelection(candidates: List<CandidateActivity>, contextHash: String).\n- If catalog.size <= bound: all entries. Otherwise choose: first every entry with a \"text hit\" (its normalizedName or any normalizedAlias occurs in NameNormalizer.normalize(rawText) as a whole-token phrase, i.e. bounded by string start/end or a non-letter/non-digit character), then the rest ordered by lastOccurredAt descending (null last), ties by normalizedName then id; truncate to bound. If hits alone exceed bound, keep hits ordered by lastOccurredAt desc (null last), then normalizedName, then id, truncated.\n- The FINAL candidate list is always ordered by normalizedName then id, regardless of how it was chosen (so the prompt order does not change when only recency changes).\n- CandidateActivity.aliases = the entry's normalizedAliases, in their given order.\n- contextHash: lowercase hex SHA-256 (java.security.MessageDigest) of the UTF-8 string built by joining, for each final candidate in order, id + \"\\u001F\" + displayName + \"\\u001E\". Empty candidate list hashes the empty string. The raw text never influences the hash except through which candidates are chosen.\n\nBUILD 2 — InterpretationValidator (package ...core.domain.validation, public):\n- class InterpretationValidator(val minimumSpeechConfidence: Double = 0.5); fun validate(input: ValidationInput): ValidationDecision.\n- data class ValidationInput(candidate: InterpretationCandidate, suppliedCandidates: List<CandidateActivity>, catalog: List<CatalogActivity>, temporal: TemporalResolution, speechConfidence: Double?).\n- enum class ValidationOutcome { AUTO_ACCEPT, NEEDS_REVIEW, REJECT }.\n- data class ValidationDecision(outcome: ValidationOutcome, validationStatus: ValidationStatus, reasons: Set<ValidationReason>) with a val/fun reasonCodes: String? = reasons' enum names sorted alphabetically joined by \",\" (null when empty) — this is what gets persisted in interpretations.validation_reason. Status mapping: AUTO_ACCEPT->VALID, NEEDS_REVIEW->NEEDS_REVIEW, REJECT->INVALID.\n- enum class ValidationReason with exactly these constants (names are persisted as text; KDoc says renaming is a data change):\n  REJECT reasons: OPERATION_UNSUPPORTED, OPERATION_IS_QUERY, EXISTING_WITHOUT_ACTIVITY_ID, EXISTING_ACTIVITY_NOT_SUPPLIED, EXISTING_WITH_PROPOSED_NAME, NEW_WITHOUT_NAME, NEW_WITH_ACTIVITY_ID, UNMATCHED_WITH_ACTIVITY_FIELDS, STATE_MISSING.\n  NEEDS_REVIEW reasons: ACTIVITY_AMBIGUOUS, ACTIVITY_UNRESOLVED, CONFIDENCE_NOT_HIGH, CONFIDENCE_MISSING, TIME_IN_FUTURE, TIME_UNRESOLVABLE, NEW_NAME_INVALID, NEW_NAME_DUPLICATES_EXISTING, SPEECH_CONFIDENCE_LOW.\n  Each constant knows whether it is a REJECT or a NEEDS_REVIEW reason.\n- Rules:\n  a) operation UNSUPPORTED -> {OPERATION_UNSUPPORTED}; operation QUERY_HISTORY -> {OPERATION_IS_QUERY}. For a non-LOG_ACTIVITY operation report ONLY that one reason and return REJECT.\n  b) For LOG_ACTIVITY collect ALL applicable reasons:\n     EXISTING_ACTIVITY: matchedActivityId null/blank -> EXISTING_WITHOUT_ACTIVITY_ID; id not among suppliedCandidates ids -> EXISTING_ACTIVITY_NOT_SUPPLIED; proposedCanonicalName non-blank -> EXISTING_WITH_PROPOSED_NAME.\n     NEW_ACTIVITY: proposedCanonicalName null/blank -> NEW_WITHOUT_NAME; matchedActivityId non-blank -> NEW_WITH_ACTIVITY_ID; if a name is present: NewActivityNameCheck Invalid -> NEW_NAME_INVALID; NameNormalizer.normalize(name) equals any catalog entry's normalizedName or any normalizedAlias -> NEW_NAME_DUPLICATES_EXISTING (the full catalog, not only supplied candidates).\n     AMBIGUOUS -> ACTIVITY_AMBIGUOUS; UNRESOLVED -> ACTIVITY_UNRESOLVED; for both, a non-blank matchedActivityId or proposedCanonicalName -> UNMATCHED_WITH_ACTIVITY_FIELDS.\n     activityState null -> STATE_MISSING.\n     confidenceBand null -> CONFIDENCE_MISSING; MEDIUM or LOW -> CONFIDENCE_NOT_HIGH.\n     temporal Future -> TIME_IN_FUTURE; Unresolvable -> TIME_UNRESOLVABLE.\n     speechConfidence non-null and < minimumSpeechConfidence -> SPEECH_CONFIDENCE_LOW (null means unknown, not low; exactly the threshold is fine).\n  c) Outcome: any REJECT reason -> REJECT; else any NEEDS_REVIEW reason -> NEEDS_REVIEW; else AUTO_ACCEPT (which requires EXISTING with a supplied id or NEW with an acceptable non-duplicate name, HIGH confidence, a state, and a Resolved time).\n- Pure: no clock, no logging, no exceptions for any candidate content; never copies raw text or names into the decision.",
+  "non_goals": [
+    "No orchestrator, correction service, review resolution, repository or persistence code (later tasks).",
+    "No changes to existing core-domain files (model, naming, interpretation, repository, temporal packages) or their tests; no build file or catalog changes.",
+    "No fuzzy/semantic matching, stemming or embeddings in the selector (ADR-015); exact normalized phrase hits only.",
+    "No \"accept with review marker\" outcome.",
+    "No logging, no clock, no locale defaults. Do not disable, @Ignore or weaken any test. Do not commit."
+  ],
+  "dependencies": [
+    "DS1.1",
+    "DS1.2"
+  ],
+  "read_paths": [
+    "core-domain",
+    "docs/AI_INTERPRETATION_SPEC.md",
+    "docs/TEST_STRATEGY.md",
+    "docs/DECISIONS.md",
+    "AGENTS.md",
+    "CLAUDE.md"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/candidates",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/candidates",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/validation",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/validation"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "README.md",
+    "docs",
+    ".sdlc",
+    "agents",
+    "scripts",
+    ".claude",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "gradle.properties",
+    "gradle",
+    "gradlew",
+    "gradlew.bat",
+    "core-domain/build.gradle.kts",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/model",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/naming",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/interpretation",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal",
+    "core-testing",
+    "core-data",
+    "core-ai",
+    "core-speech",
+    "core-wear-protocol",
+    "app-phone",
+    "app-wear"
+  ],
+  "acceptance_criteria": [
+    "Selector, catalog <= bound: returns every entry, ordered by normalizedName then id (test with entries supplied in scrambled order and two entries sharing a normalizedName); aliases carried over; empty catalog -> empty list and the SHA-256 of the empty string (e3b0c442...).",
+    "Selector, catalog > bound (use bound 3 with 6 entries): an entry whose alias \"cut the grass\" occurs in \"I cut the grass yesterday.\" is included even though it is the least recent; an alias that only occurs inside another word (alias \"mow\" vs text \"mowers\") is NOT a hit; remaining slots go to most recent lastOccurredAt, null last; final list is name-ordered; hits exceeding the bound are truncated by recency.",
+    "Selector hash: identical catalogs give identical hashes regardless of input order; changing one candidate id or one displayName changes the hash; two different raw texts that select the same candidates give the same hash; the hash is 64 lowercase hex chars.",
+    "Validator: for EACH of the 18 ValidationReason constants a test constructs a LOG_ACTIVITY (or, for the operation reasons, UNSUPPORTED/QUERY_HISTORY) candidate that triggers it and asserts the reason is present and the outcome is REJECT for REJECT reasons and NEEDS_REVIEW for review-only inputs.",
+    "Validator AUTO_ACCEPT cases: EXISTING_ACTIVITY with a supplied id, HIGH, COMPLETED, Resolved time, speech confidence null -> AUTO_ACCEPT, VALID, empty reasons, reasonCodes null; NEW_ACTIVITY \"Clean dryer vent\" not in catalog, same otherwise -> AUTO_ACCEPT; IN_PROGRESS state also accepted.",
+    "Combination and precedence: a candidate with both a REJECT and several review reasons returns REJECT and reports all of them; reasonCodes is the alphabetically sorted comma-joined names; QUERY_HISTORY with missing state and LOW confidence reports only OPERATION_IS_QUERY.",
+    "False-merge case (ADR-017): raw \"I edged the lawn.\", candidate EXISTING_ACTIVITY Mow lawn (supplied) with MEDIUM -> NEEDS_REVIEW with CONFIDENCE_NOT_HIGH; with LOW -> same. TEST_STRATEGY section 6 inputs (\"Worked on the yard.\", \"Did the furnace thing.\", \"Handled the filter.\", \"Fixed that thing outside.\") with AMBIGUOUS or UNRESOLVED candidates -> NEEDS_REVIEW, never AUTO_ACCEPT even at HIGH confidence.",
+    "Duplicate name: NEW_ACTIVITY \"Mow Lawn!\" when catalog has normalizedName \"mow lawn\" -> NEEDS_REVIEW with NEW_NAME_DUPLICATES_EXISTING; NEW_ACTIVITY \"Cut grass\" when catalog has alias \"cut grass\" on Mow lawn -> same; NEW_ACTIVITY \"I mowed the lawn today\" -> NEW_NAME_INVALID.",
+    "Speech confidence: 0.49 -> SPEECH_CONFIDENCE_LOW; 0.5 and null -> no speech reason; custom threshold via constructor respected.",
+    "Status mapping asserted for all three outcomes. Validator never throws for arbitrary candidate content (blank strings, very long strings, ids not in catalog).",
+    "`./gradlew :core-domain:test --rerun-tasks` and `./gradlew test` pass; report JUnit XML counts for the new test classes; grep of new main sources finds no println, Instant.now(, ZoneId.systemDefault, Locale.getDefault."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test --rerun-tasks",
+    "./gradlew test",
+    "git diff HEAD --stat",
+    "git status --porcelain"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
