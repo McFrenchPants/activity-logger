@@ -22,9 +22,13 @@ tier: spec §7 (verifier for every non-doc task).
 
 ## Open items (carry forward)
 
-- **The model is not installed on the Pixel 10 Pro.** The device run happened
-  and skipped. Until the owner decides to download the model, the vertical
-  slice cannot be proven, and nothing may describe it as working.
+- **The model's state on the Pixel 10 Pro is unknown.** It was NOT_INSTALLED, a
+  download was approved and started, and the phone dropped off Wi-Fi debugging
+  ~50 minutes in with no terminal event. Check readiness first next time; do not
+  assume either way, and do not start a second download before checking.
+- **Wireless debugging needs re-pairing.** The phone is unreachable at the old
+  address and wireless-debug ports change on each pairing, so this needs the
+  owner (or a USB cable).
 - `core-data`'s `ActivityLedgerDatabaseFactory` KDoc still says it is "not yet
   wired into app-phone", which is now stale (AI1.5 wired it).
 - The catalog now holds a separate `androidxTestRunner` key with the same value
@@ -41,6 +45,38 @@ tier: spec §7 (verifier for every non-doc task).
   generic failure text.
 
 ## Session log
+
+### 2026-09-17 — model download attempted; phone dropped off Wi-Fi debugging
+
+The owner explicitly approved fetching the on-device model to the Pixel 10 Pro
+over Wi-Fi, so `ModelDownloadTest` was added to `app-phone`'s androidTest source
+set: a separately-runnable test that collects `OnDeviceModelCapability.download()`
+exactly once and logs byte counts, a completion flag and a numeric failure code —
+nothing else. It is doubly inert by default: it skips unless asked for by name
+with `-Pandroid.testInstrumentationRunnerArguments.downloadModel=true`, and skips
+again when there is nothing to do (already READY) or nothing possible
+(UNSUPPORTED_DEVICE). Nothing else in the codebase calls `download()`.
+
+It was run, by the orchestrator, with the owner's approval:
+
+```
+./gradlew :app-phone:connectedDebugAndroidTest   -Pandroid.testInstrumentationRunnerArguments.class=com.mcfrenchpants.activityledger.pipeline.ModelDownloadTest   -Pandroid.testInstrumentationRunnerArguments.downloadModel=true
+```
+
+**Result: inconclusive.** Device logcat shows the test started at 17:03 and
+logged `readinessBefore=NOT_INSTALLED`, then sat collecting the download flow.
+Play Store was observed checking its download settings, so a fetch did begin. At
+17:53 — about 50 minutes in — the phone dropped off Wi-Fi ADB (`device offline`,
+then unreachable entirely). The flow had emitted no terminal event by then: no
+`events=` line, no completion, no failure code. Gradle reported a test failure,
+but that failure is the disconnection, not an assertion: the failure body in the
+JUnit XML is empty.
+
+So: unknown whether the model finished downloading. The fetch is handled by Play
+and AICore on the phone itself, so it may well have continued or completed after
+ADB dropped. The next session should re-pair wireless debugging (the port
+changes each time) or use a cable, then simply check readiness before deciding
+whether to download again.
 
 ### 2026-09-17 — AI1.5 done, but the slice has never actually run
 
