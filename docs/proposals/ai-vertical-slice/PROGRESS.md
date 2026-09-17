@@ -16,7 +16,7 @@ tier: spec §7 (verifier for every non-doc task).
 | AI1.1 | Structured output type and decode mapping | done | Verifier pass. Schema type `InterpretationResponse` (7 nullable String fields); decoder internal, returns Decoded/Failed with value-free reason codes |
 | AI1.2 | Prompt: system instruction, builder, versioning | done | Verifier pass; orchestrator sent back two fixes (empty-candidate wording, weak few-shot assertions). Prompt version 2 |
 | AI1.3 | Capability detection and model client lifecycle | done | Verifier pass. `OnDeviceModelCapability`; download flow is cold so nothing starts implicitly. Orchestrator made cancellation propagate |
-| AI1.4 | GeminiNanoActivityInterpreter | todo | Depends on AI1.1-AI1.3 |
+| AI1.4 | GeminiNanoActivityInterpreter | done | Verifier pass. One shot, no retry; structuredResultJson is honestly null; coroutines now declared explicitly |
 | AI1.5 | Phone wiring and the on-device vertical slice | todo | Adds androidTest infrastructure; device run needs the Pixel 10 Pro |
 | AI1.6 | Documentation | todo | Must not claim a device run that did not happen |
 
@@ -27,13 +27,47 @@ tier: spec §7 (verifier for every non-doc task).
   builds, not behaviour that is verified.
 - `includeSchemaInPrompt` on vs off, and the exact temperature/topK/seed, can
   only be settled against a real run (spec §6).
-- `core-ai` depends on `kotlinx.coroutines` transitively via ML Kit rather than
-  declaring it. Fold the explicit catalog entry into AI1.5.
+- `includeSchemaInPrompt` is provisionally on; only a real device run can settle
+  whether it earns its prompt tokens.
+- Two coroutines entries now exist in the version catalog (1.8.1 for Room,
+  1.7.3 for `core-ai`'s ML Kit constraint). Revisit whenever the ML Kit beta
+  moves.
 - `ModelDownloadProgress.Failed` carries ML Kit's raw numeric error code, which
   is not fit to show a user. Step 7 needs a mapping, or a decision to show only
   generic failure text.
 
 ## Session log
+
+### 2026-09-17 — AI1.4 done
+
+`GeminiNanoActivityInterpreter` implements `ActivityInterpreter` over ML Kit's
+typed generation, composing AI1.1's schema, AI1.2's prompt and AI1.3's client.
+Readiness gates the call: anything but READY returns
+`Failure(UNAVAILABLE)` without touching the model and without downloading.
+Generation settings are deterministic-classification constants (temperature 0,
+topK 1, candidateCount 1, seed fixed, maxOutputTokens 256, thinking off) and the
+tests read them back off the captured request. One `generateContent` call per
+interpret, proved by a counter — no retry, no repair prompt.
+
+Decisions worth remembering:
+
+- **`structuredResultJson` is always null, deliberately.** The typed API returns
+  an already-decoded object, never the model's raw text, so re-serialising it
+  would record what the app understood dressed up as what the model said. That
+  would be a fabrication in an audit field. Documented in code; revisit only if
+  ML Kit exposes the raw response.
+- A `GenAiException` with a zero retry delay maps to OTHER, not RETRYABLE: no
+  delay means ML Kit is making no promise a later attempt would work.
+- `Error` is not caught. A broken process is not a failed model answer.
+- Warmup is a separate explicit `warmUp()`, never a side effect of `interpret`.
+- **The coroutines carry-forward is closed, with a wrinkle.** `core-ai` resolves
+  coroutines to 1.7.3 through ML Kit's own version constraint, while the
+  catalog's existing entry is 1.8.1 for Room. Reusing that entry would have
+  silently upgraded `core-ai`, so a second, separately-pinned catalog alias was
+  added at 1.7.3, with comments on both entries explaining why they must not be
+  merged without checking both modules. The resolved classpath is unchanged.
+
+96 core-ai tests (26 new), verifier pass.
 
 ### 2026-09-17 — AI1.3 done
 

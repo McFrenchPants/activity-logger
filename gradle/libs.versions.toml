@@ -28,6 +28,12 @@ mlkitGenaiPrompt = "1.0.0-beta4"
 mlkitGenaiSchemaCompiler = "1.0.0-alpha1"
 # Already resolved transitively via room-ktx; declared explicitly for core-data. Do not upgrade independently of Room.
 kotlinxCoroutines = "1.8.1"
+# core-ai's coroutines version, kept separate on purpose. ML Kit's genai-prompt brings
+# kotlinx-coroutines-bom:1.7.3, which is what core-ai's classpath already resolves to; core-ai
+# declares its use of coroutines explicitly at exactly that version so the dependency is not
+# implicit AND the resolved classpath is unchanged. Pointing core-ai at kotlinxCoroutines above
+# would silently upgrade it to 1.8.1. Do not merge the two without checking both modules.
+kotlinxCoroutinesGenai = "1.7.3"
 
 # Host-side (JVM, no device) test tooling -- see docs/proposals/room-schema/TOOLING_NOTES.md
 junit4 = "4.13.2"
@@ -49,6 +55,7 @@ androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref =
 androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "room" }
 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-core-genai = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesGenai" }
 
 junit4 = { module = "junit:junit", version.ref = "junit4" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
