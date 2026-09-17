@@ -77,7 +77,7 @@ Status vocabulary:
    production Gemini Nano path, verify structured output, canonical-activity
    matching, temporal extraction, Room persistence, and raw-text retention
    end-to-end. Source: `docs/IMPLEMENTATION_HANDOFF.md` "Step 4 — AI vertical
-   slice". Depends on items 1-3.
+   slice". Depends on items 1-3 and 8.
 
 5. **Phone/Wear visual spec and UI decisions** — `done`
    Visual design system, screen mockups, and the UI decisions the UX specs
@@ -107,3 +107,13 @@ Status vocabulary:
    depends on either. If on-device recognition turns out to be unavailable
    there, ADR-024 and the Wear Listening screen (ADR-020, UX_VISUAL_SPEC §3 D2)
    both need revisiting. Blocked on hardware.
+
+8. **Domain services** — `in progress`
+   Added 2026-09-17; it was the one build-guide step with no backlog entry, and
+   item 4 depends on it. Candidate selector, temporal resolver, interpretation
+   validator, capture orchestrator, correction service, review resolution, and
+   the `ActivityRepository` boundary between `core-domain` and `core-data`.
+   Source: `docs/IMPLEMENTATION_HANDOFF.md` "Step 3 — Domain services". Work
+   item DS1, see `docs/proposals/domain-services/`. Owner decision
+   2026-09-17: no "save but mark for review" tier — anything short of
+   confident goes to Needs review and nothing is logged until the user picks.
