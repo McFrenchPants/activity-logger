@@ -19,4 +19,5 @@ dependencies {
     // Resolves at the applied Kotlin plugin's own version, so it adds no new
     // version to gradle/libs.versions.toml.
     api(kotlin("test"))
+    api(project(":core-domain"))
 }

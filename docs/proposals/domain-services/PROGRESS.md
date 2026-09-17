@@ -12,7 +12,7 @@ This work item is **sdlc-tracked** (`DS1` in `.sdlc/state.json`). Verification t
 
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
-| DS1.1 | Domain contracts, name rules, test support | todo | |
+| DS1.1 | Domain contracts, name rules, test support | done | Verifier pass. Repo contract gaps carried into DS1.4/DS1.5 packets |
 | DS1.2 | Temporal resolver | todo | After DS1.1 |
 | DS1.3 | Candidate selector and interpretation validator | todo | After DS1.1, DS1.2 |
 | DS1.4 | ActivityRepository implementation in core-data | todo | After DS1.1 |
@@ -23,8 +23,28 @@ This work item is **sdlc-tracked** (`DS1` in `.sdlc/state.json`). Verification t
 
 - Hide/restore of an occurrence (Undo, "Remove from history") has no
   data-layer operation and no audit columns — Step 7 decision (spec §6).
+- Re-interpretation of an already-accepted capture (new interpretation becomes
+  effective, CorrectionSource.REINTERPRETATION) has no path in the
+  `ActivityRepository` contract (`CorrectionChanges` has no interpretation
+  field). Not needed by DS1 or Step 4; add when a repair/rerun feature exists.
+- Listing captures waiting for review is not in the repository contract —
+  Step 7 (History "Needs review" filter).
 
 ## Session log
+
+### 2026-09-17 — DS1.1 done
+
+Domain contracts in core-domain (`interpretation`, `repository`, `naming`
+packages), NameNormalizer + NewActivityNameCheck, core-testing helpers
+(MutableClock, FakeActivityInterpreter, runSuspend without a coroutines
+library). core-domain → core-testing test dependency works. Verifier pass with
+non-blocking findings, resolved as orchestrator decisions for later packets:
+the core-data implementation takes an injected `Clock` for row timestamps
+(accept/record/create have no `now` parameter); unknown ids throw
+IllegalArgumentException, documented in the interface KDoc by DS1.4; review
+resolution builds a fresh user-resolution record whose matched id / proposed
+name agree with the target (DS1.5). Name check deliberately rejects month and
+part-of-day words ("May", "Morning walk").
 
 ### 2026-09-17 — design signed off with temporal changes; plan written
 
