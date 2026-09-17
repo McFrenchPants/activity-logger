@@ -404,7 +404,7 @@
         {
           "id": "AI1.5",
           "title": "Phone wiring and the on-device vertical slice",
-          "status": "todo",
+          "status": "in-progress",
           "lifecycle_state": null,
           "dependencies": [
             "AI1.4"
@@ -412,9 +412,9 @@
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/AI1.5.packet.json",
           "report_path": null,
           "notes": null
         },
