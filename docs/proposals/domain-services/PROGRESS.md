@@ -32,6 +32,41 @@ This work item is **sdlc-tracked** (`DS1` in `.sdlc/state.json`). Verification t
 
 ## Session log
 
+### 2026-09-17 — DS1.5 done
+
+New package `core.domain.services`: `CaptureInterpretationOrchestrator.process(captureId)`
+→ AutoAccepted / NeedsReview / Rejected / InterpreterUnavailable /
+AlreadyHasOccurrence; `CorrectionService.correct` and
+`ReviewResolutionService.resolve` return Applied / NothingChanged / Resolved or
+`Refused(ServiceRefusal)` (not-found, hidden, already-resolved, not-ACTIVE,
+after-now, `InvalidName(reason)`, `NameMatchesExistingActivity(id)` so the UI
+can offer the existing activity). User-resolution record constants
+`user-resolution` / `none` / schema 1. `ValidationReason` gained
+`INTERPRETER_OUTPUT_MALFORMED` and `INTERPRETER_FAILED` (rejecting; the
+validator never emits them) for MALFORMED/OTHER interpreter failures, stored
+INVALID with UNSUPPORTED/UNRESOLVED. core-testing `InMemoryActivityRepository`
+mirrors Room edge semantics by hand (keep in sync). core-data now has
+`testImplementation(core-testing)`; `OrchestratorIntegrationTest` runs the real
+orchestrator on Room ("I cut the grass yesterday." → Mow lawn
+2026-09-14T04:00Z DATE_ONLY). 52 new tests.
+
+Attempt 1 verifier **fail**, root cause in the orchestrator-written packet: the
+model's `matchedActivityId` was copied verbatim into the record, and
+`interpretations.matched_activity_id` is a foreign key, so an invented id made
+`recordOutcome` throw and the capture never reached NEEDS_REVIEW. Fix: store
+the id only if it is in the loaded catalog, else null (model answer kept in
+`structuredResultJson`; validator still judges the raw candidate).
+CorrectionService also trims a new display name. Attempt 2 verifier pass; its
+one note: the AMBIGUOUS-with-invented-id case is covered on the fake only (same
+code path as the Room-tested EXISTING case).
+
+Known seams, accepted: an IllegalArgumentException from `acceptInterpretation`
+(activity archived between catalog load and accept) propagates out of
+`process()` with nothing written — the Step 4 caller must catch and rerun; the
+fake compares Instants at full precision while Room truncates to milliseconds.
+DS1.6 notes: docs should describe the null-unless-in-catalog matched id rule
+and the two new reason codes.
+
 ### 2026-09-17 — DS1.4 done
 
 `RoomActivityRepository` (internal) + public `createActivityRepository(context,
