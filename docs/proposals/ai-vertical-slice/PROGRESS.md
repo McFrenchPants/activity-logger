@@ -15,7 +15,7 @@ tier: spec §7 (verifier for every non-doc task).
 |---|---|---|---|
 | AI1.1 | Structured output type and decode mapping | done | Verifier pass. Schema type `InterpretationResponse` (7 nullable String fields); decoder internal, returns Decoded/Failed with value-free reason codes |
 | AI1.2 | Prompt: system instruction, builder, versioning | done | Verifier pass; orchestrator sent back two fixes (empty-candidate wording, weak few-shot assertions). Prompt version 2 |
-| AI1.3 | Capability detection and model client lifecycle | todo | Owner decision: never download implicitly |
+| AI1.3 | Capability detection and model client lifecycle | done | Verifier pass. `OnDeviceModelCapability`; download flow is cold so nothing starts implicitly. Orchestrator made cancellation propagate |
 | AI1.4 | GeminiNanoActivityInterpreter | todo | Depends on AI1.1-AI1.3 |
 | AI1.5 | Phone wiring and the on-device vertical slice | todo | Adds androidTest infrastructure; device run needs the Pixel 10 Pro |
 | AI1.6 | Documentation | todo | Must not claim a device run that did not happen |
@@ -27,8 +27,42 @@ tier: spec §7 (verifier for every non-doc task).
   builds, not behaviour that is verified.
 - `includeSchemaInPrompt` on vs off, and the exact temperature/topK/seed, can
   only be settled against a real run (spec §6).
+- `core-ai` depends on `kotlinx.coroutines` transitively via ML Kit rather than
+  declaring it. Fold the explicit catalog entry into AI1.5.
+- `ModelDownloadProgress.Failed` carries ML Kit's raw numeric error code, which
+  is not fit to show a user. Step 7 needs a mapping, or a decision to show only
+  generic failure text.
 
 ## Session log
+
+### 2026-09-17 — AI1.3 done
+
+`OnDeviceModelCapability` owns the one model client per app process (created
+lazily, `close()` idempotent) and answers `readiness()` with a plain enum:
+READY, NOT_INSTALLED, DOWNLOAD_IN_PROGRESS, UNSUPPORTED_DEVICE,
+STRUCTURED_OUTPUT_UNSUPPORTED, CHECK_FAILED. Structured-output support is
+consulted only when the model reports itself installed, so AVAILABLE alone
+never yields READY. An internal `GenerativeModelSession` seam (with a fake)
+makes all of it host-testable; the ML Kit-shaped members stay internal, and the
+module's public surface is plain Kotlin.
+
+The owner's never-download-implicitly rule is enforced structurally: `download()`
+returns a **cold** flow that does not even obtain the client until collected.
+The implementer's first version opened the client eagerly and its own test
+caught it. Tests assert zero download calls after a readiness check in every
+status case, including the downloadable one.
+
+Orchestrator fix after the verifier pass: `readiness()` caught `Exception`
+broadly, which in Kotlin swallows `CancellationException` — a cancelled caller
+would have been reported as "could not check". Cancellation now propagates;
+everything else still becomes CHECK_FAILED. KDoc updated to match.
+
+Carry-forward: `core-ai` uses `kotlinx.coroutines` without declaring it,
+relying on it arriving transitively through the ML Kit library. Correct today,
+fragile if ML Kit's dependencies change. AI1.5 touches the version catalog
+anyway, so the explicit declaration belongs there.
+
+70 core-ai tests (27 new), verifier pass.
 
 ### 2026-09-17 — AI1.2 done
 

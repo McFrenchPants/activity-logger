@@ -368,7 +368,7 @@
         {
           "id": "AI1.3",
           "title": "Capability detection and model client lifecycle",
-          "status": "in-progress",
+          "status": "done",
           "lifecycle_state": null,
           "dependencies": [
             "AI1.1"
@@ -380,7 +380,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/AI1.3.packet.json",
           "report_path": null,
-          "notes": null
+          "notes": "Done, verifier pass. core.ai.OnDeviceModelCapability (public: readiness(): ModelReadiness, download(): Flow<ModelDownloadProgress>, close()); internal GenerativeModelSession seam + factory, internal session() accessor for AI1.4. download() is a cold flow -- the client is not even obtained until collection -- so nothing downloads implicitly (owner decision). Orchestrator fix: readiness() now rethrows CancellationException instead of reporting CHECK_FAILED. 70 core-ai tests. Carry-forward: core-ai uses kotlinx.coroutines transitively via ML Kit; declare it explicitly in AI1.5."
         },
         {
           "id": "AI1.4",
