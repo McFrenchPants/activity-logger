@@ -14,7 +14,7 @@ This work item is **sdlc-tracked** (`DS1` in `.sdlc/state.json`). Verification t
 |---|---|---|---|
 | DS1.1 | Domain contracts, name rules, test support | done | Verifier pass. Repo contract gaps carried into DS1.4/DS1.5 packets |
 | DS1.2 | Temporal resolver | done | Verifier pass; orchestrator fixed hedged clock precision, DST-gap clock times, punctuation-only input |
-| DS1.3 | Candidate selector and interpretation validator | todo | After DS1.1, DS1.2 |
+| DS1.3 | Candidate selector and interpretation validator | done | Verifier pass; orchestrator hardened speech-confidence range, escaped hash separators |
 | DS1.4 | ActivityRepository implementation in core-data | todo | After DS1.1 |
 | DS1.5 | Orchestrator, correction service, review resolution | todo | After DS1.1-DS1.4 |
 | DS1.6 | Documentation | todo | After DS1.5 |
@@ -31,6 +31,20 @@ This work item is **sdlc-tracked** (`DS1` in `.sdlc/state.json`). Verification t
   Step 7 (History "Needs review" filter).
 
 ## Session log
+
+### 2026-09-17 — DS1.3 done
+
+CandidateSelector (`candidates`, bound 40, exact whole-token alias/name hits
+then recency, final list name-ordered, SHA-256 context hash) and
+InterpretationValidator (`validation`, 18 persisted reason codes, REJECT >
+NEEDS_REVIEW > AUTO_ACCEPT; no review-marker tier). 44 tests. Verifier pass;
+orchestrator fixes: speech confidence outside 0..1 (or NaN) counts as low and
+the threshold must be in 0..1; hash separators written as ``/``
+escapes instead of invisible literals (hash value unchanged, test proves it).
+For DS1.5: the validator trusts the supplied shortlist, so a candidate id
+that went stale between selection and acceptance is caught only by the
+repository/foreign key — the orchestrator should re-check the target is
+ACTIVE or rely on accept failing loudly.
 
 ### 2026-09-17 — DS1.2 done
 
