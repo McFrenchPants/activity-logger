@@ -12,4 +12,8 @@ internal interface CanonicalActivityDao {
 
     @Query("SELECT * FROM canonical_activities WHERE id = :id")
     fun getById(id: String): CanonicalActivityEntity?
+
+    /** Every ACTIVE canonical activity, ordered by normalized name, then id. */
+    @Query("SELECT * FROM canonical_activities WHERE status = 'ACTIVE' ORDER BY normalized_name ASC, id ASC")
+    fun listActive(): List<CanonicalActivityEntity>
 }

@@ -3,12 +3,13 @@ package com.mcfrenchpants.activityledger.core.data.ledger
 import com.mcfrenchpants.activityledger.core.data.db.ActivityLedgerDatabase
 import com.mcfrenchpants.activityledger.core.data.id.IdFactory
 import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
+import com.mcfrenchpants.activityledger.core.domain.model.ProcessingState
 
 /**
  * The transactional write operations of the ledger. Occurrences and corrections
- * can be written ONLY through these two functions: the underlying primitive
+ * can be written ONLY through these functions: the underlying primitive
  * writes are `protected` inside LedgerWriteDao, whose only callable members are
- * the two `@Transaction` operations this class delegates to.
+ * the `@Transaction` operations this class delegates to.
  *
  * All functions are blocking (the DAOs are non-suspend) and must be called off
  * the main thread.
@@ -45,4 +46,39 @@ internal class ActivityLedgerWriter(
         reason: String?,
         now: Long,
     ): String? = database.ledgerWriteDao().applyCorrection(idFactory, occurrenceId, changes, source, reason, now)
+
+    /**
+     * In one transaction: creates [newActivity] (ACTIVE) and applies [changes] with the
+     * occurrence moved to it, always recording one corrections row. [changes] must not
+     * name a canonical activity. Returns the correction id.
+     *
+     * @throws IllegalArgumentException for an unknown occurrence or a malformed request;
+     *   nothing is written.
+     */
+    fun applyCorrectionCreatingActivity(
+        occurrenceId: String,
+        newActivity: NewCanonicalActivity,
+        changes: OccurrenceChanges,
+        source: CorrectionSource,
+        reason: String?,
+        now: Long,
+    ): String = database.ledgerWriteDao()
+        .applyCorrectionCreatingActivity(idFactory, occurrenceId, newActivity, changes, source, reason, now)
+
+    /**
+     * In one transaction: optionally stores [interpretation] and sets the raw capture's
+     * processing state to NEEDS_REVIEW, FAILED_RETRYABLE or FAILED_FINAL. Returns the new
+     * interpretation id, or null if none was given.
+     *
+     * @throws IllegalArgumentException for an unknown capture, a capture that already has
+     *   an occurrence, a disallowed state, or an interpretation of another capture.
+     * @throws android.database.sqlite.SQLiteConstraintException if a referenced row is
+     *   missing; nothing is written.
+     */
+    fun recordOutcome(
+        rawCaptureId: String,
+        interpretation: NewInterpretation?,
+        processingState: ProcessingState,
+        now: Long,
+    ): String? = database.ledgerWriteDao().recordOutcome(idFactory, rawCaptureId, interpretation, processingState, now)
 }

@@ -12,6 +12,21 @@ import java.time.Instant
  *
  * Names: callers always pass display names. The repository normalizes names itself
  * (with the domain name normalizer) wherever it stores or matches a normalized form.
+ *
+ * Error contract (data integrity only; product policy belongs to callers):
+ * - An unknown capture or occurrence id passed to a write function, a target activity that
+ *   does not exist or is not ACTIVE (merged or archived), [recordOutcome] on a capture that
+ *   already has an occurrence, and [recordOutcome] with a state other than NEEDS_REVIEW,
+ *   FAILED_RETRYABLE or FAILED_FINAL all throw [IllegalArgumentException], and nothing is
+ *   written. This includes a referenced row (e.g. an interpretation's matched activity)
+ *   found missing only by the database itself: the whole operation is rolled back and
+ *   reported as [IllegalArgumentException].
+ * - [acceptInterpretation] on a capture that already has an occurrence is not an error: it
+ *   returns the existing occurrence id and writes nothing.
+ * - Read functions return null for unknown ids; they never throw for them.
+ * - Timestamps of rows the repository creates or updates (created_at / updated_at) come from
+ *   the implementation's own clock, except in [applyCorrection], which uses the caller's `now`.
+ * - Exception messages carry ids and enum names only, never raw text or activity names.
  */
 interface ActivityRepository {
     /** Stores a new, immutable raw capture and returns its generated id. */
@@ -29,6 +44,10 @@ interface ActivityRepository {
      *
      * Atomic: the optional [interpretation] row and the capture's new [processingState] are
      * written in one transaction, or neither is. Never creates an occurrence.
+     *
+     * @throws IllegalArgumentException if the capture is unknown, already has an occurrence,
+     *   [processingState] is not NEEDS_REVIEW, FAILED_RETRYABLE or FAILED_FINAL, or the
+     *   interpretation references a missing row. Nothing is written.
      */
     suspend fun recordOutcome(
         captureId: String,
@@ -44,6 +63,9 @@ interface ActivityRepository {
      *
      * Idempotent per capture: if an occurrence already exists for [captureId], returns the
      * existing occurrence id and writes nothing.
+     *
+     * @throws IllegalArgumentException if the capture is unknown, or an [ActivityTarget.Existing]
+     *   target (or another referenced row) does not exist or is not ACTIVE. Nothing is written.
      */
     suspend fun acceptInterpretation(
         captureId: String,
@@ -61,6 +83,9 @@ interface ActivityRepository {
      *
      * Returns [CorrectionOutcome.NothingChanged] and writes nothing when no requested value
      * differs from the occurrence's current value (including when every field is null).
+     *
+     * @throws IllegalArgumentException if the occurrence is unknown, or a changed
+     *   [ActivityTarget.Existing] activity does not exist or is not ACTIVE. Nothing is written.
      */
     suspend fun applyCorrection(
         occurrenceId: String,

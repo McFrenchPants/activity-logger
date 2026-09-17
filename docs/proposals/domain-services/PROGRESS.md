@@ -15,7 +15,7 @@ This work item is **sdlc-tracked** (`DS1` in `.sdlc/state.json`). Verification t
 | DS1.1 | Domain contracts, name rules, test support | done | Verifier pass. Repo contract gaps carried into DS1.4/DS1.5 packets |
 | DS1.2 | Temporal resolver | done | Verifier pass; orchestrator fixed hedged clock precision, DST-gap clock times, punctuation-only input |
 | DS1.3 | Candidate selector and interpretation validator | done | Verifier pass; orchestrator hardened speech-confidence range, escaped hash separators |
-| DS1.4 | ActivityRepository implementation in core-data | todo | After DS1.1 |
+| DS1.4 | ActivityRepository implementation in core-data | done | Verifier pass; guard-test bite re-checked by orchestrator |
 | DS1.5 | Orchestrator, correction service, review resolution | todo | After DS1.1-DS1.4 |
 | DS1.6 | Documentation | todo | After DS1.5 |
 
@@ -31,6 +31,28 @@ This work item is **sdlc-tracked** (`DS1` in `.sdlc/state.json`). Verification t
   Step 7 (History "Needs review" filter).
 
 ## Session log
+
+### 2026-09-17 — DS1.4 done
+
+`RoomActivityRepository` (internal) + public `createActivityRepository(context,
+clock)` via `ActivityLedgerDatabaseFactory.create`. LedgerWriteDao gained
+`recordOutcome` (state update then interpretation insert, one transaction;
+refuses captures with an occurrence and states other than
+NEEDS_REVIEW/FAILED_RETRYABLE/FAILED_FINAL) and
+`applyCorrectionCreatingActivity`; accept/correct now refuse a target activity
+that is not ACTIVE. Read queries: active activities, aliases of active
+activities, one grouped last-ACTIVE-occurrence query, occurrence by capture.
+kotlinx-coroutines-core 1.8.1 declared explicitly (same version as the
+transitive one). 29 new tests; no schema change. Verifier pass; its one
+uncertain item (guard test still bites) was re-run by the orchestrator: a
+planted @Update failed `daoWriteSurfaceIsRestricted`, revert passed.
+Known seams, accepted: a missing target activity is a SQLiteConstraintException
+at writer level and becomes IllegalArgumentException only in the repository
+(translation matches "FOREIGN KEY" in the message — unverified on a real device
+but same SQLite wording); applyCorrection timestamps use the caller's `now`,
+other repository writes use the injected clock (documented in the domain
+KDoc); recordOutcome does not check an interpretation's matched activity is
+ACTIVE (INVALID results are the expected input there).
 
 ### 2026-09-17 — DS1.3 done
 

@@ -53,6 +53,7 @@ dependencies {
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.kotlinx.coroutines.core)
     ksp(libs.androidx.room.compiler)
 
     // Resolves at the applied Kotlin plugin's own version, so it adds no new
