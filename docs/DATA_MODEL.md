@@ -20,7 +20,7 @@ The key rule is:
 
 Schema version 1 is implemented in `core-data`; the exported Room schema
 (`core-data/schemas/com.mcfrenchpants.activityledger.core.data.db.ActivityLedgerDatabase/1.json`)
-is the authoritative definition. The tables below mirror it.
+is the authoritative definition. The tables below mirror it. The domain services (work item DS1) added data-layer operations and usage rules but no schema change; the schema version is still 1.
 
 General rules for all phone tables:
 
@@ -141,6 +141,13 @@ The normalized fields support queries.
 
 The optional structured JSON supports audit/debug, but should not replace typed columns.
 
+Rules applied by the domain services (work item DS1; no schema change):
+
+- `matched_activity_id` holds the model's activity id only if that id is in the ACTIVE catalog loaded for that processing run; otherwise it is null. It is a foreign key, so storing an invented id would make the write fail and the capture would never reach review. The model's full, unmodified answer is kept in `structured_result_json`, and validation judges that unmodified answer (ADR-027).
+- `validation_reason` is null when there are no reasons; otherwise it is the `ValidationReason` constant names (`core-domain`, `...core.domain.validation`), sorted alphabetically and comma-joined without spaces, e.g. `CONFIDENCE_NOT_HIGH,TIME_UNRESOLVABLE`. The names are persisted text: renaming or removing a constant is a data change.
+- `validation_status` is `VALID` for accepted interpretations, `NEEDS_REVIEW` for answers awaiting review, and `INVALID` for rejected answers and for interpreter failures `MALFORMED` / `OTHER` (stored with `operation = UNSUPPORTED`, `activity_resolution = UNRESOLVED` and reason `INTERPRETER_OUTPUT_MALFORMED` / `INTERPRETER_FAILED`).
+- **User-resolution interpretations.** When the user resolves a capture that is awaiting review (or failed), `ReviewResolutionService` inserts a new interpretation with `interpreter_version = "user-resolution"`, `prompt_version = "none"`, `schema_version = 1`, `operation = LOG_ACTIVITY`, `validation_status = VALID`, the chosen activity and time, and null `temporal_expression`, `model_confidence_band`, `candidate_context_hash` and `structured_result_json`; that interpretation is then accepted. Earlier interpretations of the capture are never modified.
+
 Indexes:
 
 - `raw_capture_id` (non-unique — one capture may have several interpretations)
@@ -210,6 +217,10 @@ new_effective_interpretation_id TEXT NULL
 Corrections create an audit trail.
 
 A correction records previous/new values only for the fields that actually change, and updates the occurrence in the same transaction. It does **not** fabricate an interpretation row: a user correction writes a `corrections` row (with `source = USER`) and updates the occurrence. `effective_interpretation_id` changes only when a real new interpretation is accepted, and that change is recorded in `previous_effective_interpretation_id` / `new_effective_interpretation_id`. Whether a change was user-originated is carried by `corrections.source`, not by a synthetic interpretation.
+
+A correction may move an occurrence to a **new** activity: the canonical activity is created `ACTIVE` in the same transaction as the correction and the occurrence update (`LedgerWriteDao.applyCorrectionCreatingActivity`), and `new_canonical_activity_id` is its id. Corrections to an existing activity require that activity to be `ACTIVE`. `CorrectionService` refuses corrections of `HIDDEN` occurrences; corrections have no visibility columns, so hiding/restoring an occurrence is not a correction.
+
+**Review resolution is a different operation.** Resolving a capture that is awaiting review does not correct anything: the capture has no occurrence yet, so there is no row for a `corrections` record to refer to. It creates the capture's first occurrence through the normal accept operation, which requires an effective interpretation (`effective_interpretation_id` is NOT NULL). That is why review resolution does insert an interpretation — a user-resolution row, marked by `interpreter_version = "user-resolution"` (see interpretations above) — while a correction of an existing occurrence still never fabricates one.
 
 Indexes (one per foreign-key child column):
 
@@ -319,6 +330,15 @@ updateRawCapture(arbitrary object)
 ```
 
 Schema version 1 uses **no SQLite triggers**. Raw-text immutability is enforced by the shape of the data-layer API (there is no operation that replaces `raw_text`) plus tests. Triggers were rejected because Room does not track them in its exported schema, so every future migration would have to remember to recreate them by hand, and a forgotten one would silently remove the protection.
+
+The only writes to occurrences and corrections are the transactional operations of `LedgerWriteDao` (`core-data`), each run in one database transaction so any failure rolls back every write it made. The domain reaches them through `ActivityRepository` (created for the app by `createActivityRepository(context, clock)`):
+
+- `acceptInterpretation` — interpretation insert, new `ACTIVE` canonical activity if requested, occurrence insert, raw capture `processing_state = PERSISTED`. Idempotent per capture (an existing occurrence's id is returned and nothing is written). Refuses a non-`ACTIVE` existing target activity.
+- `recordOutcome` — for a non-accepting outcome: raw capture `processing_state` update plus an optional interpretation insert, atomically. Only `NEEDS_REVIEW`, `FAILED_RETRYABLE` or `FAILED_FINAL` are allowed; refused when the capture already has an occurrence (an accepted capture's outcome is never rewritten). Never creates an occurrence.
+- `applyCorrection` — one `corrections` row plus the occurrence update, only for fields that actually change; writes nothing when nothing changes. Refuses a non-`ACTIVE` target activity.
+- `applyCorrectionCreatingActivity` — new `ACTIVE` canonical activity, then the correction and occurrence update as `applyCorrection`.
+
+These operations were added without any schema change: the database is still Room schema version 1.
 
 ## 6. Original speech vs corrected transcription
 

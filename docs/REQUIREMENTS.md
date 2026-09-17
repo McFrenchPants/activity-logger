@@ -122,9 +122,10 @@ Invalid identifiers MUST be rejected.
 The application MUST define deterministic policy for:
 
 - auto-accept
-- accept with low-confidence marker
-- require correction/review
-- fail interpretation
+- require correction/review (including rejected model output)
+- fail interpretation (retryable when the interpreter is unavailable)
+
+There is no "accept with low-confidence marker" outcome (ADR-027).
 
 The model's self-reported confidence MUST NOT be the sole policy input.
 

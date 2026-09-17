@@ -110,26 +110,97 @@ Responsibilities:
 
 ## 5. Key interfaces
 
-Suggested conceptual interfaces:
+### Implemented (`core-domain`, work item DS1)
+
+The interpreter and repository contracts live in `core-domain` (`...core.domain.interpretation` and `...core.domain.repository`). Abridged; the Kotlin sources and their KDoc are authoritative.
+
+```kotlin
+interface ActivityInterpreter {
+    val provenance: InterpreterProvenance   // interpreterVersion, promptVersion, schemaVersion
+    suspend fun interpret(input: InterpretationInput): InterpretationResult
+}
+
+// InterpretationInput(rawText, capturedAt, zoneId, candidates: List<CandidateActivity>)
+// InterpretationResult = Success(candidate: InterpretationCandidate, structuredResultJson: String?)
+//                      | Failure(kind: InterpreterFailureKind, structuredResultJson: String?)
+// InterpreterFailureKind = UNAVAILABLE | RETRYABLE | MALFORMED | OTHER
+
+interface ActivityRepository {
+    suspend fun createRawCapture(capture: NewRawCapture): String
+    suspend fun getCapture(id: String): StoredCapture?
+    suspend fun loadCatalog(): List<CatalogActivity>          // ACTIVE activities only
+    suspend fun recordOutcome(
+        captureId: String,
+        interpretation: InterpretationRecord?,
+        processingState: ProcessingState,                       // NEEDS_REVIEW | FAILED_RETRYABLE | FAILED_FINAL
+    )
+    suspend fun acceptInterpretation(
+        captureId: String,
+        interpretation: InterpretationRecord,
+        target: ActivityTarget,                                 // Existing(activityId) | New(displayName)
+        occurredAt: Instant,
+        timePrecision: TimePrecision,
+        activityState: ActivityState,
+    ): String                                                   // occurrence id
+    suspend fun applyCorrection(
+        occurrenceId: String,
+        changes: CorrectionChanges,
+        source: CorrectionSource,
+        reason: String?,
+        now: Instant,
+    ): CorrectionOutcome                                        // Applied(correctionId) | NothingChanged
+    suspend fun getOccurrence(id: String): OccurrenceView?
+    suspend fun getActivity(id: String): ActivityView?
+}
+```
+
+`ActivityInterpreter` is implemented only by `FakeActivityInterpreter` in `core-testing` so far; the Gemini Nano adapter (§13) is not built. `ActivityRepository` is implemented by `RoomActivityRepository` in `core-data` (the app obtains it through `createActivityRepository(context, clock)`) and by `InMemoryActivityRepository` in `core-testing`. Integrity violations (unknown ids, non-ACTIVE target activity, `recordOutcome` on a capture that already has an occurrence) throw `IllegalArgumentException` with nothing written; `acceptInterpretation` is idempotent per capture.
+
+Domain services (`...core.domain.services`), each taking the repository and a `java.time.Clock`:
+
+```kotlin
+class CaptureInterpretationOrchestrator(repository, interpreter, clock, selector, resolver, validator) {
+    suspend fun process(captureId: String): CaptureProcessingOutcome
+}
+// CaptureProcessingOutcome = AutoAccepted(occurrenceId) | NeedsReview(reasons) | Rejected(reasons)
+//                          | InterpreterUnavailable(kind) | AlreadyHasOccurrence
+
+class CorrectionService(repository, clock) {
+    suspend fun correct(occurrenceId: String, request: CorrectionRequest, reason: String? = null): CorrectionResult
+}
+// CorrectionResult = Applied(correctionId) | NothingChanged | Refused(refusal: ServiceRefusal)
+
+class ReviewResolutionService(repository, clock) {
+    suspend fun resolve(
+        captureId: String,
+        activity: ActivityTarget,
+        time: OccurrenceTime? = null,
+        activityState: ActivityState = ActivityState.COMPLETED,
+    ): ResolutionResult
+}
+// ResolutionResult = Resolved(occurrenceId) | Refused(refusal: ServiceRefusal)
+```
+
+Supporting deterministic components: `CandidateSelector` (§16), `TemporalResolver` (§15), `InterpretationValidator` (outcome `AUTO_ACCEPT` / `NEEDS_REVIEW` / `REJECT` with `ValidationReason` codes, ADR-027), `NewActivityNameCheck` and `NameNormalizer`.
+
+`ServiceRefusal` values: `OccurrenceNotFound`, `OccurrenceHidden`, `CaptureNotFound`, `CaptureAlreadyHasOccurrence`, `ActivityNotFound`, `ActivityNotActive`, `OccurredAfterNow`, `InvalidName(reason)`, `NameMatchesExistingActivity(activityId)`. A refusal always means nothing was written.
+
+- `CorrectionService.correct` records source `USER`. It refuses an unknown or `HIDDEN` occurrence, a missing or non-ACTIVE target activity, a time after now, an invalid new name, and a new name whose normalized form equals the name or an alias of an ACTIVE activity (returned with that activity's id so the UI can offer it). New names are trimmed. A correction to a new activity creates it ACTIVE in the same transaction.
+- `ReviewResolutionService.resolve` logs a capture that has no occurrence (awaiting review or failed): it inserts a VALID user-resolution interpretation (`interpreter_version` `"user-resolution"`, `prompt_version` `"none"`, `schema_version` 1) and accepts it; earlier interpretations are untouched. The default time is the capture instant with `INFERRED_NOW`. It applies the same activity-target and name checks as corrections and refuses a capture that already has an occurrence.
+
+Known seam: if the matched activity is archived between `loadCatalog` and `acceptInterpretation`, `process` throws `IllegalArgumentException` with nothing written; the caller must catch it and rerun `process`.
+
+### Conceptual (not built)
+
+These remain design sketches; signatures will be fixed when they are implemented.
 
 ```kotlin
 interface SpeechTranscriber {
     suspend fun transcribe(request: SpeechRequest): SpeechResult
 }
 
-interface ActivityInterpreter {
-    suspend fun interpret(input: InterpretationInput): InterpretationCandidate
-}
-
 interface QueryInterpreter {
     suspend fun interpret(question: QueryInput): QueryIntent
-}
-
-interface ActivityRepository {
-    suspend fun persistCapture(...)
-    suspend fun persistInterpretation(...)
-    suspend fun createOccurrence(...)
-    suspend fun correctOccurrence(...)
 }
 
 interface WearCaptureTransport {
@@ -138,48 +209,52 @@ interface WearCaptureTransport {
 }
 ```
 
-Concrete signatures should evolve during implementation.
-
 ## 6. Capture orchestration
 
-Recommended pipeline:
+Implemented by `CaptureInterpretationOrchestrator.process(captureId)`. The raw capture is persisted beforehand by `createRawCapture`; speech transcription and acknowledgement to the watch are outside `process` and not built yet.
 
 ```text
-Raw input
+Raw input (transcript available)
    |
    v
-Persist RawCapture first
+Persist RawCapture first (createRawCapture)
    |
    v
-Speech transcript available
+process(captureId):
    |
    v
-Candidate activity selection
+Load capture ------------------------------> already has occurrence: AlreadyHasOccurrence
+   |                                          (interpreter not called, nothing written)
+   v
+Load ACTIVE catalog (loadCatalog)
    |
    v
-Gemini Nano structured inference
+Candidate selection (CandidateSelector: bound 40, candidate context hash)
    |
    v
-Schema validation
+ActivityInterpreter.interpret
+   |
+   +-- Failure UNAVAILABLE / RETRYABLE ---> recordOutcome(no interpretation, FAILED_RETRYABLE)
+   |                                          -> InterpreterUnavailable
+   +-- Failure MALFORMED / OTHER ---------> recordOutcome(INVALID interpretation: operation UNSUPPORTED,
+   |                                          resolution UNRESOLVED, reason INTERPRETER_OUTPUT_MALFORMED /
+   |                                          INTERPRETER_FAILED; capture NEEDS_REVIEW) -> Rejected
+   v
+Success: temporal resolution of the model's temporal phrase (TemporalResolver)
    |
    v
-Business validation
+Validation (InterpretationValidator)
    |
-   v
-Temporal resolution
-   |
-   v
-Persist Interpretation
-   |
-   v
-Resolve/Create CanonicalActivity
-   |
-   v
-Persist ActivityOccurrence transactionally
-   |
-   v
-Acknowledge result
+   +-- AUTO_ACCEPT --> acceptInterpretation, one transaction: VALID interpretation,
+   |                   new canonical activity if needed, occurrence, capture PERSISTED
+   |                   -> AutoAccepted
+   +-- NEEDS_REVIEW -> recordOutcome(NEEDS_REVIEW interpretation, capture NEEDS_REVIEW)
+   |                   -> NeedsReview (nothing logged)
+   +-- REJECT ------> recordOutcome(INVALID interpretation, capture NEEDS_REVIEW)
+                       -> Rejected (nothing logged)
 ```
+
+Each run appends at most one interpretation. A capture without an occurrence can be processed again; a capture in `NEEDS_REVIEW` is resolved by the user through `ReviewResolutionService` (§5). The stored interpretation's `matched_activity_id` is the model's id only if that id is in the catalog loaded for the run, otherwise null (it is a foreign key, and an invented id must still reach review); the model's full answer is kept in `structured_result_json`, and the validator judges the unmodified answer.
 
 Persisting raw evidence early reduces data loss on process death.
 
@@ -305,6 +380,8 @@ Responsibilities:
 
 Do not bury temporal arithmetic inside prompts or ViewModels.
 
+Implemented as `TemporalResolver` in `core-domain` (`...core.domain.temporal`), returning `TemporalResolution.Resolved(occurredAt, precision)`, `Future` or `Unresolvable`; its fixed rule table is recorded in ADR-028.
+
 ## 16. Candidate activity selector
 
 MVP strategy for small catalogs:
@@ -319,6 +396,8 @@ As catalog grows:
 - bounded candidate set
 
 Embedding retrieval is deferred unless measurements show it is needed.
+
+Implemented as `CandidateSelector` in `core-domain` (`...core.domain.candidates`): the whole ACTIVE catalog when it fits the bound (default 40); otherwise whole-phrase name/alias hits in the normalized text first, then most recent occurrence; output ordered by normalized name and identified by a SHA-256 candidate context hash stored on the interpretation. No fuzzy, stemmed, frequency or semantic matching yet.
 
 ## 17. Historical query engine
 

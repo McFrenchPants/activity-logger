@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-17T15:12:09.832Z",
+  "updated_at": "2026-09-17T15:17:02.969Z",
   "work_items": [
     {
       "id": "SS1",
@@ -312,7 +312,7 @@
         {
           "id": "DS1.6",
           "title": "Documentation",
-          "status": "in-progress",
+          "status": "done",
           "lifecycle_state": null,
           "dependencies": [
             "DS1.5"
@@ -324,7 +324,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/DS1.6.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE §5/§6/§15/§16, AI_INTERPRETATION_SPEC §10/§11/§17, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
         }
       ]
     }

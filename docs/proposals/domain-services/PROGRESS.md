@@ -17,7 +17,7 @@ This work item is **sdlc-tracked** (`DS1` in `.sdlc/state.json`). Verification t
 | DS1.3 | Candidate selector and interpretation validator | done | Verifier pass; orchestrator hardened speech-confidence range, escaped hash separators |
 | DS1.4 | ActivityRepository implementation in core-data | done | Verifier pass; guard-test bite re-checked by orchestrator |
 | DS1.5 | Orchestrator, correction service, review resolution | done | Verifier pass on attempt 2; attempt 1 failed on an orchestrator packet error (invented matched id vs FK) |
-| DS1.6 | Documentation | todo | After DS1.5 |
+| DS1.6 | Documentation | done | Orchestrator spot-check; orchestrator also fixed REQUIREMENTS.md AI-007 |
 
 ## Open items (carry forward)
 
@@ -31,6 +31,28 @@ This work item is **sdlc-tracked** (`DS1` in `.sdlc/state.json`). Verification t
   Step 7 (History "Needs review" filter).
 
 ## Session log
+
+### 2026-09-17 — DS1.6 done; DS1 complete, pending owner merge
+
+ARCHITECTURE §5 (real interfaces + services, unbuilt ones labelled
+conceptual), §6 (pipeline in real order), §15/§16 pointers;
+AI_INTERPRETATION_SPEC §10 (ADR-028 summary), §11 (two outcomes + retryable
+path), §17; ADR-027 (confidence policy) and ADR-028 (temporal rule table,
+written from `TemporalResolver.kt`; orchestrator compared it with spec §5.1 —
+consistent, the code adds a few synonyms such as "right now"/"just did it");
+DATA_MODEL interpretation rules, review resolution vs correction, the four
+transactional LedgerWriteDao operations, schema still v1; PROJECT_STATUS item 7
+done pending merge, new open items. Orchestrator spot-check, no verifier
+(docs-only per spec §7). Implementer flagged REQUIREMENTS.md AI-007 still
+listing "accept with low-confidence marker"; orchestrator fixed it inline.
+Packet error to avoid next time: DS1.6 cited DESIGN_SPEC.md while forbidding
+`docs/proposals`, so the implementer (correctly) did not read it — give
+read access to cited docs, and forbid only writes.
+
+All six DS1 tasks done. Lite mode: stop here; owner merges
+`feature/domain-services` into `main` by hand. On merge: set DS1 and its tasks
+`lifecycle_state` per the DB1 convention, mark backlog item 8 done, move
+PROJECT_STATUS item 7 wording from "pending merge" to merged.
 
 ### 2026-09-17 — DS1.5 done
 

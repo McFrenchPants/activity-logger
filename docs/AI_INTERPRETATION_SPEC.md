@@ -233,49 +233,63 @@ Consider storing:
 
 This avoids pretending that "this morning" means exactly 9:00 AM.
 
+### Implemented resolution (ADR-028)
+
+Resolution is implemented by the deterministic `TemporalResolver` in `core-domain`, following the fixed rule table in ADR-028. The model supplies only `temporalExpression`; the resolver works from the capture instant and the capture's IANA zone. Summary:
+
+- no phrase -> capture instant, `INFERRED_NOW`
+- part-of-day phrases use fixed bands and anchors (morning 05:00–12:00, anchor 09:00; afternoon 12:00–17:00, anchor 15:00; evening 17:00–21:00, anchor 19:00; tonight 17:00–midnight, anchor 21:00) and are `APPROXIMATE`
+- a weekday name ("Saturday", "last Saturday") -> the most recent previous such day, never today, `DATE_ONLY`
+- "N days ago" / "N weeks ago" -> that calendar date, `DATE_ONLY`
+- only an explicit clock time is `EXACT`; a hedged one ("about 3pm") is `APPROXIMATE`
+- future phrases (or any result after the capture instant) -> `Future`, and the interpretation needs review
+- phrases the resolver does not understand -> `Unresolvable`, and the interpretation needs review; no time is guessed
+
+The resolved instant and precision are stored on the interpretation (`resolved_occurred_at`, `time_precision`) next to the verbatim `temporal_expression`.
+
 ## 11. Confidence policy
 
 Do not blindly trust model confidence.
 
-The app should calculate an application-level decision using:
+Implemented by `InterpretationValidator` in `core-domain` (ADR-027). The decision is deterministic and uses:
 
-- structured output validity
-- existing candidate validity
-- ambiguity status
-- whether new activity creation is requested
-- speech confidence if available
-- semantic consistency
-- temporal parse success
+- operation
+- activity resolution and field consistency
+- whether a matched activity ID was among the supplied candidates
+- new-name rules and duplication of an ACTIVE activity's name or alias
+- activity state presence
 - model confidence band
+- temporal resolution result
+- speech confidence if available
 
-Suggested behavior:
+There are exactly two outcomes for the user: the entry is saved automatically, or it waits for review. There is no tier that saves an uncertain entry and flags it.
 
 ### Auto-accept
 
-- valid structured output
-- existing activity match
-- no contradictory fields
-- temporal parse valid
-- high confidence
+All of:
 
-### Auto-accept with review marker
+- operation `LOG_ACTIVITY`
+- `EXISTING_ACTIVITY` with a supplied candidate ID and no proposed name, or `NEW_ACTIVITY` with a valid, non-duplicate name and no activity ID
+- activity state present
+- confidence band `HIGH`
+- time resolved (not future, not unresolvable)
+- speech confidence absent or at least 0.5
 
-- result valid but uncertainty is moderate
-- raw capture remains available
+Result: the interpretation is stored `VALID` and accepted in one transaction; the capture becomes `PERSISTED`.
 
 ### Needs review
 
-- ambiguous between activities
-- proposed new activity with weak confidence
-- temporal meaning materially uncertain
-- transcript appears poor
+Any review reason (and no rejecting reason): ambiguous or unresolved activity, confidence band not `HIGH` or missing, time in the future or unresolvable, invalid or duplicate new name, speech confidence below 0.5.
 
-### Reject/retry
+Result: the interpretation is stored `NEEDS_REVIEW`, the capture becomes `NEEDS_REVIEW`, nothing is logged.
 
-- malformed output
-- invalid activity ID
-- unsupported operation
-- inference failure
+Structurally unacceptable answers are rejected but land in the same review queue: unsupported or query operation, contradictory resolution fields (for example `EXISTING_ACTIVITY` without an ID, or an ID that was not supplied), missing activity state, and unparseable (`MALFORMED`) or otherwise failed (`OTHER`) interpreter calls. Result: an `INVALID` interpretation is stored, the capture becomes `NEEDS_REVIEW`, nothing is logged.
+
+Every non-accepted interpretation records its reason codes in `validation_reason` (comma-joined, alphabetically sorted `ValidationReason` names).
+
+### Interpreter unavailable
+
+`UNAVAILABLE` or `RETRYABLE` interpreter failures store no interpretation; the capture becomes `FAILED_RETRYABLE` and can be processed again later (§17).
 
 ## 12. Interpretation provenance
 
@@ -359,8 +373,8 @@ Do not assume installation implies model readiness.
 If inference is unavailable:
 
 1. retain raw capture
-2. mark capture retryable where appropriate
-3. do not fabricate interpretation
+2. mark capture `FAILED_RETRYABLE` (interpreter failure `UNAVAILABLE` or `RETRYABLE`); the capture can be processed again later, since any capture without an occurrence may be reprocessed
+3. do not fabricate interpretation (no interpretation row is stored for these failures)
 4. do not silently send to cloud
 5. expose diagnostic state to the user
 
