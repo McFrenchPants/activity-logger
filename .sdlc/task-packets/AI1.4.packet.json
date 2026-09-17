@@ -1,0 +1,86 @@
+{
+  "task_id": "AI1.4",
+  "plan_revision": "b4991b3",
+  "objective": "In core-ai, implement core-domain's `ActivityInterpreter` over the ML Kit typed-generation API, tying together the schema type (AI1.1), the prompt (AI1.2) and the client (AI1.3). After this task, core-ai can turn a capture into an InterpretationCandidate on a real device.\n\nCONTEXT -- what exists in core-ai (package com.mcfrenchpants.activityledger.core.ai):\n- AI1.1: public @Generable `InterpretationResponse` (7 nullable String fields). `internal object InterpretationResponseDecoder { internal fun decode(response: InterpretationResponse): InterpretationDecodeResult }`, with `internal sealed interface InterpretationDecodeResult` (Decoded(candidate) / Failed(reason)) and `internal enum class InterpretationDecodeFailure`.\n- AI1.2: `internal const val PROMPT_VERSION = \"2\"`, `INTERPRETATION_SYSTEM_INSTRUCTION`, `buildInterpretationPrompt(InterpretationInput): String`.\n- AI1.3: `class OnDeviceModelCapability` (public `readiness(): ModelReadiness`, `download(): Flow<ModelDownloadProgress>`, `close()`; internal `session(): GenerativeModelSession?`), `enum class ModelReadiness { READY, NOT_INSTALLED, DOWNLOAD_IN_PROGRESS, UNSUPPORTED_DEVICE, STRUCTURED_OUTPUT_UNSUPPORTED, CHECK_FAILED }`, and the internal seam:\n    internal interface GenerativeModelSession {\n      suspend fun checkStatus(): Int\n      suspend fun isStructuredOutputFeatureAvailable(): Boolean\n      fun download(): Flow<DownloadStatus>\n      suspend fun warmup()\n      suspend fun <T : Any> generateContent(request: GenerateTypedContentRequest<T>): GenerateTypedContentResponse<T>\n      fun close()\n    }\n  plus `internal fun interface GenerativeModelSessionFactory { fun create(): GenerativeModelSession }` and the test fake `FakeGenerativeModelSession`.\nRead all of these before writing. Do not modify them except as item 5 below allows.\n\nCONTEXT -- the contract to implement (core-domain, read-only, package ...core.domain.interpretation):\n  interface ActivityInterpreter {\n    val provenance: InterpreterProvenance          // (interpreterVersion: String, promptVersion: String, schemaVersion: Int)\n    suspend fun interpret(input: InterpretationInput): InterpretationResult\n  }\n  sealed interface InterpretationResult {\n    data class Success(val candidate: InterpretationCandidate, val structuredResultJson: String?) : InterpretationResult\n    data class Failure(val kind: InterpreterFailureKind, val structuredResultJson: String?) : InterpretationResult\n  }\n  enum class InterpreterFailureKind { UNAVAILABLE, RETRYABLE, MALFORMED, OTHER }\nThe interface's own doc says implementations should report failures as Failure rather than throwing.\n\nCONTEXT -- the ML Kit request API, read from the pinned genai-prompt:1.0.0-beta4 with javap. Authoritative; do not re-derive:\n  class SystemInstruction(text: String)\n  class TextPart(text: String)\n  GenerateContentRequest.Builder(systemInstruction: SystemInstruction, text: TextPart)  // also (TextPart), (Content), etc.\n    var temperature: Float?; var seed: Int?; var topK: Int?; var candidateCount: Int?\n    var maxOutputTokens: Int?; var enableThinking: Boolean; fun build(): GenerateContentRequest\n  Kotlin DSL equivalent: generateContentRequest(systemInstruction, textPart) { ... }\n  fun <T> generateTypedContentRequest(request: GenerateContentRequest, outputClass: KClass<T>, includeSchemaInPrompt: Boolean = ...): GenerateTypedContentRequest<T>\n  class GenerateTypedContentResponse<T> { val candidates: List<TypedCandidate<T>> }\n  class TypedCandidate<T> { val response: T; val finishReason: Int? }\n  class GenAiException : Exception { val errorCode: Int; val retryDelay: java.time.Duration }\n\nBUILD, in core-ai:\n\n1. `GeminiNanoActivityInterpreter` implementing `ActivityInterpreter`. It composes with an `OnDeviceModelCapability` (AI1.3) -- it must NOT construct its own client. Public constructor taking the capability; internal constructor for tests if you need one. Provenance: an interpreter version constant of your choosing, `PROMPT_VERSION` from AI1.2, and a schema version constant (start at 1; it is the version of InterpretationResponse's shape, so document what would require a bump).\n\n2. `interpret(input)`:\n   a. Ask the capability for readiness. Anything other than READY returns `Failure(UNAVAILABLE, null)` WITHOUT calling the model. NOT_INSTALLED must not trigger a download (owner decision -- AI1.3 made download explicit-only and nothing here may undo that).\n   b. Build the prompt with `buildInterpretationPrompt(input)` and the system instruction from AI1.2.\n   c. Build the request with deterministic classification settings: temperature at or very near 0, topK small, candidateCount 1, a bounded maxOutputTokens sized for this schema (justify the number you pick in a comment), thinking disabled, and a fixed seed. Record `includeSchemaInPrompt`'s value and your reasoning in a comment and in your report -- it trades prompt tokens against decode reliability and cannot be settled without a real run, so pick a defensible default and say it is provisional.\n   d. Call `generateContent` on the capability's session EXACTLY ONCE. One shot: no retry, no second call, no repair prompt, no asking the model to fix its own output. That is an explicit design decision (the domain already has a correct destination for an unusable answer).\n   e. Take the first candidate's typed response, decode it with `InterpretationResponseDecoder`, and return `Success(candidate, structuredResultJson)` on a successful decode.\n   f. Failure mapping: readiness not READY, or no session available -> UNAVAILABLE. A `GenAiException` whose `retryDelay` is greater than zero -> RETRYABLE. An empty candidate list, or a decode failure -> MALFORMED. Anything else thrown -> OTHER. Coroutine cancellation must propagate rather than becoming a Failure (AI1.3 does the same in `readiness()` -- follow that precedent).\n   g. `interpret` never throws for any underlying failure, and no Failure may carry user text or an exception message. `Failure.structuredResultJson` may carry the model's own structured output IF you actually have it; if you do not, it is null -- do not invent it.\n\n3. `structuredResultJson`. The typed API hands back a decoded object, not raw JSON, so you may well not have real JSON at all. Do NOT fabricate one by re-serialising the decoded object and calling it the model's output -- that would be a lie in an audit field. If no genuine raw output is available from the API, pass null and say so plainly in your report and in a code comment; a later task can revisit it if ML Kit exposes the raw text.\n\n4. Warmup. `GenerativeModelSession.warmup()` exists and is expensive. Decide whether the interpreter should warm up, and where; if you expose a warmup entry point, it must be explicit and separate, never a hidden side effect of `interpret`. Justify whichever way you choose.\n\n5. Build-file fix, explicitly IN SCOPE for this task only: `core-ai` uses `kotlinx.coroutines` (Flow, and its tests use runBlocking) without declaring it, relying on it arriving transitively through the ML Kit prompt artifact. Add an explicit `kotlinx-coroutines-core` entry to `gradle/libs.versions.toml` and an `implementation(...)` on it in `core-ai/build.gradle.kts`, pinned to the version already resolving on the classpath (check with `./gradlew :core-ai:dependencies`; do not guess it, and do not upgrade it). This is the one task permitted to touch those two files, and only for this.\n\nTESTING NOTE, so you do not lose time to it: `GenerateTypedContentResponse` and `TypedCandidate` have no conveniently-callable public Kotlin constructor (their constructors take a trailing `DefaultConstructorMarker`). Two workable approaches: construct them reflectively in the test, or introduce a narrow internal abstraction of your own over 'run typed generation and give me back the list of typed responses' and fake THAT. Either is fine. What is NOT fine is leaving the empty-candidate-list and first-candidate-selection behaviour untested because the type was awkward.\n\nSTANDING RULES. ADR-023: every ML Kit import stays in core-ai; no ML Kit type in a hand-written public signature (the interpreter's public surface is core-domain types only). ADR-010 / AGENTS.md #5: the model's answer is never trusted -- this task decodes and returns it, and the domain validator decides whether it is acceptable; do not add semantic checks here. AGENTS.md #11: no logging of prompt, capture text or model output, anywhere; no println; nothing leaves the device. ADR-013: no cloud fallback of any kind.",
+  "non_goals": [
+    "No semantic validation of the decoded candidate -- no candidate-ID membership check, no resolution/field consistency check, no name rules. All of that is core-domain's InterpretationValidator.",
+    "No temporal parsing or date computation.",
+    "No retry, repair loop, second model call or fallback model.",
+    "No implicit model download, in any form, for any reason.",
+    "No changes to core-domain, core-data, core-testing, app-phone, app-wear, core-speech, core-wear-protocol.",
+    "No changes to AI1.1's or AI1.2's files, no prompt text change, no PROMPT_VERSION change.",
+    "No changes to any build file other than the two named in item 5, and only for the coroutines declaration; no dependency upgrade.",
+    "No UI, no Settings screen, no app-phone wiring (AI1.5).",
+    "Do not disable, @Ignore or weaken any test. Do not commit."
+  ],
+  "dependencies": [
+    "AI1.1",
+    "AI1.2",
+    "AI1.3"
+  ],
+  "read_paths": [
+    "core-ai",
+    "core-domain",
+    "docs/AI_INTERPRETATION_SPEC.md",
+    "docs/DECISIONS.md",
+    "docs/ARCHITECTURE.md",
+    "AGENTS.md",
+    "gradle/libs.versions.toml"
+  ],
+  "write_paths": [
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai",
+    "core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai",
+    "core-ai/build.gradle.kts",
+    "gradle/libs.versions.toml"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "README.md",
+    ".sdlc",
+    "agents",
+    "scripts",
+    ".claude",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "gradle.properties",
+    "gradlew",
+    "gradlew.bat",
+    "core-ai/consumer-rules.pro",
+    "core-domain",
+    "core-data",
+    "core-testing",
+    "core-speech",
+    "core-wear-protocol",
+    "app-phone",
+    "app-wear"
+  ],
+  "acceptance_criteria": [
+    "GeminiNanoActivityInterpreter implements core-domain's ActivityInterpreter; its public signature names only core-domain and Kotlin types, and it takes the AI1.3 capability rather than creating a client. A test asserts that several interpret calls create exactly one client.",
+    "Readiness gate: each of NOT_INSTALLED, DOWNLOAD_IN_PROGRESS, UNSUPPORTED_DEVICE, STRUCTURED_OUTPUT_UNSUPPORTED and CHECK_FAILED yields Failure(UNAVAILABLE) and, critically, records ZERO generateContent calls and ZERO download calls on the fake. One test per state.",
+    "Exactly one generateContent call per interpret call on the happy path -- asserted by a call counter, not by inspection.",
+    "Failure mapping, one test each: a GenAiException with a positive retryDelay -> RETRYABLE; a GenAiException with zero retryDelay -> not RETRYABLE (state which kind you chose and why); an arbitrary RuntimeException -> OTHER; an empty candidate list -> MALFORMED; a response that fails to decode -> MALFORMED.",
+    "interpret never throws for any fake behaviour -- asserted explicitly across every failure case above plus an Error-throwing case if your catch covers it (say which throwables you catch and why).",
+    "Coroutine cancellation propagates out of interpret rather than becoming a Failure, matching AI1.3's precedent; a test asserts it.",
+    "No Failure carries user text or an exception message: a test feeds a distinctive capture string AND an exception whose message contains that same string, then asserts neither appears anywhere in the returned result (including any structuredResultJson and the result's toString()).",
+    "The happy path returns Success whose candidate is exactly what InterpretationResponseDecoder produced for the response the fake supplied -- including a semantically questionable one (e.g. EXISTING_ACTIVITY with a null matched id), proving no semantic validation was added here.",
+    "provenance reports a non-blank interpreter version, the AI1.2 PROMPT_VERSION constant (asserted against the constant, not a copy of its value), and a schema version; a test asserts all three.",
+    "Request settings are deterministic-classification settings: candidateCount 1, temperature at or near 0, thinking disabled, a bounded maxOutputTokens and a fixed seed. Assert what your seam lets you assert, and state in the report the value chosen for each, including includeSchemaInPrompt and why it is provisional.",
+    "The empty-candidate-list and first-candidate-selection paths ARE tested (see the testing note in the objective) -- say which approach you used.",
+    "gradle/libs.versions.toml and core-ai/build.gradle.kts declare kotlinx-coroutines-core explicitly at the version already resolving; report the `./gradlew :core-ai:dependencies` evidence for that version and confirm the resolved version did not change after the edit.",
+    "A grep of core-ai/src/main finds no println, Log., System.out, System.err.",
+    "`./gradlew :core-ai:assembleDebug`, `./gradlew :core-ai:test --rerun-tasks` and `./gradlew test` all pass; report the new test count and confirm the 70 existing core-ai tests still pass."
+  ],
+  "verification_commands": [
+    "./gradlew :core-ai:dependencies --configuration debugCompileClasspath",
+    "./gradlew :core-ai:assembleDebug",
+    "./gradlew :core-ai:test --rerun-tasks",
+    "./gradlew test",
+    "./gradlew :core-ai:dependencies --configuration debugApiElements",
+    "git diff HEAD --stat",
+    "git status --porcelain"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
