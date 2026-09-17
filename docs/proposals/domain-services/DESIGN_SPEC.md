@@ -195,6 +195,10 @@ precision field, not the instant, tells the UI what to show.
 Matching is case-insensitive over the normalized expression and tolerant of a
 leading "on"/"at"/"about"/"around". Numeric dates are unresolvable because
 their day/month order is locale-dependent.
+Refinements after DS1.2 review: a hedged clock time ("about 3pm") is
+APPROXIMATE, not EXACT; a clock time that falls in a DST gap is Unresolvable
+(it never happened); punctuation-only text is Unresolvable, not "now". Phrases
+must match whole — "yesterday I think" is Unresolvable.
 
 ### 5.2 Confidence policy — two outcomes (owner decision 2026-09-17)
 

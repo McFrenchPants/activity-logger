@@ -13,7 +13,7 @@ This work item is **sdlc-tracked** (`DS1` in `.sdlc/state.json`). Verification t
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
 | DS1.1 | Domain contracts, name rules, test support | done | Verifier pass. Repo contract gaps carried into DS1.4/DS1.5 packets |
-| DS1.2 | Temporal resolver | todo | After DS1.1 |
+| DS1.2 | Temporal resolver | done | Verifier pass; orchestrator fixed hedged clock precision, DST-gap clock times, punctuation-only input |
 | DS1.3 | Candidate selector and interpretation validator | todo | After DS1.1, DS1.2 |
 | DS1.4 | ActivityRepository implementation in core-data | todo | After DS1.1 |
 | DS1.5 | Orchestrator, correction service, review resolution | todo | After DS1.1-DS1.4 |
@@ -31,6 +31,19 @@ This work item is **sdlc-tracked** (`DS1` in `.sdlc/state.json`). Verification t
   Step 7 (History "Needs review" filter).
 
 ## Session log
+
+### 2026-09-17 — DS1.2 done
+
+TemporalResolver in core-domain `temporal` package: ordered whole-match phrase
+rules per spec §5.1, final guard against results after capture, 25 tests
+(DST in Detroit and Santiago's midnight gap, just-after-midnight, invariant
+sweep). Before implementation the orchestrator widened the "tonight" band to
+start at 17:00 ("tonight" said at 20:00 was Future). Verifier pass with
+findings; orchestrator fixed inline and recorded in spec §5.1: hedged clock
+times ("about 3pm") are APPROXIMATE, clock times inside a DST gap are
+Unresolvable, punctuation-only input is Unresolvable. Left as is (lenient,
+harmless): mismatched plurals ("1 days ago"), "a couple hours ago", "in a
+while" → Future, "12 this morning" → 00:00.
 
 ### 2026-09-17 — DS1.1 done
 
