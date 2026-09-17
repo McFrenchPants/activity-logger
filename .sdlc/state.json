@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-17T15:10:39.586Z",
+  "updated_at": "2026-09-17T15:12:09.832Z",
   "work_items": [
     {
       "id": "SS1",
@@ -312,7 +312,7 @@
         {
           "id": "DS1.6",
           "title": "Documentation",
-          "status": "todo",
+          "status": "in-progress",
           "lifecycle_state": null,
           "dependencies": [
             "DS1.5"
@@ -320,9 +320,9 @@
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/DS1.6.packet.json",
           "report_path": null,
           "notes": ""
         }

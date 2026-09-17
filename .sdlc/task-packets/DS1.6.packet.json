@@ -1,0 +1,74 @@
+{
+ "task_id": "DS1.6",
+ "plan_revision": "2e42497",
+ "objective": "Bring the project documentation in line with the domain services now implemented on branch feature/domain-services (work item DS1). Documentation only: no code, build or test change.\n\nSOURCES OF TRUTH (read them; the code wins wherever a doc or this packet disagrees, and report any disagreement you find)\n- Code: core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/{interpretation,repository,naming,temporal,candidates,validation,services}; core-testing/src/main (InMemoryActivityRepository, FakeActivityInterpreter, MutableClock, runSuspend); core-data/src/main (ActivityRepositories.kt createActivityRepository, repository/RoomActivityRepository.kt, db/dao/LedgerWriteDao.kt recordOutcome + applyCorrectionCreatingActivity, ledger/ActivityLedgerWriter.kt).\n- Design decisions: docs/proposals/domain-services/DESIGN_SPEC.md §5.1 (temporal rules table, bands/anchors, refinements), §5.2 (two-outcome confidence policy, owner decision 2026-09-17), §5.3 (user-resolution interpretation), §5.4 (name check), §5.5 (hidden occurrences not correctable). Treat that file as read-only history.\n\nFACTS ESTABLISHED DURING IMPLEMENTATION (verified; include where relevant)\n- Pipeline order in CaptureInterpretationOrchestrator.process: load capture (already has occurrence -> AlreadyHasOccurrence, nothing else happens) -> load ACTIVE catalog -> CandidateSelector (bound 40, context hash) -> ActivityInterpreter -> TemporalResolver on the model's temporal phrase -> InterpretationValidator -> repository write. Raw capture is persisted before this, by createRawCapture.\n- Outcomes: AUTO_ACCEPT -> acceptInterpretation (one transaction, capture PERSISTED); NEEDS_REVIEW -> interpretation stored NEEDS_REVIEW, capture NEEDS_REVIEW, nothing logged; REJECT -> interpretation stored INVALID, capture NEEDS_REVIEW; interpreter MALFORMED/OTHER -> INVALID interpretation (operation UNSUPPORTED, resolution UNRESOLVED, reason INTERPRETER_OUTPUT_MALFORMED / INTERPRETER_FAILED), capture NEEDS_REVIEW; UNAVAILABLE/RETRYABLE -> no interpretation, capture FAILED_RETRYABLE.\n- A stored interpretation's matched_activity_id is the model's id only if that id is in the catalog loaded for the run, otherwise null (it is a foreign key; an invented id must still reach review). The model's full answer is kept in structured_result_json; the validator judges the unmodified answer.\n- validation_reason holds comma-joined, alphabetically sorted ValidationReason names (20 constants: 11 rejecting incl. the two interpreter-failure ones, 9 review). Names are persisted text.\n- AUTO_ACCEPT requires HIGH confidence band; speech confidence below 0.5 (single constant) -> review. No \"auto-accept with review marker\" tier exists.\n- Review resolution (ReviewResolutionService) inserts an interpretation with interpreter_version \"user-resolution\", prompt_version \"none\", schema_version 1, validation VALID, then accepts it; earlier interpretations untouched; default time = capture instant with INFERRED_NOW; refuses a capture that already has an occurrence.\n- Correction (CorrectionService, source USER): refuses unknown or HIDDEN occurrence, missing or non-ACTIVE target, time after now, invalid new name, new name matching an ACTIVE activity's name or alias (returned with that activity id so the UI can offer it). New activity names are trimmed. A correction to a new activity creates it ACTIVE in the same transaction (LedgerWriteDao.applyCorrectionCreatingActivity). No interpretation row is created by a correction (DB1 rule unchanged).\n- Data layer additions (no schema change, DB version 1): LedgerWriteDao.recordOutcome (interpretation insert + processing state, atomic; only NEEDS_REVIEW/FAILED_RETRYABLE/FAILED_FINAL; refused when an occurrence exists) and applyCorrectionCreatingActivity; accept/correct refuse a non-ACTIVE target activity. Public entry point for the app: createActivityRepository(context, clock).\n- Known seam: an activity archived between catalog load and accept makes process() throw with nothing written; the caller (Step 4) must catch and rerun.\n- Still open / deferred: hide/restore (Undo, \"Remove from history\") needs a data-layer operation and an audit decision (corrections has no visibility columns) — Step 7; listing captures waiting for review — Step 7; re-interpretation of an accepted capture (CorrectionSource.REINTERPRETATION) has no path yet; confidence thresholds beyond \"HIGH only\" and the 0.5 speech constant to be calibrated with the Step 5 corpus / Step 6 recognizer output.\n\nEDITS\n1. docs/ARCHITECTURE.md §5 \"Key interfaces\": replace the conceptual ActivityInterpreter and ActivityRepository blocks with the real signatures (abridged is fine, but names, parameters and return types must match the code) and list the three services with their result types. Leave SpeechTranscriber, QueryInterpreter and WearCaptureTransport as conceptual (not built) and say so. §6 \"Capture orchestration\": make the pipeline diagram match the real order and outcomes above (temporal resolution happens before validation). §15/§16: point to the implemented TemporalResolver / CandidateSelector and ADR-028 in a sentence each; do not duplicate the rule table.\n2. docs/AI_INTERPRETATION_SPEC.md §10: state that resolution is implemented by the deterministic resolver per ADR-028 with a short summary (bands/anchors, weekday = most recent previous such day, \"N days/weeks ago\" -> DATE_ONLY, future phrases -> review, unsupported phrases -> review). §11: replace the four suggested tiers with the implemented two-outcome policy (Auto-accept / Needs review, with rejected answers also landing in Needs review with an INVALID interpretation, interpreter unavailability -> retryable) per ADR-027; remove \"Auto-accept with review marker\" entirely. §17: align with the FAILED_RETRYABLE behaviour. Keep other sections unchanged.\n3. docs/DECISIONS.md: append ADR-027 \"Interpretation confidence policy has two outcomes: auto-accept or needs review\" (Status Accepted, owner decision 2026-09-17; what triggers REJECT vs NEEDS_REVIEW vs AUTO_ACCEPT at the level of §5.2; reason codes persisted; 0.5 speech constant; reason: owner chose \"ask me\" over \"save and mark it\" — a silently wrong entry corrupts history, ADR-017) and ADR-028 \"Relative time phrases resolve by a fixed deterministic rule table\" (Status Accepted; the rules of §5.1 incl. refinements, the owner's weekday and \"N days/weeks ago\" choices dated 2026-09-17, \"a few days ago\"/\"a month ago\"/numeric dates unresolvable and why, English only; reason: ADR-018). Follow the existing ADR format and the --- separators.\n4. docs/DATA_MODEL.md: interpretations section — note user-resolution rows, the matched_activity_id null-unless-in-catalog rule, validation_reason format. corrections section — keep the \"does not fabricate an interpretation\" rule and add that review resolution is a different operation (it creates the first occurrence, not a correction) and why it does insert a user-resolution interpretation; note correction-with-new-activity. Add the recordOutcome operation where transactional operations are described. State explicitly no schema change (still version 1). Update §12 \"Example lifecycle\" only if it now contradicts the code.\n5. docs/PROJECT_STATUS.md: roadmap item 7 \"Define domain interfaces\" marked done 2026-09-17 — work item DS1 (on branch feature/domain-services, pending merge; mirror how item 6 was written but say pending merge); Overall status paragraph gets one sentence on DS1 (pending merge); \"Still open\" thresholds bullet reworded to what remains open (calibration of the implemented policy); add open items for hide/restore and review listing (Step 7) and reinterpretation path; Known risks: add the archived-between-load-and-accept seam only if you judge it a real risk, otherwise leave it to the handoff.\n\nStyle: these docs are written for agents and developers — precise and technical; match each file's existing tone and heading style; no marketing language; do not paste whole code files.",
+ "non_goals": [
+  "No change to any source, build, test, schema or Gradle file.",
+  "Do not edit docs/proposals/** (history and tracking), BACKLOG.md, PROGRESS.md, .sdlc, CLAUDE.md, AGENTS.md or any doc not listed in write_paths.",
+  "Do not renumber or rewrite existing ADRs; only append ADR-027 and ADR-028.",
+  "Do not invent behaviour the code does not have; unbuilt interfaces stay labelled conceptual.",
+  "Do not commit."
+ ],
+ "dependencies": [
+  "DS1.5"
+ ],
+ "read_paths": [
+  "docs",
+  "core-domain",
+  "core-testing",
+  "core-data/src/main",
+  "AGENTS.md",
+  "CLAUDE.md"
+ ],
+ "write_paths": [
+  "docs/ARCHITECTURE.md",
+  "docs/AI_INTERPRETATION_SPEC.md",
+  "docs/DECISIONS.md",
+  "docs/DATA_MODEL.md",
+  "docs/PROJECT_STATUS.md"
+ ],
+ "forbidden_paths": [
+  "BACKLOG.md",
+  "PROGRESS.md",
+  "CLAUDE.md",
+  "AGENTS.md",
+  "README.md",
+  ".sdlc",
+  "agents",
+  "scripts",
+  ".claude",
+  "docs/proposals",
+  "docs/sdlc",
+  "docs/design",
+  "core-domain",
+  "core-testing",
+  "core-data",
+  "core-ai",
+  "core-speech",
+  "core-wear-protocol",
+  "app-phone",
+  "app-wear",
+  "gradle",
+  "build.gradle.kts",
+  "settings.gradle.kts",
+  "gradle.properties",
+  "gradlew",
+  "gradlew.bat"
+ ],
+ "acceptance_criteria": [
+  "ARCHITECTURE §5 shows the real ActivityInterpreter (provenance + interpret returning InterpretationResult) and ActivityRepository function names/parameters/returns exactly as in core-domain, plus CaptureInterpretationOrchestrator, CorrectionService and ReviewResolutionService with their result types; unbuilt interfaces are labelled conceptual. §6 pipeline order and outcomes match CaptureInterpretationOrchestrator.process. Report the names you checked against which file.",
+  "`grep -ri \"review marker\" docs --exclude-dir=proposals` returns nothing (report output). AI_INTERPRETATION_SPEC §11 describes exactly two outcomes plus the retryable failure path and references ADR-027; §10 references ADR-028.",
+  "DECISIONS.md ends with ADR-027 and ADR-028 in the existing format; existing ADRs byte-identical (git diff shows only appended lines in that file — report).",
+  "DATA_MODEL.md documents user-resolution interpretations (interpreter_version/prompt_version values), the matched_activity_id catalog rule, validation_reason format, recordOutcome and correction-with-new-activity operations, and states schema version is still 1; the existing DB1 no-fabricated-interpretation rule for corrections is preserved and the difference from review resolution is explained.",
+  "PROJECT_STATUS.md roadmap item 7 marked done (DS1, pending merge), status paragraph updated, open items for hide/restore, review listing and reinterpretation present, thresholds item reworded.",
+  "Every enum constant, function, class and string value named in the edited docs exists in the code with that exact spelling (report the grep you used).",
+  "git diff --stat shows only the five write_paths files changed; `git status --porcelain` shows nothing else modified (the untracked .sdlc/active-packet is the orchestrator's)."
+ ],
+ "verification_commands": [
+  "grep -ri \"review marker\" docs --exclude-dir=proposals",
+  "git diff --stat",
+  "git status --porcelain"
+ ],
+ "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+ "max_attempts": 3
+}
