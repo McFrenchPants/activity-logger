@@ -1,0 +1,81 @@
+{
+  "task_id": "AI1.1",
+  "plan_revision": "8d9e7f1",
+  "objective": "In core-ai, define the ML Kit Structured Output type for one interpretation result and the pure decode function that turns it into core-domain's InterpretationCandidate. Delete the three scaffold-placeholder files this replaces.\n\nCONTEXT -- module. core-ai is an Android library module and the ONLY module in this repository allowed to name a com.google.mlkit artifact, import an ML Kit type, or declare a @Generable class (ADR-023). It already has `implementation(libs.mlkit.genai.prompt)` and `ksp(libs.mlkit.genai.schema.compiler)` wired, a working consumer-rules.pro, and `implementation(project(\":core-domain\"))`. Unit tests use kotlin.test (testImplementation(kotlin(\"test-junit\")) is already declared). Do not touch core-ai/build.gradle.kts or consumer-rules.pro -- everything you need is already there.\n\nCONTEXT -- the existing working @Generable pattern. core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/ScaffoldPlaceholderGenerable.kt is a placeholder that exists purely to prove the schema compiler runs. Read it before writing anything: it documents two hard-won facts you must preserve. (1) A @Generable class CANNOT be `internal`: the schema compiler generates a public <Name>_GeneratedProvider in the same package that references the annotated type, so an internal @Generable fails to compile with \"'public' property exposes its 'internal' type argument\". (2) Constructor-parameter annotations need the explicit `@param:` target (`@param:Guide(...)`) or Kotlin 2.3 warns. That file, ScaffoldPlaceholder.kt and ScaffoldPlaceholderTest.kt are all DELETED by this task -- their own doc comments say to remove them when the real schema lands.\n\nCONTEXT -- the annotations, read from the pinned genai-schema:1.0.0-alpha1 artifact (authoritative, do not re-derive):\n  @Generable(description: String)\n  @Guide(description: String, enumValues: Array<String>, minimum: Double, maximum: Double, minItems: Int, maxItems: Int)\nboth in package com.google.mlkit.genai.schema.annotations. ADR-023 constrains supported field types to String, Double, Float, Int, Long, Boolean, List<T> and nested @Generable classes -- there is NO enum support and NO nullable-primitive story you should rely on, so every domain enum travels as a String constrained by @Guide(enumValues = ...), and optional values travel as nullable String (or a documented sentinel if nullability turns out not to survive schema generation -- if that happens, pick the sentinel, document why in a comment, and say so in your report).\n\nCONTEXT -- the domain target type (core-domain, read-only, package com.mcfrenchpants.activityledger.core.domain.interpretation):\n  data class InterpretationCandidate(\n    val operation: InterpretationOperation,\n    val activityResolution: ActivityResolution,\n    val matchedActivityId: String?,\n    val proposedCanonicalName: String?,\n    val activityState: ActivityState?,\n    val temporalExpression: String?,\n    val confidenceBand: ConfidenceBand?,\n  )\nEnums, all in com.mcfrenchpants.activityledger.core.domain.model:\n  InterpretationOperation: LOG_ACTIVITY, QUERY_HISTORY, UNSUPPORTED\n  ActivityResolution: EXISTING_ACTIVITY, NEW_ACTIVITY, AMBIGUOUS, UNRESOLVED\n  ActivityState: COMPLETED, IN_PROGRESS\n  ConfidenceBand: HIGH, MEDIUM, LOW\noperation and activityResolution are REQUIRED in the domain type; the other five are optional.\n\nBUILD (package com.mcfrenchpants.activityledger.core.ai, or a sub-package of it if you prefer -- your call, keep it consistent):\n\n1. The @Generable data class (public, forced -- see above). One field per InterpretationCandidate field. Every field gets a @param:Guide with a description written FOR THE MODEL, not for a developer: short, imperative, and saying what the field means in terms of the user's sentence. operation, activityResolution, activityState and confidenceBand additionally get enumValues listing exactly the domain enum's constant names, spelled identically. matchedActivityId's description must say the id has to be one of the ids offered in the prompt and must never be invented. temporalExpression's description must say to copy the time wording from the sentence verbatim and never compute a date or timestamp. proposedCanonicalName's description must say it is only for the case where no offered activity fits, and should be a short verb-first name.\n\n2. The decode function: from the @Generable type to InterpretationCandidate, returning a result that distinguishes success from decode failure (a sealed type or a nullable return plus a reason -- your call; it must let the caller in AI1.4 report MALFORMED with a machine-readable reason, and must NOT throw). It is pure: no clock, no I/O, no logging, no randomness.\n   Decode rules, exactly:\n   - operation, activityResolution: required. Match the string against the domain enum's constants, case-insensitively and after trimming. No match, or blank/absent -> DECODE FAILURE.\n   - activityState, confidenceBand: optional. Blank/absent -> null. Present and matching (case-insensitive, trimmed) -> the enum constant. Present and NOT matching -> DECODE FAILURE (an unknown band is a broken contract, not an absent value).\n   - matchedActivityId, proposedCanonicalName, temporalExpression: optional strings. Trim; blank after trimming -> null; otherwise the trimmed value. Internal whitespace is NOT collapsed and characters are NOT otherwise altered.\n   - NO semantic validation whatsoever. In particular: EXISTING_ACTIVITY with a null matchedActivityId decodes SUCCESSFULLY, as does NEW_ACTIVITY with a null proposedCanonicalName, an id that was never offered as a candidate, and a QUERY_HISTORY operation. Rejecting those is InterpretationValidator's job in core-domain (ADR-010, AGENTS.md #5) and duplicating it here is a defect, not defence in depth.\n\n3. Enum-drift guard test: a test that reflects over each domain enum's entries and asserts the corresponding @Guide(enumValues) array is exactly equal (same values, same order or as a set -- state which you chose). This is the point of the task's second acceptance criterion: the two lists must not be able to drift silently.\n\nSTANDING RULES. No ML Kit type may appear in a HAND-WRITTEN public signature of core-ai (ADR-023 condition 2) -- the @Generable class itself is unavoidably public, but the decode function must not be a public API taking it; keep the decode entry point internal, or public only over domain types. No logging of any kind: not the model output, not a field value, not in an exception message (AGENTS.md #11). No println. Nothing may leave the device.",
+  "non_goals": [
+    "No prompt text, no system instruction, no prompt builder (AI1.2).",
+    "No capability detection, no GenerativeModel, no Generation.getClient, no download (AI1.3).",
+    "No ActivityInterpreter implementation, no generateContent call, no failure-kind mapping (AI1.4).",
+    "No changes to core-domain, core-data, core-testing, app-phone, app-wear, core-speech, core-wear-protocol.",
+    "No changes to any build file, gradle/libs.versions.toml, consumer-rules.pro, or any document.",
+    "No semantic validation of the decoded candidate -- that belongs to core-domain's InterpretationValidator.",
+    "No retry, repair or 'fix the model's JSON' logic of any kind (design spec 5.2).",
+    "Do not disable, @Ignore or weaken any test. Do not commit."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "core-ai",
+    "core-domain",
+    "docs/AI_INTERPRETATION_SPEC.md",
+    "docs/DECISIONS.md",
+    "docs/proposals/ai-vertical-slice/DESIGN_SPEC.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "gradle/libs.versions.toml"
+  ],
+  "write_paths": [
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai",
+    "core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "README.md",
+    "docs",
+    ".sdlc",
+    "agents",
+    "scripts",
+    ".claude",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "gradle.properties",
+    "gradle",
+    "gradlew",
+    "gradlew.bat",
+    "core-ai/build.gradle.kts",
+    "core-ai/consumer-rules.pro",
+    "core-domain",
+    "core-data",
+    "core-testing",
+    "core-speech",
+    "core-wear-protocol",
+    "app-phone",
+    "app-wear"
+  ],
+  "acceptance_criteria": [
+    "A @Generable data class exists in core-ai with exactly one field per InterpretationCandidate field, using only ADR-023's supported field types (String/Double/Float/Int/Long/Boolean/List/nested @Generable) -- no Kotlin enum, no java.time type, no domain type as a field type.",
+    "Every field carries a @param:Guide with a model-facing description; operation, activityResolution, activityState and confidenceBand carry enumValues whose entries are exactly the corresponding domain enum's constant names.",
+    "A test reflects over InterpretationOperation, ActivityResolution, ActivityState and ConfidenceBand entries and asserts each @Guide's enumValues matches, so the schema and the domain enums cannot drift silently. The test reads the annotation at runtime (not a hand-copied list).",
+    "Decode of a fully-populated valid response yields the exact expected InterpretationCandidate, with every field asserted individually.",
+    "Decode failure (not an exception) for each of: blank operation, absent operation, unknown operation string, blank activityResolution, unknown activityResolution string, unknown activityState string, unknown confidenceBand string.",
+    "Decode succeeds with null for each optional field when it is absent, empty, or whitespace-only; matchedActivityId, proposedCanonicalName and temporalExpression are trimmed but otherwise character-identical to the input (test a value with internal double spaces and punctuation, e.g. \"  mow  the lawn!  \" -> \"mow  the lawn!\").",
+    "Case-insensitivity: lowercase and mixed-case enum strings (\"log_activity\", \"Existing_Activity\") decode to the right constants; a test documents this is deliberate.",
+    "No-semantic-validation proof: EXISTING_ACTIVITY with null matchedActivityId, NEW_ACTIVITY with null proposedCanonicalName, a matchedActivityId that is obvious nonsense, and operation QUERY_HISTORY all decode SUCCESSFULLY.",
+    "The decode function never throws for any input including all-null/all-blank fields -- assert this explicitly rather than relying on the other tests.",
+    "ScaffoldPlaceholder.kt, ScaffoldPlaceholderGenerable.kt and ScaffoldPlaceholderTest.kt are deleted and nothing references them.",
+    "`./gradlew :core-ai:assembleDebug` succeeds, proving the alpha schema compiler actually processed the new @Generable type; report whether a <Name>_GeneratedProvider was generated under core-ai/build/generated/ksp (name it) -- if none was generated, that is a failure to report, not to work around.",
+    "`./gradlew :core-ai:test --rerun-tasks` and `./gradlew test` pass; report the test count for the new test class(es).",
+    "A grep of core-ai/src/main for `println`, `Log.`, `System.out`, `System.err` finds nothing, and no decode-failure reason string contains a field's captured value."
+  ],
+  "verification_commands": [
+    "./gradlew :core-ai:assembleDebug",
+    "./gradlew :core-ai:test --rerun-tasks",
+    "./gradlew test",
+    "git diff HEAD --stat",
+    "git status --porcelain"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
