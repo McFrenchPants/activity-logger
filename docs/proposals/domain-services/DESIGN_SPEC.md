@@ -1,6 +1,8 @@
 # Design spec — Domain services (backlog item 8)
 
-Status: **draft, awaiting owner sign-off**.
+Status: **approved by owner** (2026-09-17), with two temporal changes folded
+into §5.1: a weekday always means the most recent *previous* such day, and
+"N days/weeks ago" resolves to a date.
 Work item `DS1`. Branch: `feature/domain-services`, off `main` at 2f6bb82.
 Source: `docs/IMPLEMENTATION_HANDOFF.md` "Step 3 — Domain services",
 `docs/ARCHITECTURE.md` §5-6, §12, §15-16, `docs/AI_INTERPRETATION_SPEC.md`
@@ -173,12 +175,12 @@ Resolved times are never after `now`; a phrase whose resolution would be after
 | "last night" | yesterday 21:00 | APPROXIMATE |
 | "yesterday morning/afternoon/evening" | yesterday at anchor | APPROXIMATE |
 | "N minutes/hours ago", "an hour ago", "a couple of hours ago", "about/around …" | `now` − duration | APPROXIMATE |
-| weekday ("Saturday", "on Saturday", "last Saturday") | start of the most recent such day **before today** | DATE_ONLY |
-| bare or "on" weekday equal to today's weekday (not "last …") | `Unresolvable` (today vs a week ago is a guess) | — |
+| weekday ("Saturday", "on Saturday", "last Saturday") | start of the most recent such day **before today** — said on a Saturday, "Saturday" means 7 days earlier (owner decision 2026-09-17) | DATE_ONLY |
+| "N days ago", "N weeks ago", "a day ago", "a week ago", "a couple of days/weeks ago", optional "about/around" (N as digits or English words one-twelve) | start of the calendar day N days (or 7×N days) before today | DATE_ONLY |
 | month-name date ("September 1st", "Sept 1", "1 September") | start of that date in the most recent year for which it is not after today | DATE_ONLY |
 | explicit clock time today ("at 3pm", "at 3 this afternoon") | today at that time | EXACT |
 | "tomorrow", "next …", "later", "in N …" | `Future` | — |
-| anything else ("last week", "recently", "the other day", numeric dates like 9/1) | `Unresolvable` | — |
+| anything else ("last week", "a few days ago", "a month ago", "recently", "the other day", numeric dates like 9/1) | `Unresolvable` | — |
 
 Bands and anchors (anchors sit inside each band so a display layer can recover
 the band from the local hour): morning 05:00-12:00 anchor 09:00, afternoon

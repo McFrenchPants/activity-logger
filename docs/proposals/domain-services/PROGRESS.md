@@ -2,18 +2,22 @@
 
 Task status vocabulary: `todo`, `in-progress`, `blocked`, `done`.
 
-Design spec: [`DESIGN_SPEC.md`](DESIGN_SPEC.md) — **awaiting owner sign-off**.
-Implementation plan: not yet written (written after sign-off).
+Design spec: [`DESIGN_SPEC.md`](DESIGN_SPEC.md) — signed off by owner 2026-09-17.
+Implementation plan: [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md).
 Branch: `feature/domain-services`, off `main` at 2f6bb82.
 
-Work item `DS1`. Will be **sdlc-tracked** in `.sdlc/state.json` once the plan
-exists. Verification tier: spec §7 (verifier for every non-doc task).
+This work item is **sdlc-tracked** (`DS1` in `.sdlc/state.json`). Verification tier: spec §7 (verifier for every non-doc task).
 
 ## Tasks
 
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
-| — | Implementation plan | todo | Blocked on design-spec sign-off |
+| DS1.1 | Domain contracts, name rules, test support | todo | |
+| DS1.2 | Temporal resolver | todo | After DS1.1 |
+| DS1.3 | Candidate selector and interpretation validator | todo | After DS1.1, DS1.2 |
+| DS1.4 | ActivityRepository implementation in core-data | todo | After DS1.1 |
+| DS1.5 | Orchestrator, correction service, review resolution | todo | After DS1.1-DS1.4 |
+| DS1.6 | Documentation | todo | After DS1.5 |
 
 ## Open items (carry forward)
 
@@ -21,6 +25,17 @@ exists. Verification tier: spec §7 (verifier for every non-doc task).
   data-layer operation and no audit columns — Step 7 decision (spec §6).
 
 ## Session log
+
+### 2026-09-17 — design signed off with temporal changes; plan written
+
+Owner approved the spec with two changes, folded into §5.1: a weekday always
+means the most recent previous such day (so "Saturday" said on Saturday is 7
+days earlier; the earlier "unresolvable" rule is gone), and "N days/weeks
+ago" (digits or words, "a", "a couple of") resolves to DATE_ONLY start of
+that day. "A few days ago" and "a month ago" stay unresolvable (orchestrator
+call: no honest number). Plan: six tasks; tasks added to state.json with
+`lifecycle_state: null` until packeted (DB1 convention). validate-state still
+reports only the pre-existing missing SS1/DB1 evidence files.
 
 ### 2026-09-17 — design spec drafted; stopped for sign-off
 
