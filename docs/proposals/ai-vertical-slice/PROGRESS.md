@@ -14,7 +14,7 @@ tier: spec §7 (verifier for every non-doc task).
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
 | AI1.1 | Structured output type and decode mapping | done | Verifier pass. Schema type `InterpretationResponse` (7 nullable String fields); decoder internal, returns Decoded/Failed with value-free reason codes |
-| AI1.2 | Prompt: system instruction, builder, versioning | todo | Depends on AI1.1 |
+| AI1.2 | Prompt: system instruction, builder, versioning | done | Verifier pass; orchestrator sent back two fixes (empty-candidate wording, weak few-shot assertions). Prompt version 2 |
 | AI1.3 | Capability detection and model client lifecycle | todo | Owner decision: never download implicitly |
 | AI1.4 | GeminiNanoActivityInterpreter | todo | Depends on AI1.1-AI1.3 |
 | AI1.5 | Phone wiring and the on-device vertical slice | todo | Adds androidTest infrastructure; device run needs the Pixel 10 Pro |
@@ -29,6 +29,34 @@ tier: spec §7 (verifier for every non-doc task).
   only be settled against a real run (spec §6).
 
 ## Session log
+
+### 2026-09-17 — AI1.2 done
+
+`InterpretationPrompt.kt`: the system instruction (nine principles as a
+numbered list), a pure `buildInterpretationPrompt(InterpretationInput)` with the
+five required sections in order, and `PROMPT_VERSION`. Worked examples and the
+six few-shot cases live under `## Rules`. The utterance is fenced verbatim; the
+capture's local time and zone are rendered with an explicit pattern and
+`Locale.ROOT`, and the prompt tells the model not to compute a date itself.
+Drift is guarded by pinned SHA-256 digests plus the version constant, with a
+failure message that says prompt text is product logic and the version must be
+bumped.
+
+Verifier pass, then two orchestrator-requested fixes:
+
+- With an empty candidate list the prompt still said "copy matchedActivityId
+  from exactly one of the ids listed above" — an instruction to copy one of
+  zero ids. The id instruction is now branch-specific: no candidates means give
+  no id and answer `NEW_ACTIVITY` or `UNRESOLVED`. Prompt version 1 → 2.
+- The ambiguous and relative-time few-shot assertions only matched the example's
+  input half, so the teaching half could have been deleted silently. Both now
+  pin the whole line.
+
+Worth carrying forward: re-deriving the pinned digest showed the populated-case
+checksum had not moved at all, because only the empty-candidate branch changed —
+the drift guard had no fixture for that branch, so it could not have caught this
+class of bug. A second pinned fixture (same capture, empty candidate list) now
+covers it. 43 core-ai tests.
 
 ### 2026-09-17 — AI1.1 done
 

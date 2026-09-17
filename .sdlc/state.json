@@ -351,7 +351,7 @@
         {
           "id": "AI1.2",
           "title": "Prompt: system instruction, builder, versioning",
-          "status": "in-progress",
+          "status": "done",
           "lifecycle_state": null,
           "dependencies": [
             "AI1.1"
@@ -363,7 +363,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/AI1.2.packet.json",
           "report_path": null,
-          "notes": null
+          "notes": "Done, verifier pass plus two orchestrator follow-ups. core.ai.InterpretationPrompt: PROMPT_VERSION=\"2\", INTERPRETATION_SYSTEM_INSTRUCTION, buildInterpretationPrompt(InterpretationInput). Id instruction is branch-specific (empty candidate list -> give no id, answer NEW_ACTIVITY or UNRESOLVED). Drift guard pins three SHA-256 digests; the empty-candidate branch needed its own fixture, which the original guard lacked. 43 core-ai tests."
         },
         {
           "id": "AI1.3",
