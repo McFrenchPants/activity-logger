@@ -1,0 +1,92 @@
+{
+ "task_id": "DS1.4",
+ "plan_revision": "cdb58d8",
+ "objective": "Implement the domain's ActivityRepository contract in core-data on top of the existing Room schema v1 and transactional ledger writer, adding only two additive transactional operations and some read queries. No schema change.\n\nCONTEXT\ncore-domain (public, do not change except the KDoc allowed below): package com.mcfrenchpants.activityledger.core.domain.repository has interface ActivityRepository with suspend functions createRawCapture(NewRawCapture): String; getCapture(id): StoredCapture?; loadCatalog(): List<CatalogActivity>; recordOutcome(captureId, interpretation: InterpretationRecord?, processingState: ProcessingState); acceptInterpretation(captureId, interpretation: InterpretationRecord, target: ActivityTarget, occurredAt: Instant, timePrecision, activityState): String; applyCorrection(occurrenceId, changes: CorrectionChanges, source: CorrectionSource, reason: String?, now: Instant): CorrectionOutcome; getOccurrence(id): OccurrenceView?; getActivity(id): ActivityView?. Types in the same package: CatalogActivity(id, displayName, normalizedName, normalizedAliases, lastOccurredAt: Instant?), StoredCapture(id, rawText, source, capturedAt: Instant, zoneId: ZoneId, speechConfidence, processingState, hasOccurrence), OccurrenceView(id, canonicalActivityId, rawCaptureId, effectiveInterpretationId, capturedAt, occurredAt, timePrecision, activityState, visibilityStatus), ActivityView(id, displayName, normalizedName, status), NewRawCapture(source, sourceSurface?, capturedAt: Instant, zoneId: ZoneId, rawText, speechConfidence?, speechAlternativesJson?, processingState), sealed ActivityTarget { Existing(activityId); New(displayName) }, CorrectionChanges(activity: ActivityTarget?, occurredAt: Instant?, timePrecision?, activityState?), sealed CorrectionOutcome { Applied(correctionId); NothingChanged }. Package ...core.domain.interpretation has InterpretationRecord(createdAt: Instant, interpreterVersion, promptVersion, schemaVersion: Int, operation, activityResolution, matchedActivityId?, proposedCanonicalName?, activityState?, temporalExpression?, resolvedOccurredAt: Instant?, timePrecision?, modelConfidenceBand?, candidateContextHash?, structuredResultJson?, validationStatus, validationReason?). object ...core.domain.naming.NameNormalizer.normalize(text). Read the actual source files for exact names.\ncore-data (Android library, package com.mcfrenchpants.activityledger.core.data, all internal): ActivityLedgerDatabase (Room v1, DAOs rawCaptureDao, canonicalActivityDao, activityAliasDao, interpretationDao, activityOccurrenceDao, correctionDao, ledgerWriteDao; blocking, non-suspend DAOs), ActivityLedgerDatabaseFactory.create(context), IdFactory/UuidV7IdFactory, ledger.ActivityLedgerWriter(database, idFactory) with acceptInterpretation(AcceptInterpretationRequest): String (idempotent per capture) and applyCorrection(occurrenceId, OccurrenceChanges, source, reason, now: Long): String? (null = nothing changed), request types in ledger/LedgerRequests.kt, and LedgerWriteDao holding all protected primitives and the two @Transaction operations. Tests: Robolectric sdk 35, @RunWith(AndroidJUnit4::class), inMemoryTestDatabase<ActivityLedgerDatabase>() in TestDatabases.kt, DeterministicIdFactory, Fixtures/FixtureSql helpers, DaoWriteSurfaceGuardTest (class-file scan restricting the write surface: no @Update/@Upsert/@Delete/@RawQuery, no DELETE/INSERT/REPLACE @Query, UPDATE only raw_captures(processing_state, updated_at) or activity_occurrences inside LedgerWriteDao, every @Insert ABORT, occurrence/correction inserts only in LedgerWriteDao; it asserts inserts >= 7 and updates >= 3). ActivityLedgerWriterTest.rawCaptureEvidenceIsUnchangedByEveryWriteOperation proves raw text immutability for DB1 operations. kotlinx-coroutines-core 1.8.1 is already on core-data's classpath transitively via room-ktx; it is NOT declared.\n\nBUILD\n1. Dependency: add kotlinxCoroutines = \"1.8.1\" (the version already resolved transitively — do not upgrade) and a library alias kotlinx-coroutines-core to gradle/libs.versions.toml, and declare implementation(libs.kotlinx.coroutines.core) in core-data/build.gradle.kts. Confirm with ./gradlew :core-data:dependencies that the resolved version did not change. No coroutines-test: tests use runBlocking.\n2. LedgerWriteDao, additive only (keep every existing behaviour and test):\n   a) New @Transaction recordOutcome(idFactory, rawCaptureId, interpretation: NewInterpretation?, processingState, now: Long): String? — require the capture exists (IllegalArgumentException otherwise); require the capture has NO occurrence (IllegalArgumentException — an accepted capture's outcome is never rewritten); require processingState in {NEEDS_REVIEW, FAILED_RETRYABLE, FAILED_FINAL} (IllegalArgumentException); require interpretation.rawCaptureId == rawCaptureId when given; insert the interpretation if given; update processing_state/updated_at. Returns the new interpretation id or null. All-or-nothing.\n   b) New @Transaction applyCorrectionCreatingActivity(idFactory, occurrenceId, newActivity: NewCanonicalActivity, changes: OccurrenceChanges (canonicalActivityId must be null), source, reason, now): String — creates an ACTIVE canonical activity, then applies the correction with canonicalActivityId = the new id (reuse the existing correction logic; refactor into a protected/private shared function if needed). Always writes a correction row. Unknown occurrence -> IllegalArgumentException and nothing written.\n   c) Target activity must be ACTIVE: in acceptInterpretation (when canonicalActivityId is given) and applyCorrection (when a changed canonicalActivityId is given), require the activity exists and has status ACTIVE, else IllegalArgumentException and nothing written (protects against a stale shortlist choosing a merged/archived activity). Add a protected read primitive for it. Existing tests must still pass unchanged; add tests for the new refusals.\n   d) Expose (b) and (a) through ActivityLedgerWriter like the existing two operations.\n3. Read queries (@Query SELECT only, in the existing read DAOs or a new internal read-only DAO; if you add a new DAO accessor to ActivityLedgerDatabase you must add it to DaoWriteSurfaceGuardTest.expectedDaos): active activities; all aliases for a set of / all active activities; last ACTIVE-visibility occurred_at per activity (one grouped query, not N+1); occurrence by raw capture id.\n4. internal class RoomActivityRepository(database: ActivityLedgerDatabase, idFactory: IdFactory, clock: java.time.Clock, dispatcher: CoroutineDispatcher = Dispatchers.IO) : ActivityRepository. Every function runs its DAO work inside withContext(dispatcher). Mapping: Instant <-> epoch millis; ZoneId <-> zone id string; created/updated timestamps from clock.instant(). Normalized names via NameNormalizer.normalize(displayName). recordOutcome/acceptInterpretation map InterpretationRecord to NewInterpretation (rawCaptureId = captureId). ActivityTarget.Existing -> canonicalActivityId; ActivityTarget.New -> NewCanonicalActivity. applyCorrection: activity New -> applyCorrectionCreatingActivity; otherwise existing applyCorrection; null -> CorrectionOutcome.NothingChanged. getCapture sets hasOccurrence from the occurrence-by-capture query. loadCatalog returns ACTIVE activities with their normalized aliases (stable order: alias created_at then id) and lastOccurredAt, ordered by normalized_name then id.\n   Also a public entry point for the phone app: public fun createActivityRepository(context: Context, clock: Clock = Clock.systemDefaultZone()): ActivityRepository in core-data (e.g. file ActivityRepositories.kt), using ActivityLedgerDatabaseFactory.create(context) and UuidV7IdFactory. It must not expose any internal type.\n5. Error contract, documented in the core-domain ActivityRepository KDoc (you may edit ONLY KDoc comments in core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/ActivityRepository.kt, no signature changes): unknown capture/occurrence id, target activity missing or not ACTIVE, recordOutcome on a capture that already has an occurrence or with a disallowed state -> IllegalArgumentException, nothing written; acceptInterpretation on a capture that already has an occurrence returns the existing occurrence id and writes nothing; timestamps for rows the repository creates come from the implementation's clock. The implementation must translate SQLiteConstraintException from a missing referenced row into IllegalArgumentException where the precondition checks above did not already catch it.\n\nNo logging; exception messages carry ids and enum names only, never raw text or names.",
+ "non_goals": [
+  "No schema change: core-data/schemas byte-identical, database version stays 1, no new entity/column/index, no migrations.",
+  "No @Update/@Upsert/@Delete/@RawQuery, no DELETE/INSERT/REPLACE @Query, no REPLACE conflict strategy; do not weaken DaoWriteSurfaceGuardTest (extend it only to list a new DAO or tighten it).",
+  "No hide/restore (visibility) operation, no alias writes, no activity merge, no re-interpretation path.",
+  "No orchestrator, correction policy (hidden-occurrence refusal, future-time refusal, name check), or review resolution logic — that is the next task; the repository enforces only data integrity.",
+  "No wiring into app-phone. No logging. No kotlinx-coroutines-test or other new test libraries.",
+  "Do not change any core-domain signature or type; only KDoc in ActivityRepository.kt. Do not disable, @Ignore or weaken any test. Do not commit."
+ ],
+ "dependencies": [
+  "DS1.1"
+ ],
+ "read_paths": [
+  "core-data",
+  "core-domain",
+  "core-testing",
+  "gradle/libs.versions.toml",
+  "build.gradle.kts",
+  "settings.gradle.kts",
+  "docs/DATA_MODEL.md",
+  "docs/ARCHITECTURE.md",
+  "docs/proposals/room-schema/TOOLING_NOTES.md",
+  "AGENTS.md",
+  "CLAUDE.md"
+ ],
+ "write_paths": [
+  "core-data/src",
+  "core-data/build.gradle.kts",
+  "gradle/libs.versions.toml",
+  "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/ActivityRepository.kt"
+ ],
+ "forbidden_paths": [
+  "BACKLOG.md",
+  "PROGRESS.md",
+  "CLAUDE.md",
+  "AGENTS.md",
+  "README.md",
+  "docs",
+  ".sdlc",
+  "agents",
+  "scripts",
+  ".claude",
+  "settings.gradle.kts",
+  "build.gradle.kts",
+  "gradle.properties",
+  "gradle/wrapper",
+  "gradlew",
+  "gradlew.bat",
+  "core-data/schemas",
+  "core-domain/build.gradle.kts",
+  "core-domain/src/test",
+  "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/model",
+  "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/naming",
+  "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/interpretation",
+  "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal",
+  "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/candidates",
+  "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/validation",
+  "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/RepositoryTypes.kt",
+  "core-testing",
+  "core-ai",
+  "core-speech",
+  "core-wear-protocol",
+  "app-phone",
+  "app-wear"
+ ],
+ "acceptance_criteria": [
+  "A new Robolectric test class for RoomActivityRepository (in-memory DB, fixed Clock, DeterministicIdFactory, dispatcher = Dispatchers.Unconfined or a single-thread executor, calls via runBlocking) round-trips every repository function: createRawCapture then getCapture returns identical fields (zone id, instant to the millisecond, speech values) with hasOccurrence false then true after accept; getOccurrence/getActivity map every field; unknown ids return null.",
+  "loadCatalog: returns only ACTIVE activities (MERGED and ARCHIVED rows inserted via test SQL are excluded), each with its normalized aliases, lastOccurredAt = greatest occurred_at among its ACTIVE-visibility occurrences (a later HIDDEN occurrence is ignored; an activity with none has null), ordered by normalized name then id. The last-occurred values come from one grouped query (shown by reading the DAO SQL, reported).",
+  "recordOutcome: with an interpretation stores it (rawCaptureId = capture) and sets the state; without one only the state changes; a forced failure after the interpretation insert (e.g. an interpretation whose matched_activity_id references a missing activity, so the FK fails) leaves no interpretation and the processing_state/updated_at unchanged; refused with IllegalArgumentException and nothing written for: unknown capture, capture that already has an occurrence, state PERSISTED/CAPTURED.",
+  "acceptInterpretation via the repository: Existing target -> occurrence points at it; New target -> ACTIVE activity with normalized_name = NameNormalizer.normalize(displayName); second call for the same capture returns the same occurrence id and writes nothing; Existing target that is ARCHIVED or MERGED or missing -> IllegalArgumentException, nothing written (interpretation count unchanged).",
+  "Review-resolution shape: a capture with an INVALID model interpretation recorded via recordOutcome(NEEDS_REVIEW) is then accepted with a user-resolution InterpretationRecord (interpreterVersion \"user-resolution\"); the INVALID row is unchanged, the capture has two interpretations, and the occurrence effective_interpretation_id is the new one.",
+  "applyCorrection via the repository: Existing activity change records previous/new ids; New activity change creates an ACTIVE activity and one correction row pointing at it, all in one transaction (forced failure — e.g. unknown occurrence — leaves no new activity); time/precision/state changes map correctly; a request equal to current values returns NothingChanged and writes nothing; change to an ARCHIVED activity -> IllegalArgumentException, nothing written.",
+  "Raw capture immutability: a test exercises every repository write path (createRawCapture, recordOutcome with and without interpretation, acceptInterpretation incl. retry, applyCorrection with existing and new activity and each other field) against one capture and asserts raw_text, source, captured_at and captured_zone_id byte-identical afterwards. Existing ActivityLedgerWriterTest immutability test still passes.",
+  "DaoWriteSurfaceGuardTest passes unmodified in its rules (only expectedDaos may grow); demonstrate it still bites by temporarily adding an @Update method to a DAO, running the test, capturing the failure message, and reverting (report the output).",
+  "Dependency: gradle/libs.versions.toml has kotlinxCoroutines = \"1.8.1\" and the alias; core-data/build.gradle.kts declares it with no version literal; `./gradlew :core-data:dependencies --configuration debugRuntimeClasspath` shows kotlinx-coroutines-core resolving to 1.8.1 (report the line).",
+  "createActivityRepository is public, returns ActivityRepository, and a compile-level check (e.g. the public API only mentions domain/Android/java.time types) is reported; no internal type leaks.",
+  "git diff HEAD -- core-data/schemas is empty; DATABASE version still 1. grep of core-data/src/main for Log., println, printStackTrace finds nothing new.",
+  "`./gradlew :core-data:test --rerun-tasks` and `./gradlew test` pass; report per-class JUnit XML counts for new and changed test classes."
+ ],
+ "verification_commands": [
+  "./gradlew :core-data:test --rerun-tasks",
+  "./gradlew test",
+  "git diff HEAD --stat",
+  "git diff HEAD -- core-data/schemas",
+  "git status --porcelain"
+ ],
+ "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+ "max_attempts": 3
+}
