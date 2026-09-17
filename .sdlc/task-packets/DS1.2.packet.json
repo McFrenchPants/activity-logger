@@ -1,0 +1,83 @@
+{
+  "task_id": "DS1.2",
+  "plan_revision": "234f63a",
+  "objective": "Implement the deterministic temporal resolver in core-domain: it turns the temporal phrase the AI extracted from an utterance (\"yesterday\", \"this morning\", \"Saturday\", \"two days ago\"...) into an occurrence instant plus a precision, without ever fabricating precision (ADR-018) and without any model involvement.\n\nCONTEXT: core-domain is pure Kotlin/JVM (stdlib + java.time only in main). Existing public API from the previous task: object com.mcfrenchpants.activityledger.core.domain.naming.NameNormalizer with fun normalize(text: String): String (trim, collapse whitespace, lowercase Locale.ROOT, strip leading/trailing Unicode punctuation; internal punctuation such as apostrophes and hyphens kept); packages core.domain.interpretation and core.domain.repository hold the interpreter/repository contracts (not needed here); core-testing (testImplementation dependency of core-domain) offers MutableClock, FakeActivityInterpreter, runSuspend (not needed here). TimePrecision enum (com.mcfrenchpants.activityledger.core.domain.model): EXACT, APPROXIMATE, DATE_ONLY, INFERRED_NOW. Tests use kotlin.test as the existing core-domain tests do.\n\nBUILD (package com.mcfrenchpants.activityledger.core.domain.temporal, public):\n- sealed TemporalResolution: Resolved(occurredAt: Instant, precision: TimePrecision) | Future | Unresolvable (objects for the latter two).\n- class TemporalResolver with fun resolve(expression: String?, capturedAt: Instant, zoneId: ZoneId): TemporalResolution. Stateless, no clock (capturedAt IS \"now\"), no logging, exceptions never contain the expression text.\n- Structured as an ordered list of phrase rules (each rule: a matcher over the normalized expression + a resolution function), so a later language or phrase is an additional rule, not a rewrite. More specific rules come first (\"yesterday morning\" before \"yesterday\").\n\nRULES (all calendar arithmetic in zoneId; now = capturedAt; today = LocalDate of now in zoneId; \"start of D\" = D.atStartOfDay(zoneId), which handles DST gaps):\nNormalization before matching: trim, lowercase (Locale.ROOT), collapse whitespace, strip trailing/leading punctuation, then strip ONE optional leading \"on \" / \"at \" / \"about \" / \"around \" / \"approximately \" (and \"about\"/\"around\" may also precede a quantity inside \"N ... ago\", e.g. \"about two hours ago\"). Reuse the existing NameNormalizer if it fits.\n1. null or blank -> Resolved(now, INFERRED_NOW).\n2. \"just now\", \"just\", \"now\", \"right now\", \"a moment ago\", \"just finished\", \"just did it\" -> Resolved(now, INFERRED_NOW).\n3. \"yesterday morning\" / \"yesterday afternoon\" / \"yesterday evening\" -> Resolved(yesterday at band anchor, APPROXIMATE).\n4. \"this morning\" / \"this afternoon\" / \"this evening\" / \"tonight\" (also \"earlier this morning\", \"earlier this afternoon\", \"earlier this evening\") -> band logic below, APPROXIMATE.\n5. \"earlier today\" -> Resolved(midpoint instant between start of today and now, APPROXIMATE).\n6. \"last night\" -> Resolved(start of yesterday + 21:00 local, APPROXIMATE) (use yesterday.atTime(21,0).atZone(zoneId)).\n7. \"today\" -> Resolved(start of today, DATE_ONLY). \"yesterday\" -> Resolved(start of yesterday, DATE_ONLY).\n8. Quantity ago, minutes/hours: \"<N> minute(s)/min(s) ago\", \"<N> hour(s) ago\", \"an hour ago\", \"a minute ago\", \"half an hour ago\" (30 min), \"a couple of hours/minutes ago\" (2), where N is digits (1-999) or an English word one..twelve -> Resolved(now minus Duration, APPROXIMATE). Instant arithmetic (DST-safe).\n9. Quantity ago, days/weeks (owner decision): \"<N> day(s) ago\", \"<N> week(s) ago\", \"a day ago\", \"a week ago\", \"a couple of days/weeks ago\", N digits (1-999) or word one..twelve -> Resolved(start of (today minus N days, or minus 7*N days), DATE_ONLY).\n10. Weekday (owner decision): \"<weekday>\", \"last <weekday>\" for the seven full English weekday names (optionally the plural-free \"on\" already stripped) -> Resolved(start of the most recent such day STRICTLY BEFORE today, DATE_ONLY). Said on a Saturday, \"Saturday\" means 7 days earlier. \"last Saturday\" resolves identically to \"Saturday\".\n11. Month-name date: \"<month> <day>\", \"<month> <day>st/nd/rd/th\", \"<day> <month>\", \"<day>st/nd/rd/th of <month>\", \"the <day>th of <month>\", with full month names and the common abbreviations (jan, feb, mar, apr, jun, jul, aug, sep, sept, oct, nov, dec, optional trailing period stripped) -> Resolved(start of that date in the most recent year <= today's year for which the date exists and is not after today, DATE_ONLY). A day that never exists for that month (e.g. September 31) -> Unresolvable. February 29 walks back to the most recent leap year.\n12. Explicit clock time today: \"<h>pm\"/\"<h> pm\"/\"<h>:<mm> am|pm\"/\"<h> o'clock this afternoon\"/\"<h> this morning|afternoon|evening\" -> today at that local time; if that instant is after now -> Future; else Resolved(that instant, EXACT). A bare hour with no am/pm and no part-of-day (\"at 3\") -> Unresolvable.\n13. \"tomorrow\", anything starting \"next \", \"later\", \"later today\", \"in <N> ...\", \"tonight\" is NOT future (rule 4) -> Future.\n14. Everything else -> Unresolvable. Explicitly including: \"last week\", \"a few days ago\", \"several days ago\", \"a month ago\", \"last month\", \"recently\", \"the other day\", \"earlier\", numeric dates like \"9/1\" or \"2026-09-01\".\n\nPart-of-day bands (rule 3 and 4): morning [05:00, 12:00) anchor 09:00; afternoon [12:00, 17:00) anchor 15:00; evening [17:00, 21:00) anchor 19:00; tonight [21:00, 24:00) anchor 21:00. For \"this <band>\" on today: if now's local time is before the band start -> Future; if now is inside the band and before the anchor -> Resolved(now, APPROXIMATE); otherwise (inside band at/after anchor, or after band end) -> Resolved(today at anchor, APPROXIMATE). For \"yesterday <band>\" always yesterday at anchor.\n\nGlobal invariant: no Resolved result may be after capturedAt. Enforce with a final guard (if a rule would produce a later instant, return Future) AND test it.\n\nTest context used across tests: capturedAt = 2026-09-15T20:00-04:00 (a Tuesday), zone America/Detroit, unless a test states otherwise.",
+  "non_goals": [
+    "No validator, candidate selector, orchestrator, repository or persistence code (later tasks).",
+    "No changes outside core-domain/src; no build file or version catalog changes.",
+    "No changes to existing files under core-domain/src/main/kotlin/.../core/domain/model, naming, interpretation or repository, or their tests.",
+    "No locale-dependent parsing, no java.util.Locale default, no ZoneId.systemDefault(), no Instant.now(), no logging.",
+    "No resolution rules beyond the listed families; unknown phrases are Unresolvable, never guessed.",
+    "Do not disable, @Ignore or weaken any test. Do not commit."
+  ],
+  "dependencies": [
+    "DS1.1"
+  ],
+  "read_paths": [
+    "core-domain",
+    "core-testing",
+    "docs/AI_INTERPRETATION_SPEC.md",
+    "docs/TEST_STRATEGY.md",
+    "docs/DECISIONS.md",
+    "AGENTS.md",
+    "CLAUDE.md"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "README.md",
+    "docs",
+    ".sdlc",
+    "agents",
+    "scripts",
+    ".claude",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "gradle.properties",
+    "gradle",
+    "gradlew",
+    "gradlew.bat",
+    "core-domain/build.gradle.kts",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/model",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/naming",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/interpretation",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository",
+    "core-testing",
+    "core-data",
+    "core-ai",
+    "core-speech",
+    "core-wear-protocol",
+    "app-phone",
+    "app-wear"
+  ],
+  "acceptance_criteria": [
+    "At least one test per rule family 1-14, each asserting the exact Instant and precision (or Future/Unresolvable) under the standard context 2026-09-15T20:00-04:00 America/Detroit.",
+    "TEST_STRATEGY section 5 cases under the standard context, asserted exactly: \"yesterday\" -> 2026-09-14T00:00-04:00 DATE_ONLY; \"this morning\" -> 2026-09-15T09:00-04:00 APPROXIMATE; \"Saturday\" -> 2026-09-12T00:00-04:00 DATE_ONLY; \"about an hour ago\" -> 2026-09-15T19:00-04:00 APPROXIMATE; \"just finished\" -> capture instant INFERRED_NOW; \"September 1st\" -> 2026-09-01T00:00-04:00 DATE_ONLY.",
+    "Weekdays from the Tuesday context: all seven names asserted (Monday -> 2026-09-14, Sunday -> 2026-09-13, ..., Tuesday -> 2026-09-08, i.e. 7 days earlier); \"last Saturday\" == \"Saturday\"; \"on Saturday\" == \"Saturday\"; case-insensitive (\"SATURDAY\").",
+    "Days/weeks ago: \"two days ago\" -> 2026-09-13 start DATE_ONLY; \"2 days ago\" same; \"a week ago\" -> 2026-09-08 start; \"a couple of weeks ago\" -> 2026-09-01 start; \"about three weeks ago\" -> 2026-08-25 start; \"twelve days ago\" and \"1 day ago\" work; \"a few days ago\", \"several days ago\", \"a month ago\", \"last week\" -> Unresolvable.",
+    "Minutes/hours ago: \"20 minutes ago\" -> 19:40 APPROXIMATE; \"half an hour ago\" -> 19:30; \"a couple of hours ago\" -> 18:00; \"around 2 hours ago\" -> 18:00.",
+    "Part-of-day bands with explicit capture times (America/Detroit, 2026-09-15): \"this morning\" at 08:30 -> 08:30 APPROXIMATE; at 04:00 -> Future; at 13:00 -> 09:00; \"this afternoon\" at 10:00 -> Future, at 16:00 -> 15:00, at 12:30 -> 12:30; \"this evening\" at 16:00 -> Future; \"tonight\" at 23:00 -> 21:00; \"earlier today\" at 20:00 -> 10:00 APPROXIMATE; \"yesterday afternoon\" -> 2026-09-14T15:00 APPROXIMATE; \"last night\" -> 2026-09-14T21:00 APPROXIMATE.",
+    "Clock times: \"at 3pm\" at 20:00 -> 15:00 EXACT; \"at 3pm\" at 14:00 -> Future; \"at 7:30 am\" -> 07:30 EXACT; \"at 3\" -> Unresolvable.",
+    "Month-name dates: \"Sept 1\" and \"1 September\" and \"the 1st of September\" == \"September 1st\"; \"December 25\" from 2026-09-15 -> 2025-12-25 start; \"September 15\" -> 2026-09-15 start (today allowed); \"September 31\" -> Unresolvable; \"February 29\" from 2026-09-15 -> 2024-02-29 start.",
+    "Future/unresolvable: \"tomorrow\", \"next week\", \"later\", \"later today\", \"in 2 hours\" -> Future; \"9/1\", \"2026-09-01\", \"recently\", \"the other day\", \"earlier\", \"gibberish words\" -> Unresolvable; null and \"   \" -> capture instant INFERRED_NOW.",
+    "DST: capture 2026-03-08T20:00 America/Detroit (spring-forward day): \"today\" -> 2026-03-08T00:00-05:00, \"yesterday\" -> 2026-03-07T00:00-05:00, \"2 hours ago\" is exactly 7200 s before capture; capture 2026-11-01T20:00 (fall-back day): \"today\" -> 2026-11-01T00:00-04:00 and \"yesterday\" -> 2026-10-31T00:00-04:00; capture 2026-11-01T01:30-05:00 (second 01:30): \"an hour ago\" is exactly 3600 s earlier. A zone with a midnight DST gap is covered too, e.g. America/Santiago on its spring-forward date (start of day is 01:00) - verify the date from tzdata in the test rather than hardcoding a wrong one.",
+    "Just after midnight: capture 2026-09-16T00:10 America/Detroit: \"yesterday\" -> 2026-09-15 start; \"last night\" -> 2026-09-15T21:00; \"this morning\" -> Future.",
+    "Invariant test: for every phrase used anywhere in the test class plus a list of all rule examples, and capture times at 00:10, 06:00, 12:00, 18:00, 23:50 local on at least two dates (one of them a DST transition date), every Resolved result is <= capturedAt.",
+    "Punctuation and casing tolerance: \"Yesterday.\", \"  this MORNING!  \", \"on Saturday,\" resolve like their plain forms.",
+    "`./gradlew :core-domain:test --rerun-tasks` and `./gradlew test` pass; report the JUnit XML test count for the resolver test class(es); grep of the new main sources finds no Instant.now(, ZoneId.systemDefault, Locale.getDefault, System.currentTimeMillis, println."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test --rerun-tasks",
+    "./gradlew test",
+    "git diff HEAD --stat",
+    "git status --porcelain"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
