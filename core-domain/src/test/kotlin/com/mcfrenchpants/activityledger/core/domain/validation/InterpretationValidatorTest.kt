@@ -176,8 +176,9 @@ class InterpretationValidatorTest {
 
     @Test
     fun `every reason is covered and classified`() {
-        assertEquals(18, R.entries.size)
-        assertEquals(9, R.entries.count { it.rejects })
+        // 18 validator reasons plus the two orchestrator-only interpreter-failure reasons.
+        assertEquals(20, R.entries.size)
+        assertEquals(11, R.entries.count { it.rejects })
         assertEquals(9, R.entries.count { it.needsReview })
     }
 

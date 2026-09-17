@@ -16,7 +16,7 @@ This work item is **sdlc-tracked** (`DS1` in `.sdlc/state.json`). Verification t
 | DS1.2 | Temporal resolver | done | Verifier pass; orchestrator fixed hedged clock precision, DST-gap clock times, punctuation-only input |
 | DS1.3 | Candidate selector and interpretation validator | done | Verifier pass; orchestrator hardened speech-confidence range, escaped hash separators |
 | DS1.4 | ActivityRepository implementation in core-data | done | Verifier pass; guard-test bite re-checked by orchestrator |
-| DS1.5 | Orchestrator, correction service, review resolution | todo | After DS1.1-DS1.4 |
+| DS1.5 | Orchestrator, correction service, review resolution | done | Verifier pass on attempt 2; attempt 1 failed on an orchestrator packet error (invented matched id vs FK) |
 | DS1.6 | Documentation | todo | After DS1.5 |
 
 ## Open items (carry forward)

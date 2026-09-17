@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-17T14:48:56.160Z",
+  "updated_at": "2026-09-17T15:10:39.586Z",
   "work_items": [
     {
       "id": "SS1",
@@ -292,7 +292,7 @@
         {
           "id": "DS1.5",
           "title": "Orchestrator, correction service, review resolution",
-          "status": "in-progress",
+          "status": "done",
           "lifecycle_state": null,
           "dependencies": [
             "DS1.1",
@@ -303,11 +303,11 @@
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 1
+            "attempt_count": 2
           },
           "task_packet_path": ".sdlc/task-packets/DS1.5.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done, verifier pass on attempt 2. Attempt 1 verifier fail (orchestrator packet error): model-invented matched id copied into the interpretation hit the FK, capture never reached NEEDS_REVIEW; now stored only if in catalog. Services package: orchestrator, CorrectionService, ReviewResolutionService, ServiceRefusal; ValidationReason +INTERPRETER_OUTPUT_MALFORMED/INTERPRETER_FAILED; InMemoryActivityRepository fake; core-data testImplementation(core-testing)."
         },
         {
           "id": "DS1.6",

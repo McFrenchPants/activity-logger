@@ -59,6 +59,9 @@ dependencies {
     // Resolves at the applied Kotlin plugin's own version, so it adds no new
     // version to gradle/libs.versions.toml.
     testImplementation(kotlin("test"))
+    // Shared pure-JVM fixtures (MutableClock, FakeActivityInterpreter) for domain-service
+    // integration tests on real Room.
+    testImplementation(project(":core-testing"))
     testImplementation(libs.junit4)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)

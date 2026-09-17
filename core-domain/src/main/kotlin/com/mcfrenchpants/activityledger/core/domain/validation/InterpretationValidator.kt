@@ -60,6 +60,18 @@ enum class ValidationReason(val rejects: Boolean) {
     UNMATCHED_WITH_ACTIVITY_FIELDS(true),
     STATE_MISSING(true),
 
+    /**
+     * The interpreter answered but its output could not be parsed (interpreter failure MALFORMED).
+     * Recorded by the capture orchestrator; the validator itself never emits it.
+     */
+    INTERPRETER_OUTPUT_MALFORMED(true),
+
+    /**
+     * The interpreter failed for a non-retryable, non-parse reason (interpreter failure OTHER).
+     * Recorded by the capture orchestrator; the validator itself never emits it.
+     */
+    INTERPRETER_FAILED(true),
+
     ACTIVITY_AMBIGUOUS(false),
     ACTIVITY_UNRESOLVED(false),
     CONFIDENCE_NOT_HIGH(false),

@@ -1,0 +1,275 @@
+package com.mcfrenchpants.activityledger.core.testing
+
+import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpretationRecord
+import com.mcfrenchpants.activityledger.core.domain.model.ActivityResolution
+import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
+import com.mcfrenchpants.activityledger.core.domain.model.CanonicalActivityStatus
+import com.mcfrenchpants.activityledger.core.domain.model.CaptureSource
+import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
+import com.mcfrenchpants.activityledger.core.domain.model.InterpretationOperation
+import com.mcfrenchpants.activityledger.core.domain.model.ProcessingState
+import com.mcfrenchpants.activityledger.core.domain.model.TimePrecision
+import com.mcfrenchpants.activityledger.core.domain.model.ValidationStatus
+import com.mcfrenchpants.activityledger.core.domain.model.VisibilityStatus
+import com.mcfrenchpants.activityledger.core.domain.repository.ActivityTarget
+import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionChanges
+import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionOutcome
+import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
+import java.time.Instant
+import java.time.ZoneId
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+/** Proves [InMemoryActivityRepository] honours the ActivityRepository error contract. Synthetic text only. */
+class InMemoryActivityRepositoryTest {
+    private val now = Instant.parse("2026-09-16T12:00:00Z")
+    private val captured = Instant.parse("2026-09-16T11:00:00Z")
+    private val clock = MutableClock(now, ZoneId.of("UTC"))
+    private val repo = InMemoryActivityRepository(clock)
+
+    private fun capture(text: String = "synthetic words", state: ProcessingState = ProcessingState.CAPTURED) =
+        NewRawCapture(CaptureSource.PHONE_TEXT, null, captured, ZoneId.of("America/Detroit"), text, null, null, state)
+
+    private fun record(matched: String? = null, status: ValidationStatus = ValidationStatus.VALID) = InterpretationRecord(
+        createdAt = now,
+        interpreterVersion = "test",
+        promptVersion = "test",
+        schemaVersion = 1,
+        operation = InterpretationOperation.LOG_ACTIVITY,
+        activityResolution = if (matched == null) ActivityResolution.NEW_ACTIVITY else ActivityResolution.EXISTING_ACTIVITY,
+        matchedActivityId = matched,
+        proposedCanonicalName = null,
+        activityState = ActivityState.COMPLETED,
+        temporalExpression = null,
+        resolvedOccurredAt = null,
+        timePrecision = null,
+        modelConfidenceBand = null,
+        candidateContextHash = null,
+        structuredResultJson = null,
+        validationStatus = status,
+        validationReason = null,
+    )
+
+    private suspend fun accept(captureId: String, target: ActivityTarget, matched: String? = null) =
+        repo.acceptInterpretation(captureId, record(matched), target, captured, TimePrecision.EXACT, ActivityState.COMPLETED)
+
+    private fun assertNoWrite(before: Int, block: suspend () -> Unit) {
+        assertFailsWith<IllegalArgumentException> { runSuspend { block() } }
+        assertEquals(before, repo.writeCount)
+    }
+
+    @Test
+    fun `ids are deterministic and reads of unknown ids return null`() = runSuspend {
+        assertEquals("capture-1", repo.createRawCapture(capture()))
+        assertEquals("activity-1", repo.seedActivity("Mow lawn"))
+        assertEquals("occurrence-1", accept("capture-1", ActivityTarget.Existing("activity-1"), "activity-1"))
+        assertEquals("interpretation-1", repo.getOccurrence("occurrence-1")?.effectiveInterpretationId)
+        assertEquals(1, repo.interpretationsFor("capture-1").size)
+        assertNull(repo.getCapture("nope"))
+        assertNull(repo.getOccurrence("nope"))
+        assertNull(repo.getActivity("nope"))
+        assertEquals(emptyList(), repo.interpretationsFor("nope"))
+    }
+
+    @Test
+    fun `write functions refuse unknown ids and write nothing`() {
+        val activity = repo.seedActivity("Mow lawn")
+        val w = repo.writeCount
+        assertNoWrite(w) { repo.recordOutcome("nope", record(), ProcessingState.NEEDS_REVIEW) }
+        assertNoWrite(w) { accept("nope", ActivityTarget.Existing(activity), activity) }
+        assertNoWrite(w) { accept("nope", ActivityTarget.New("Rake leaves")) }
+        assertNoWrite(w) {
+            repo.applyCorrection("nope", CorrectionChanges(activityState = ActivityState.IN_PROGRESS), CorrectionSource.USER, null, now)
+        }
+        assertNoWrite(w) {
+            repo.applyCorrection("nope", CorrectionChanges(activity = ActivityTarget.New("Rake leaves")), CorrectionSource.USER, null, now)
+        }
+        assertEquals(1, repo.activities.size)
+    }
+
+    @Test
+    fun `accept refuses missing and non-ACTIVE targets and writes nothing`() {
+        val archived = repo.seedActivity("Old", CanonicalActivityStatus.ARCHIVED)
+        val merged = repo.seedActivity("Merged", CanonicalActivityStatus.MERGED)
+        val captureId = runSuspend { repo.createRawCapture(capture()) }
+        val w = repo.writeCount
+        for (target in listOf("missing", archived, merged)) {
+            assertNoWrite(w) { accept(captureId, ActivityTarget.Existing(target)) }
+        }
+        // An interpretation naming a missing activity is refused like a database foreign key would.
+        assertNoWrite(w) { accept(captureId, ActivityTarget.New("Rake leaves"), matched = "missing") }
+        assertNoWrite(w) { repo.recordOutcome(captureId, record(matched = "missing"), ProcessingState.NEEDS_REVIEW) }
+        runSuspend {
+            assertEquals(ProcessingState.CAPTURED, repo.getCapture(captureId)?.processingState)
+            assertTrue(repo.interpretationsFor(captureId).isEmpty())
+        }
+        assertTrue(repo.occurrences.isEmpty())
+    }
+
+    @Test
+    fun `recordOutcome refuses disallowed states and writes nothing`() = runSuspend {
+        val captureId = repo.createRawCapture(capture())
+        val w = repo.writeCount
+        val disallowed = ProcessingState.entries.toSet() -
+            setOf(ProcessingState.NEEDS_REVIEW, ProcessingState.FAILED_RETRYABLE, ProcessingState.FAILED_FINAL)
+        assertEquals(6, disallowed.size)
+        for (state in disallowed) {
+            assertNoWrite(w) { repo.recordOutcome(captureId, record(), state) }
+        }
+        assertEquals(ProcessingState.CAPTURED, repo.getCapture(captureId)?.processingState)
+        assertTrue(repo.interpretationsFor(captureId).isEmpty())
+
+        for (state in listOf(ProcessingState.FAILED_RETRYABLE, ProcessingState.FAILED_FINAL, ProcessingState.NEEDS_REVIEW)) {
+            repo.recordOutcome(captureId, null, state)
+            assertEquals(state, repo.getCapture(captureId)?.processingState)
+        }
+        repo.recordOutcome(captureId, record(status = ValidationStatus.INVALID), ProcessingState.NEEDS_REVIEW)
+        repo.recordOutcome(captureId, record(status = ValidationStatus.NEEDS_REVIEW), ProcessingState.NEEDS_REVIEW)
+        assertEquals(
+            listOf(ValidationStatus.INVALID, ValidationStatus.NEEDS_REVIEW),
+            repo.interpretationsFor(captureId).map { it.validationStatus },
+        )
+        assertEquals(w + 5, repo.writeCount)
+    }
+
+    @Test
+    fun `recordOutcome after an occurrence is refused`() = runSuspend {
+        val captureId = repo.createRawCapture(capture())
+        accept(captureId, ActivityTarget.New("Rake leaves"))
+        val w = repo.writeCount
+        assertNoWrite(w) { repo.recordOutcome(captureId, null, ProcessingState.NEEDS_REVIEW) }
+        assertEquals(ProcessingState.PERSISTED, repo.getCapture(captureId)?.processingState)
+        assertEquals(1, repo.interpretationsFor(captureId).size)
+    }
+
+    @Test
+    fun `accept creates occurrence and activity, and is idempotent per capture`() = runSuspend {
+        val captureId = repo.createRawCapture(capture())
+        val occurrenceId = accept(captureId, ActivityTarget.New("  Rake   Leaves "))
+        val occurrence = assertNotNull(repo.getOccurrence(occurrenceId))
+        val activity = assertNotNull(repo.getActivity(occurrence.canonicalActivityId))
+        assertEquals("rake leaves", activity.normalizedName)
+        assertEquals(CanonicalActivityStatus.ACTIVE, activity.status)
+        assertEquals(captured, occurrence.capturedAt)
+        assertEquals(VisibilityStatus.ACTIVE, occurrence.visibilityStatus)
+        val stored = assertNotNull(repo.getCapture(captureId))
+        assertTrue(stored.hasOccurrence)
+        assertEquals(ProcessingState.PERSISTED, stored.processingState)
+
+        val w = repo.writeCount
+        val other = repo.seedActivity("Other")
+        assertEquals(occurrenceId, accept(captureId, ActivityTarget.Existing(other), other))
+        assertEquals(occurrenceId, accept(captureId, ActivityTarget.Existing("missing")))
+        assertEquals(w, repo.writeCount)
+        assertEquals(1, repo.occurrences.size)
+        assertEquals(1, repo.interpretationsFor(captureId).size)
+    }
+
+    @Test
+    fun `applyCorrection returns NothingChanged when nothing differs`() = runSuspend {
+        val activity = repo.seedActivity("Mow lawn")
+        val captureId = repo.createRawCapture(capture())
+        val occurrenceId = accept(captureId, ActivityTarget.Existing(activity), activity)
+        val w = repo.writeCount
+        val same = CorrectionChanges(ActivityTarget.Existing(activity), captured, TimePrecision.EXACT, ActivityState.COMPLETED)
+        assertEquals(CorrectionOutcome.NothingChanged, repo.applyCorrection(occurrenceId, same, CorrectionSource.USER, null, now))
+        assertEquals(CorrectionOutcome.NothingChanged, repo.applyCorrection(occurrenceId, CorrectionChanges(), CorrectionSource.USER, null, now))
+        assertEquals(w, repo.writeCount)
+        assertTrue(repo.corrections.isEmpty())
+    }
+
+    @Test
+    fun `applyCorrection records previous and new values and refuses non-ACTIVE targets`() = runSuspend {
+        val first = repo.seedActivity("Mow lawn")
+        val second = repo.seedActivity("Edge lawn")
+        val archived = repo.seedActivity("Old", CanonicalActivityStatus.ARCHIVED)
+        val captureId = repo.createRawCapture(capture())
+        val occurrenceId = accept(captureId, ActivityTarget.Existing(first), first)
+        val w = repo.writeCount
+        assertNoWrite(w) {
+            repo.applyCorrection(occurrenceId, CorrectionChanges(ActivityTarget.Existing(archived)), CorrectionSource.USER, null, now)
+        }
+        assertNoWrite(w) {
+            repo.applyCorrection(occurrenceId, CorrectionChanges(ActivityTarget.Existing("missing")), CorrectionSource.USER, null, now)
+        }
+
+        val applied = repo.applyCorrection(
+            occurrenceId,
+            CorrectionChanges(ActivityTarget.Existing(second), timePrecision = TimePrecision.APPROXIMATE),
+            CorrectionSource.USER, "fix", now,
+        )
+        assertEquals(CorrectionOutcome.Applied("correction-1"), applied)
+        val c = repo.corrections.single()
+        assertEquals(occurrenceId, c.occurrenceId)
+        assertEquals(first, c.previousActivityId)
+        assertEquals(second, c.newActivityId)
+        assertEquals(TimePrecision.EXACT, c.previousTimePrecision)
+        assertEquals(TimePrecision.APPROXIMATE, c.newTimePrecision)
+        assertNull(c.previousOccurredAt)
+        assertNull(c.newActivityState)
+        assertEquals("fix", c.reason)
+        assertEquals(CorrectionSource.USER, c.source)
+        assertEquals(now, c.createdAt)
+        val occurrence = assertNotNull(repo.getOccurrence(occurrenceId))
+        assertEquals(second, occurrence.canonicalActivityId)
+        assertEquals(TimePrecision.APPROXIMATE, occurrence.timePrecision)
+
+        val toNew = repo.applyCorrection(occurrenceId, CorrectionChanges(ActivityTarget.New("Rake leaves")), CorrectionSource.REINTERPRETATION, null, now)
+        assertIs<CorrectionOutcome.Applied>(toNew)
+        val newId = assertNotNull(repo.getOccurrence(occurrenceId)).canonicalActivityId
+        assertEquals("rake leaves", repo.getActivity(newId)?.normalizedName)
+        assertEquals(w + 2, repo.writeCount)
+    }
+
+    @Test
+    fun `catalog lists ACTIVE activities by normalized name with aliases and visible last occurrence`() = runSuspend {
+        val zebra = repo.seedActivity("Zebra walk", aliases = listOf(" Walk The ZEBRA! "))
+        val apple = repo.seedActivity("apple picking")
+        repo.seedActivity("Archived", CanonicalActivityStatus.ARCHIVED)
+        repo.seedActivity("Merged", CanonicalActivityStatus.MERGED)
+
+        val early = repo.createRawCapture(capture())
+        val late = repo.createRawCapture(capture())
+        val earlyOcc = repo.acceptInterpretation(early, record(zebra), ActivityTarget.Existing(zebra), captured.minusSeconds(100), TimePrecision.EXACT, ActivityState.COMPLETED)
+        val lateOcc = repo.acceptInterpretation(late, record(zebra), ActivityTarget.Existing(zebra), captured.minusSeconds(10), TimePrecision.EXACT, ActivityState.COMPLETED)
+
+        var catalog = repo.loadCatalog()
+        assertEquals(listOf(apple, zebra), catalog.map { it.id })
+        assertEquals(listOf("walk the zebra"), catalog[1].normalizedAliases)
+        assertNull(catalog[0].lastOccurredAt)
+        assertEquals(captured.minusSeconds(10), catalog[1].lastOccurredAt)
+
+        repo.setVisibility(lateOcc, VisibilityStatus.HIDDEN)
+        catalog = repo.loadCatalog()
+        assertEquals(captured.minusSeconds(100), catalog[1].lastOccurredAt)
+        repo.setVisibility(earlyOcc, VisibilityStatus.HIDDEN)
+        assertNull(repo.loadCatalog()[1].lastOccurredAt)
+    }
+
+    @Test
+    fun `raw text is unchanged after every write`() = runSuspend {
+        val text = "  Original synthetic words, exactly.  "
+        val captureId = repo.createRawCapture(capture(text))
+        val before = assertNotNull(repo.getCapture(captureId))
+        fun assertEvidence() = runSuspend {
+            val after = assertNotNull(repo.getCapture(captureId))
+            assertEquals(text, after.rawText)
+            assertEquals(before.capturedAt, after.capturedAt)
+            assertEquals(before.zoneId, after.zoneId)
+            assertEquals(before.source, after.source)
+        }
+        repo.recordOutcome(captureId, null, ProcessingState.FAILED_RETRYABLE)
+        assertEvidence()
+        repo.recordOutcome(captureId, record(status = ValidationStatus.INVALID), ProcessingState.NEEDS_REVIEW)
+        assertEvidence()
+        val occurrenceId = accept(captureId, ActivityTarget.New("Rake leaves"))
+        assertEvidence()
+        repo.applyCorrection(occurrenceId, CorrectionChanges(ActivityTarget.New("Other"), captured.minusSeconds(5), TimePrecision.APPROXIMATE, ActivityState.IN_PROGRESS), CorrectionSource.USER, "r", now)
+        assertEvidence()
+    }
+}
