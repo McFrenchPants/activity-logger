@@ -220,13 +220,13 @@
     {
       "id": "DS1",
       "title": "Domain services (backlog item 8)",
-      "lifecycle_state": null,
+      "lifecycle_state": "released",
       "tasks": [
         {
           "id": "DS1.1",
           "title": "Domain contracts, name rules, test support",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -241,7 +241,7 @@
           "id": "DS1.2",
           "title": "Temporal resolver",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "DS1.1"
           ],
@@ -258,7 +258,7 @@
           "id": "DS1.3",
           "title": "Candidate selector and interpretation validator",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "DS1.1",
             "DS1.2"
@@ -276,7 +276,7 @@
           "id": "DS1.4",
           "title": "ActivityRepository implementation in core-data",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "DS1.1"
           ],
@@ -293,7 +293,7 @@
           "id": "DS1.5",
           "title": "Orchestrator, correction service, review resolution",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "DS1.1",
             "DS1.2",
@@ -313,7 +313,7 @@
           "id": "DS1.6",
           "title": "Documentation",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "DS1.5"
           ],
@@ -324,7 +324,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/DS1.6.packet.json",
           "report_path": null,
-          "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE §5/§6/§15/§16, AI_INTERPRETATION_SPEC §10/§11/§17, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
+          "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE \u00c2\u00a75/\u00c2\u00a76/\u00c2\u00a715/\u00c2\u00a716, AI_INTERPRETATION_SPEC \u00c2\u00a710/\u00c2\u00a711/\u00c2\u00a717, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
         }
       ]
     }

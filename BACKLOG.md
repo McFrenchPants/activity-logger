@@ -108,7 +108,9 @@ Status vocabulary:
    there, ADR-024 and the Wear Listening screen (ADR-020, UX_VISUAL_SPEC §3 D2)
    both need revisiting. Blocked on hardware.
 
-8. **Domain services** — `in progress`
+8. **Domain services** — `done`
+   Completed and merged to `main` 2026-09-17 (work item DS1, see
+   `docs/proposals/domain-services/`). Original entry below for reference.
    Added 2026-09-17; it was the one build-guide step with no backlog entry, and
    item 4 depends on it. Candidate selector, temporal resolver, interpretation
    validator, capture orchestrator, correction service, review resolution, and

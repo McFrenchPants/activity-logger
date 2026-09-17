@@ -8,7 +8,7 @@
 
 Documentation baseline created. Platform/API validation complete: SDK baselines, build toolchain, AI stack and speech API are pinned (ADR-021 through ADR-024), The multi-module Gradle scaffold is built and merged (empty phone and watch apps plus the core modules; see `docs/proposals/gradle-scaffold/BUILD_NOTES.md`).
 
-No user-facing product behaviour has been implemented yet. Room schema v1 (backlog item 3, `docs/proposals/room-schema/`) is implemented, tested and merged to `main` (2026-09-16) in `core-data`; `docs/DATA_MODEL.md` describes it and ADR-026 records the row-identifier decision. The domain services (work item DS1, `docs/proposals/domain-services/`) are implemented and tested on branch `feature/domain-services`, pending merge: interpreter and repository contracts, candidate selection, deterministic time resolution (ADR-028), the two-outcome validation policy (ADR-027), capture processing, corrections and review resolution; no real interpreter is wired in yet.
+No user-facing product behaviour has been implemented yet. Room schema v1 (backlog item 3, `docs/proposals/room-schema/`) is implemented, tested and merged to `main` (2026-09-16) in `core-data`; `docs/DATA_MODEL.md` describes it and ADR-026 records the row-identifier decision. The domain services (work item DS1, `docs/proposals/domain-services/`) are implemented, tested and merged to `main` (2026-09-17): interpreter and repository contracts, candidate selection, deterministic time resolution (ADR-028), the two-outcome validation policy (ADR-027), capture processing, corrections and review resolution; no real interpreter is wired in yet.
 
 ## Completed
 
@@ -37,7 +37,7 @@ Recommended tasks:
 4. ~~Verify selected on-device speech recognition approach.~~ Done — ADR-024.
 5. ~~Create Gradle project structure.~~ Done 2026-09-16 — work item SS1.
 6. ~~Define Room schema version 1.~~ Done 2026-09-16 — work item DB1 (see `docs/DATA_MODEL.md`, ADR-026).
-7. ~~Define domain interfaces.~~ Done 2026-09-17 — work item DS1 (on branch `feature/domain-services`, pending merge; see `docs/ARCHITECTURE.md` §5, ADR-027, ADR-028).
+7. ~~Define domain interfaces.~~ Done 2026-09-17 — work item DS1 (merged to `main` 2026-09-17; see `docs/ARCHITECTURE.md` §5, ADR-027, ADR-028).
 8. Define watch/phone protocol.
 9. Build a minimal end-to-end technical spike:
    - hardcoded text input
