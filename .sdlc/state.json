@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-17T14:03:33.460Z",
+  "updated_at": "2026-09-17T14:48:56.160Z",
   "work_items": [
     {
       "id": "SS1",
@@ -292,7 +292,7 @@
         {
           "id": "DS1.5",
           "title": "Orchestrator, correction service, review resolution",
-          "status": "todo",
+          "status": "in-progress",
           "lifecycle_state": null,
           "dependencies": [
             "DS1.1",
@@ -303,9 +303,9 @@
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/DS1.5.packet.json",
           "report_path": null,
           "notes": ""
         },
