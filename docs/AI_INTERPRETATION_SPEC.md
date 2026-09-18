@@ -446,7 +446,9 @@ Any material prompt change must:
 - run semantic regression corpus
 - document behavior changes
 
-Implemented: the prompt text is in `InterpretationPrompt.kt` (`core-ai`), and its identifier is `PROMPT_VERSION`, currently `"2"`. The source requires any material change to the prompt text to bump that value and update the drift-guard fixture in `InterpretationPromptDriftTest`. Every interpretation records three separate versions: `prompt_version` (`"2"`), `schema_version` (`1`, §4) and `interpreter_version` (`"gemini-nano-1"`, bumped when generation settings, decoding or model family change). The semantic regression corpus (Step 5) does not exist yet, so no prompt version has been measured against it.
+Implemented: the prompt text is in `InterpretationPrompt.kt` (`core-ai`), and its identifier is `PROMPT_VERSION`, currently `"2"`. The source requires any material change to the prompt text to bump that value and update the drift-guard fixture in `InterpretationPromptDriftTest`. Every interpretation records three separate versions: `prompt_version` (`"2"`), `schema_version` (`1`, §4) and `interpreter_version` (`"gemini-nano-1"`, bumped when generation settings, decoding or model family change). The semantic regression corpus exists ([SEMANTIC_CORPUS.md](SEMANTIC_CORPUS.md), ADR-033). Prompt version `"2"` has so far been measured only against the local stand-in model (`gemma3n:e4b` via Ollama, 2026-09-18): of 48 cases, 20 correct, 20 safe misses (sent to review; nothing wrong saved) and 8 unsafe misses (something wrong saved). **These are stand-in numbers, not the official measurement.** There is no device (Gemini Nano) measurement yet.
+
+A material prompt change therefore means re-recording the corpus and comparing the reports against the previous prompt version's (TEST_STRATEGY.md §13): on the phone for the official result, or with the stand-in for iteration only.
 
 ## 20. Seed semantic examples
 

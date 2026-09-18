@@ -18,10 +18,30 @@ tier: spec §6 (verifier for SR1.2-SR1.4).
 | SR1.3 | Device recorder and phone-session script | done | Verifier fail on the no-device-contact rule only (incident below); code accepted. Happy path not yet run |
 | SR1.4 | Stand-in recorder (local model) | done | Verifier pass. Fake-server tested only; no real model yet |
 | SR1.5 | Install stand-in, first stand-in recording | done | Model on `C:\Dev\ai\models`. 20 correct / 20 safe miss / 8 unsafe miss. Not official |
-| SR1.6 | Documentation | todo | Spot-check |
+| SR1.6 | Documentation | done | Spot-check. `docs/SEMANTIC_CORPUS.md` + ADR-033 |
 | SR1.7 | First device recording and baseline | todo | Needs the Pixel 10 Pro ~5-10 min; owner schedules |
 
 ## Session log
+
+### 2026-09-18 — SR1.6 done: documentation
+
+Implementer (packet `.sdlc/task-packets/SR1.6.packet.json`), orchestrator
+spot-check. New `docs/SEMANTIC_CORPUS.md` (record/replay split, files, case
+fields, outcome classes, gate + human baseline, adding a case per AGENTS.md
+section 6, running both recorders, reading the report, privacy); ADR-033;
+TEST_STRATEGY section 3, AI spec section 19, PROJECT_STATUS and
+PLATFORM_REFERENCES (Ollama 0.34.2, gemma3n:e4b Q4_K_M, digest) updated;
+recordings README links the doc.
+
+The implementer checked the packet against the code and corrected three
+orchestrator facts (this log's older entries fixed to match): the corpus has
+SYNONYM 17 / NEAR_NEIGHBOUR 8 (not 18/9); the stand-in's `STATE_MISSING` count
+is 17 of 20 (other safe misses: two `EXISTING_ACTIVITY_NOT_SUPPLIED`, one
+`TIME_UNRESOLVABLE`); and replay refuses a recording only when a recorded case
+is gone or its shortlist changed -- a bare corpus-hash mismatch is replayed and
+flagged `corpus matches: NO`, and the device gate fails if such a recording
+lacks a baseline case. That matches the plan (per-case context hash); docs
+describe it as is. Next: SR1.7 needs the Pixel 10 Pro (~5-6 min plus build).
 
 ### 2026-09-18 — SR1.5 done: first stand-in recording
 
@@ -40,7 +60,7 @@ Replay: CORRECT 20, SAFE_MISS 20, UNSAFE_MISS 8. Every answer is HIGH
 confidence, so confidence bands say nothing for this model.
 
 Findings worth carrying into prompt work (stand-in only, not official):
-- 18 of 20 safe misses are `STATE_MISSING`: the model leaves `state` null and
+- 17 of 20 safe misses are `STATE_MISSING`: the model leaves `state` null and
   the orchestrator rejects. Likely prompt/schema wording rather than domain
   logic; compare against the device run (SR1.7) before changing anything.
 - Unsafe misses cluster on edging vs mowing (4 of 8 incl. the no-edge catalog
@@ -131,7 +151,7 @@ compile-only.
 ### 2026-09-17 — SR1.1 done
 
 Corpus at `core-testing/src/main/resources/semantic-corpus/corpus.json` (48
-cases: synonym 18, near-neighbour 9, new-activity 4, temporal 11, ambiguity 5,
+cases: synonym 17, near-neighbour 8, new-activity 4, temporal 11, ambiguity 5,
 state 3). Corpus file forced to LF so its SHA-256 is stable across checkouts.
 Known resolver gap: `TemporalResolver` has no weekday + part-of-day rule, so
 "Mowed Saturday morning." is Unresolvable (should be 2026-09-12 APPROXIMATE);

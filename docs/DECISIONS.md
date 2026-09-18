@@ -478,3 +478,22 @@ Nothing large is ever downloaded as a side effect of logging an activity. `OnDev
 The phone app wires its collaborators by hand. `CapturePipeline.create(context, clock, interpreterDecorator)` in `app-phone` is the single composition point: it builds the repository, the one `OnDeviceModelCapability`, the `GeminiNanoActivityInterpreter` and the `CaptureInterpretationOrchestrator`. `CapturePipeline` is `AutoCloseable` and is created once per app process. No Hilt, Koin or Dagger.
 
 **Reason:** There are three collaborators to wire. A DI framework (and its annotation processing, which ADR-022 already makes delicate) would be a large, hard-to-reverse commitment to solve a problem the project does not have, and would hide the ownership rule that exactly one model client exists per process. Revisit when the object graph becomes genuinely painful to wire by hand (likely no earlier than Step 7's ViewModels or Step 8's watch transport).
+
+---
+
+## ADR-033 — Semantic accuracy is measured by recording model answers and replaying them
+
+**Status:** Accepted (shape approved by owner 2026-09-17; recorded 2026-09-18)
+
+Semantic accuracy is measured against the semantic regression corpus (TEST_STRATEGY.md §3) by a record-and-replay split at the model call. A recorder sends every corpus case to a model once and saves each structured answer or failure to a recording file. On every build, the JVM replays each recorded answer through the real `CaptureInterpretationOrchestrator`, `CandidateSelector`, `TemporalResolver` and `InterpretationValidator` and scores the result as correct, safe miss (sent to review, nothing wrong saved) or unsafe miss (something wrong saved).
+
+- **The device recording is the only official measurement.** It is made on the phone against Gemini Nano (`SemanticCorpusRecorderTest`, run by `scripts/semantic/run-device-corpus.sh`).
+- **A local stand-in model is allowed for iteration only.** An open-source model (Gemma 3n) served locally by Ollama on the developer's machine, loopback only, may be recorded to compare prompt changes quickly. Its recording is labelled `STAND_IN`, its report carries a "not the official result" banner, and it never gates the build.
+- **The regression gate is a human-written baseline.** `baseline.json` lists the case ids that were correct in a reviewed device recording; replaying the latest device recording fails the build if any of them is no longer correct. Nothing writes the baseline automatically.
+- **Stale recordings are refused.** Each recording stores the SHA-256 of the corpus it was made against. Replay refuses a recording whose cases are no longer in the corpus or whose candidate shortlist differs from today's, reports any corpus-hash mismatch, and the gate fails if a device recording made against a different corpus lacks a baseline case. Changing the corpus means re-recording.
+
+Details: `docs/SEMANTIC_CORPUS.md`.
+
+**Reason:** Gemini Nano runs only on a real phone, and only while the app is in the foreground (ADR-029); there is no emulator or JVM path to it, and the project's only AI-capable test phone is rarely available. Recording once and replaying everywhere keeps every deterministic part of the pipeline measured on every build without the phone, while keeping the official number tied to the real model. Letting a stand-in gate or stand in for the official result would measure a different model and hide real regressions.
+
+**Revisit** if Gemini Nano (or its replacement) becomes callable from an emulator, a CI device or the JVM, so the corpus can run live on every build; if the stand-in's results turn out to track the device's poorly enough that it misleads prompt work; or if the phone becomes routinely available so recordings can be refreshed on every prompt change.

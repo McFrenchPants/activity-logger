@@ -523,13 +523,13 @@
           },
           "task_packet_path": null,
           "report_path": null,
-          "notes": "Done (orchestrator run). Owner moved the model to C:Devaimodels (blob sha256 verified); Ollama model-folder junction repointed there, old F: junction kept renamed as models.old-F-drive-link; user env OLLAMA_MODELS updated. First stand-in recording committed: 48/48 answered, 0 malformed; CORRECT 20, SAFE_MISS 20, UNSAFE_MISS 8; all HIGH confidence. Ollama accepted the [\"string\",\"null\"] schema. Not official."
+          "notes": "Done (orchestrator run). Owner moved the model to C:Devaimodels (blob sha256 verified); Ollama model-folder junction repointed there, old F: junction kept renamed as models.old-F-drive-link; user env OLLAMA_MODELS updated. First stand-in recording committed: 48/48 answered, 0 malformed; CORRECT 20, SAFE_MISS 20, UNSAFE_MISS 8; all HIGH confidence (17 of 20 safe misses STATE_MISSING). Ollama accepted the [\"string\",\"null\"] schema. Not official."
         },
         {
           "id": "SR1.6",
           "title": "Documentation",
-          "status": "todo",
-          "lifecycle_state": "approved",
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [
             "SR1.3",
             "SR1.4"
@@ -537,11 +537,11 @@
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/SR1.6.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done, orchestrator spot-check. docs/SEMANTIC_CORPUS.md, ADR-033, TEST_STRATEGY s3, AI spec s19, PROJECT_STATUS, PLATFORM_REFERENCES, recordings README. Implementer corrected three orchestrator facts from the code: categories are SYNONYM 17 / NEAR_NEIGHBOUR 8 (not 18/9); stand-in STATE_MISSING is 17 of 20 (not 18); replay refuses a recording only on missing case ids or changed shortlist, a bare corpus-hash mismatch is replayed and flagged."
         },
         {
           "id": "SR1.7",

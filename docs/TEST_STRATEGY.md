@@ -99,6 +99,8 @@ must-not-match activities
 
 Store corpus in machine-readable format such as JSON/YAML plus readable documentation.
 
+Implemented (work item SR1): the corpus is `core-testing/src/main/resources/semantic-corpus/corpus.json`, with every field above required per case. A model's answers are recorded once (on the phone, or with a local stand-in model for iteration) and replayed through the real pipeline on every `:core-testing:test` run, with a regression gate over a human-written baseline (ADR-033). How it works, how to add a case and how to run it: [SEMANTIC_CORPUS.md](SEMANTIC_CORPUS.md).
+
 ## 4. Seed corpus
 
 ### Mow lawn: equivalent

@@ -12,3 +12,5 @@ Replayed by `com.mcfrenchpants.activityledger.core.testing.corpus.SemanticRegres
 Recording format: see the header comment of `SemanticRecording.kt` (`formatVersion` 1).
 Missing files make the corresponding test skip. Only real recordings belong here -- never
 hand-written device or baseline files.
+
+How the corpus, recordings, gate and baseline fit together: [`docs/SEMANTIC_CORPUS.md`](../../../../../../docs/SEMANTIC_CORPUS.md).

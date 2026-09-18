@@ -85,6 +85,31 @@ Key relevance:
 - migrations
 - relational local persistence
 
+## Local stand-in model (semantic corpus only)
+
+Ollama  
+https://ollama.com
+
+Ollama API reference  
+https://github.com/ollama/ollama/blob/main/docs/api.md
+
+Ollama library — Gemma 3n  
+https://ollama.com/library/gemma3n
+
+Pinned for the stand-in recordings (verified 2026-09-18):
+
+- Ollama 0.34.2
+- model `gemma3n:e4b`, Q4_K_M quantization, 6.9B parameters
+- digest `15cb39fd9394fd2549f6df9081cfc84dd134ecf2c9c5be911e5629920489ac32`
+- run on an RTX 4070 Laptop GPU (8 GB)
+
+Key relevance:
+
+- test infrastructure only: records semantic corpus answers on a developer machine without the phone (`docs/SEMANTIC_CORPUS.md`, ADR-033)
+- structured output by passing a JSON schema as the `/api/chat` request's `format`
+- greedy settings (temperature 0, top-k 1, fixed seed) matching the on-device interpreter
+- served on loopback only; never shipped in the app, never the official measurement
+
 ## Baseline date
 
 Documentation package generated in September 2026.
