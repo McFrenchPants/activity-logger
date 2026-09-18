@@ -17,11 +17,34 @@ tier: spec §6 (verifier for SR1.2-SR1.4).
 | SR1.2 | Recording format, replay scorer, report, regression gate | done | Verifier pass. Gate: `core.testing.corpus.SemanticRegressionGateTest`; skips until recordings exist |
 | SR1.3 | Device recorder and phone-session script | done | Verifier fail on the no-device-contact rule only (incident below); code accepted. Happy path not yet run |
 | SR1.4 | Stand-in recorder (local model) | done | Verifier pass. Fake-server tested only; no real model yet |
-| SR1.5 | Install stand-in, first stand-in recording | todo | Orchestrator run. Ask owner right before installing |
+| SR1.5 | Install stand-in, first stand-in recording | blocked | Owner's USB drives failing reads; needs a healthy place for the 7.5 GB model |
 | SR1.6 | Documentation | todo | Spot-check |
 | SR1.7 | First device recording and baseline | todo | Needs the Pixel 10 Pro ~5-10 min; owner schedules |
 
 ## Session log
+
+### 2026-09-18 — SR1.5 blocked on the owner's storage hardware
+
+Owner installed Ollama 0.34.2 themselves and asked for models off C:. Model
+folder redirected with a junction `C:\Users\ADRen\.ollama\models` -> target
+(plus user env var `OLLAMA_MODELS`; the tray app launched via explorer did not
+see the new env var until next sign-in, hence the junction). Processes started
+from the agent's own shell die with it, so Ollama must be launched via
+`explorer.exe "<...>\ollama app.exe"`.
+
+- `H:\data\ai\models` (USB "Archive"): pull OK, then every read failed; System
+  log: bad block + repeated `disk` event 154 on Disk 2. Owner chose to leave
+  the partial download there.
+- `F:\AI\models` (USB "DATA"): pull OK but `disk` 51/154 errors on Disk 1 during
+  it; sequential read ~8 MB/s; model load timed out at Ollama's 5-minute
+  load timeout. Junction currently points here.
+
+H:, F: and I: all sit behind ASMT 2115 USB bridges; two erroring on the same
+day suggests the dock/cable/port rather than two disks. First stand-in run
+(model on H:): all 48 calls HTTP 500 from the read failure; the recorder
+correctly refused to write a recording. The stand-in path is therefore still
+untested against a real model, including whether Ollama accepts the
+`["string","null"]` schema.
 
 ### 2026-09-18 — SR1.4 done
 
