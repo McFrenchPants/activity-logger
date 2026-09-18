@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-18T06:30:22.841Z",
+  "updated_at": "2026-09-18T17:12:41.472Z",
   "work_items": [
     {
       "id": "SS1",
@@ -511,7 +511,7 @@
         {
           "id": "SR1.5",
           "title": "Install stand-in, first stand-in recording",
-          "status": "todo",
+          "status": "blocked",
           "lifecycle_state": "approved",
           "dependencies": [
             "SR1.4"
@@ -523,7 +523,7 @@
           },
           "task_packet_path": null,
           "report_path": null,
-          "notes": ""
+          "notes": "Blocked on owner hardware. Ollama 0.34.2 installed by owner; gemma3n:e4b pulled twice: to H: (USB, bad block, reads fail) then F: (USB, hardware I/O errors during download, ~8 MB/s reads, model load times out after 5 min). Both behind ASMT 2115 USB bridges. Model folder is a junction C:UsersADRen.ollamamodels -> F:AImodels; OLLAMA_MODELS user env var = F:AImodels. Needs owner choice of a healthy location (C: NVMe has ~70 GB free)."
         },
         {
           "id": "SR1.6",
