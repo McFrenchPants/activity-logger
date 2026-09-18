@@ -1,0 +1,78 @@
+{
+  "task_id": "AI1.2",
+  "plan_revision": "0d3d090",
+  "objective": "In core-ai, write the prompt the on-device model is given for one capture: a fixed system instruction, a pure per-capture prompt builder, and a prompt version constant. No inference call and no client code -- this task produces strings and is fully host-testable.\n\nCONTEXT -- what already exists in core-ai (package com.mcfrenchpants.activityledger.core.ai), from AI1.1:\n- `InterpretationResponse`, the public @Generable schema class the model fills in. Its seven fields, in order: operation, activityResolution, matchedActivityId, proposedCanonicalName, activityState, temporalExpression, confidenceBand. Read it -- its @Guide descriptions are the field-level wording the model already receives via the schema, and your prompt must AGREE with them, not contradict or pointlessly repeat them.\n- `InterpretationResponseDecoder` (internal) and its result/failure types. Not needed here.\nUnit tests use kotlin.test. Do not touch core-ai/build.gradle.kts, consumer-rules.pro, or AI1.1's files.\n\nCONTEXT -- the input type (core-domain, read-only, package ...core.domain.interpretation):\n  data class InterpretationInput(val rawText: String, val capturedAt: Instant, val zoneId: ZoneId, val candidates: List<CandidateActivity>)\n  data class CandidateActivity(val id: String, val displayName: String, val aliases: List<String>)\n\nBUILD, in core-ai:\n\n1. A prompt-version constant, e.g. `PROMPT_VERSION = \"1\"` (string, your choice of exact value and name). AI1.4 reads it for provenance, so it must be reachable from within the module; keep it internal if you can.\n\n2. The system instruction: one fixed string constant. It must communicate all nine principles below, in your own concise wording (these are from the project's AI interpretation spec section 5, and are requirements, not suggestions):\n   (1) the user is logging real-world activities they did;\n   (2) prefer an existing semantically equivalent activity over inventing one;\n   (3) do not merge merely related activities;\n   (4) propose a concise verb-first canonical name ONLY when no equivalent activity exists;\n   (5) preserve distinctions such as mowing vs edging;\n   (6) extract the temporal WORDING; never fabricate a precise timestamp;\n   (7) return only the requested structure;\n   (8) do not invent ids;\n   (9) when meaning is insufficient, answer ambiguous/unresolved rather than guessing.\n   Gemini Nano prompts should be concise, strongly structured, example-driven and short-output oriented -- a wall of prose is a defect here.\n\n3. The per-capture prompt builder: a pure function of `InterpretationInput` returning the prompt String. Sections, in this exact order, with these exact markdown headings:\n     ## Task\n     ## Rules\n     ## Current context\n     ## Candidate activities\n     ## User utterance\n   - `## Task`: one or two lines saying what to produce.\n   - `## Rules`: the match/do-not-match rule and the naming rule, expressed compactly. Worked examples to include (from the project's spec sections 8 and 9): MATCH \"cut the grass\" -> Mow lawn; \"mowed\" -> Mow lawn; \"put a new HVAC filter in\" -> Replace furnace filter. DO NOT MATCH: \"edged the lawn\" is NOT Mow lawn; \"raked leaves\" is NOT Blow leaves; \"washed the car\" is NOT Wax car. Naming for a new activity: concise, verb-first, singular concept, no date/time, no completion status, no filler -- GOOD \"Flush water heater\", \"Clean dryer vent\"; BAD \"I flushed the water heater today\", \"Water heater stuff\".\n   - `## Current context`: the capture's local date and time and the IANA zone, formatted deterministically from capturedAt+zoneId (ISO-8601 local date-time plus the zone id is fine). This exists so the model can understand relative wording, NOT so it can compute a date -- say so.\n   - `## Candidate activities`: one line per candidate with its id, display name and aliases; aliases rendered even when empty (or the line simply omits an empty alias list -- your call, but be consistent and test it). State in this section that matchedActivityId must be copied from exactly one of these ids and that nothing outside this list may be named. When the list is empty, render an explicit \"none\" marker line rather than an empty section.\n   - `## User utterance`: the raw text, exactly once, unmodified (no trimming, no quoting that alters it, no case change). If you wrap it in delimiters, the raw text between them must still be character-identical.\n   Few-shot examples are required somewhere in the prompt (put them where you judge best -- likely inside `## Rules` or a subsection of it): one each for synonym match, near-neighbour rejection, new activity, ambiguous, completed vs in-progress, and a relative time phrase. Useful material from the project's spec section 20: equivalent phrasings for Mow lawn are \"I mowed the lawn\", \"I cut the grass\", \"Finished mowing\", \"Just did the grass\"; Edge lawn is distinct from Mow lawn; temporal phrasings \"Changed the furnace filter yesterday\", \"Cleaned the gutters Saturday\", \"Mowed this morning\", \"Just finished mowing\"; genuinely ambiguous ones are \"Did the thing by the furnace\", \"Worked on the yard\", \"Took care of that filter thing\" -- and those must NOT be forced into a confident match.\n\n4. PURITY. The builder reads nothing but its argument: no Instant.now(), no ZoneId.systemDefault(), no Locale.getDefault() (use Locale.ROOT explicitly wherever formatting is locale-sensitive), no randomness, no I/O, no logging, no hash-order iteration that could vary between runs.\n\n5. VERSION-DRIFT GUARD. A test that pins the exact prompt text for one fixed input -- either a stored expected string or a checksum of it -- together with PROMPT_VERSION, so any edit to the prompt fails the test until someone deliberately updates the fixture and the version. Write the test so its failure message says plainly that changing prompt text requires bumping the prompt version (the project treats prompt text as product logic, spec section 19).\n\nSTANDING RULES. No logging of prompt text, capture text or any field value, anywhere, ever (AGENTS.md #11). No println. Nothing leaves the device. No ML Kit type in a hand-written public signature of core-ai (ADR-023) -- this task needs no ML Kit import at all; if you find yourself adding one, stop and report it.\n\nNOTE ON PATHS. `read_paths` names documents you MAY and should read; `forbidden_paths` no longer lists them, because a path listed in both is a packet defect that cost the previous task its spec reading. Writes are scoped by `write_paths` alone and enforced by a hook, so anything not listed there cannot be written whether or not it appears in `forbidden_paths`.",
+  "non_goals": [
+    "No GenerativeModel, Generation.getClient, checkStatus, download, warmup or any ML Kit call (AI1.3).",
+    "No ActivityInterpreter implementation, no generateContent, no failure-kind mapping (AI1.4).",
+    "No changes to AI1.1's InterpretationResponse.kt or InterpretationResponseDecoder.kt, or their tests.",
+    "No changes to core-domain, core-data, core-testing, app-phone, app-wear, core-speech, core-wear-protocol.",
+    "No changes to any build file, gradle/libs.versions.toml, consumer-rules.pro, or any document.",
+    "No candidate shortlisting, ranking or filtering -- the candidates arrive already selected by core-domain's CandidateSelector; render exactly what you are given, in the order given.",
+    "No temporal parsing or date computation of any kind -- the model extracts wording, core-domain resolves it.",
+    "Do not disable, @Ignore or weaken any test. Do not commit."
+  ],
+  "dependencies": [
+    "AI1.1"
+  ],
+  "read_paths": [
+    "core-ai",
+    "core-domain",
+    "docs/AI_INTERPRETATION_SPEC.md",
+    "docs/DECISIONS.md",
+    "AGENTS.md",
+    "gradle/libs.versions.toml"
+  ],
+  "write_paths": [
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai",
+    "core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "README.md",
+    ".sdlc",
+    "agents",
+    "scripts",
+    ".claude",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "gradle.properties",
+    "gradle",
+    "gradlew",
+    "gradlew.bat",
+    "core-ai/build.gradle.kts",
+    "core-ai/consumer-rules.pro",
+    "core-domain",
+    "core-data",
+    "core-testing",
+    "core-speech",
+    "core-wear-protocol",
+    "app-phone",
+    "app-wear"
+  ],
+  "acceptance_criteria": [
+    "Determinism: building the prompt twice from the same InterpretationInput yields byte-identical strings; a test asserts it (and a second test builds from two separately-constructed but equal inputs).",
+    "All five headings -- ## Task, ## Rules, ## Current context, ## Candidate activities, ## User utterance -- are present exactly once each and in that order, for every input tested, including the no-candidates case. Assert order by index, not just presence.",
+    "Every candidate's id, display name and aliases appear in the prompt, in the order given; a candidate with no aliases renders consistently; two candidates whose display names differ only in case both appear.",
+    "A capture with an empty candidate list produces a well-formed prompt with all five sections and an explicit 'none' marker rather than an empty section.",
+    "The raw utterance appears exactly once, character-identical to the input, including leading/trailing whitespace, internal double spaces, punctuation, a newline, and a non-ASCII character. Assert with an exact substring containment plus an occurrence count of 1.",
+    "The nine system-instruction principles are each represented in the system instruction; a test asserts a distinctive phrase per principle (nine assertions), so a later edit cannot silently drop one.",
+    "The required few-shot cases are present: synonym match, near-neighbour rejection, new activity, ambiguous, completed vs in-progress, relative time phrase -- one assertion each.",
+    "The ## Current context section renders the capture's local date-time and zone deterministically for a fixed input (assert the exact expected substring for capturedAt = 2026-09-15T20:00-04:00 in America/Detroit), and the prompt states that the model must not compute a date itself.",
+    "PROMPT_VERSION exists as a source constant and a drift-guard test pins the full prompt text (stored string or checksum) for one fixed input together with that version, with a failure message telling the reader to bump the prompt version when changing prompt text.",
+    "Purity: a grep of the new main sources finds no Instant.now(, ZoneId.systemDefault, Locale.getDefault, System.currentTimeMillis, Math.random, kotlin.random, println, Log., System.out, System.err; report the grep output.",
+    "No ML Kit import was added by this task (grep the new files for com.google.mlkit and report the result).",
+    "`./gradlew :core-ai:test --rerun-tasks` and `./gradlew test` pass; report the test count for the new test class(es) and confirm AI1.1's 21 tests still pass."
+  ],
+  "verification_commands": [
+    "./gradlew :core-ai:test --rerun-tasks",
+    "./gradlew :core-ai:assembleDebug",
+    "./gradlew test",
+    "git diff HEAD --stat",
+    "git status --porcelain"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

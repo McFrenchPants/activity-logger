@@ -1,0 +1,80 @@
+{
+  "task_id": "AI1.3",
+  "plan_revision": "9560f9e",
+  "objective": "In core-ai, add the device-capability API and the model client's lifecycle: is this device actually able to run the on-device interpretation, and the single owned GenerativeModel instance the interpreter (AI1.4) will use. This is the first task that touches ML Kit's runtime API.\n\nCONTEXT -- what already exists in core-ai (package com.mcfrenchpants.activityledger.core.ai):\n- AI1.1: public @Generable `InterpretationResponse`; internal `InterpretationResponseDecoder` and its result/failure types.\n- AI1.2: internal `PROMPT_VERSION` (\"2\"), `INTERPRETATION_SYSTEM_INSTRUCTION`, `buildInterpretationPrompt(InterpretationInput): String`.\nDon't modify any of them. Unit tests use kotlin.test. Do not touch core-ai/build.gradle.kts or consumer-rules.pro.\n\nCONTEXT -- the ML Kit runtime API, read directly from the pinned artifacts genai-prompt:1.0.0-beta4 and genai-common:1.0.0-beta4 with javap. These signatures are authoritative; do not re-derive them from memory or from the web:\n\n  com.google.mlkit.genai.prompt.Generation (object/INSTANCE):\n    fun getClient(): GenerativeModel\n    fun getClient(config: GenerationConfig): GenerativeModel\n\n  com.google.mlkit.genai.prompt.GenerativeModel (interface, coroutine-first):\n    suspend fun checkStatus(): Int\n    suspend fun isStructuredOutputFeatureAvailable(): Boolean\n    suspend fun isSystemPromptAvailable(): Boolean\n    suspend fun isThinkingModeAvailable(): Boolean\n    suspend fun getBaseModelName(): String\n    suspend fun getTokenLimit(): Int\n    fun download(): Flow<DownloadStatus>\n    suspend fun warmup()\n    suspend fun <T> generateContent(request: GenerateTypedContentRequest<T>): GenerateTypedContentResponse<T>\n    fun close()\n\n  com.google.mlkit.genai.common.FeatureStatus (int constants): UNAVAILABLE, DOWNLOADABLE, DOWNLOADING, AVAILABLE\n\n  com.google.mlkit.genai.common.DownloadStatus (sealed-style hierarchy of nested classes):\n    DownloadStatus.DownloadStarted(bytesToDownload: Long)\n    DownloadStatus.DownloadProgress(totalBytesDownloaded: Long)\n    DownloadStatus.DownloadCompleted  (object INSTANCE)\n    DownloadStatus.DownloadFailed(e: GenAiException)\n\n  com.google.mlkit.genai.common.GenAiException: errorCode: Int, retryDelay: java.time.Duration\n\nBUILD, in core-ai:\n\n1. A plain-Kotlin readiness type. Something like an enum or sealed type reporting, at minimum, these distinct states: READY (model AVAILABLE *and* structured output supported); NOT_INSTALLED (FeatureStatus.DOWNLOADABLE -- the model could be fetched but is not here); DOWNLOAD_IN_PROGRESS (FeatureStatus.DOWNLOADING); UNSUPPORTED_DEVICE (FeatureStatus.UNAVAILABLE); STRUCTURED_OUTPUT_UNSUPPORTED (status is AVAILABLE but isStructuredOutputFeatureAvailable() is false); and a state for 'the check itself failed' (an exception from the ML Kit call). Exact names and shape are your call. What is NOT negotiable: DOWNLOADABLE, DOWNLOADING and UNAVAILABLE must be three distinguishable answers, because a later Settings screen has to tell the user which one they are in, and no ML Kit type may appear anywhere in this type or in the API that returns it.\n\n2. The capability API itself: a class exposing a suspend readiness check that calls checkStatus() and, only when that says AVAILABLE, isStructuredOutputFeatureAvailable(). Installation never implies readiness: AVAILABLE alone is not READY. The check must not throw -- an ML Kit exception becomes the check-failed state.\n\n3. The explicit download operation, separate from everything else. OWNER DECISION, and the single most important behavioural rule in this task: the app must NEVER start the model download implicitly. Nothing on the interpretation path may call it. It exists so a later Settings screen can offer the user the choice after telling them the size. Expose it as its own suspend or Flow-returning function that maps DownloadStatus to plain Kotlin progress values (bytes started / bytes downloaded / completed / failed-with-a-reason-code), never leaking DownloadStatus or GenAiException outward.\n\n4. Client lifecycle: ONE GenerativeModel instance per capability object, created lazily, released by a close() that is safe to call twice. Warmup is expensive, so the instance is meant to be constructed once per app process, not per capture -- document that. AI1.4 needs to reach the same instance to call generateContent, so expose it internally (an internal accessor, or make the capability object the thing AI1.4 composes with) -- your design call, but AI1.4 must not have to construct a second client.\n\n5. TESTABILITY SEAM. `Generation.getClient()` cannot run on the JVM host, so put a narrow internal interface between your code and ML Kit -- one internal abstraction with exactly the members you use (checkStatus, isStructuredOutputFeatureAvailable, download, warmup, generateContent, close), a real implementation delegating to GenerativeModel, and a fake in tests. The seam stays internal to core-ai; nothing about it may appear in the module's hand-written public API. Every behaviour below must then be host-testable with no device.\n\nSTANDING RULES. ADR-023: every ML Kit import stays in core-ai, no ML Kit type in a hand-written public signature. AGENTS.md #11: no logging of anything, and no user content or exception message may reach a returned value -- a download failure reports a code, not a message. No println. Nothing leaves the device; there is no cloud fallback anywhere in this project (ADR-013).",
+  "non_goals": [
+    "No ActivityInterpreter implementation and no generateContent CALL (AI1.4) -- the seam must expose generateContent, but this task does not use it.",
+    "No prompt text changes, no PROMPT_VERSION change, no changes to AI1.1's or AI1.2's files or tests.",
+    "No UI, no Settings screen, no user-facing capability messaging (Step 7). This task produces the state such a screen will read, nothing more.",
+    "No automatic, implicit, retried or background-scheduled download under any circumstances.",
+    "No changes to core-domain, core-data, core-testing, app-phone, app-wear, core-speech, core-wear-protocol.",
+    "No changes to any build file, gradle/libs.versions.toml, consumer-rules.pro, or any document.",
+    "No new third-party dependency. If you believe you need one (e.g. a coroutines test library), stop and report scope_change_requested rather than editing the catalog.",
+    "Do not disable, @Ignore or weaken any test. Do not commit."
+  ],
+  "dependencies": [
+    "AI1.1",
+    "AI1.2"
+  ],
+  "read_paths": [
+    "core-ai",
+    "core-domain",
+    "docs/AI_INTERPRETATION_SPEC.md",
+    "docs/ARCHITECTURE.md",
+    "docs/DECISIONS.md",
+    "AGENTS.md",
+    "gradle/libs.versions.toml"
+  ],
+  "write_paths": [
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai",
+    "core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "README.md",
+    ".sdlc",
+    "agents",
+    "scripts",
+    ".claude",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "gradle.properties",
+    "gradle",
+    "gradlew",
+    "gradlew.bat",
+    "core-ai/build.gradle.kts",
+    "core-ai/consumer-rules.pro",
+    "core-domain",
+    "core-data",
+    "core-testing",
+    "core-speech",
+    "core-wear-protocol",
+    "app-phone",
+    "app-wear"
+  ],
+  "acceptance_criteria": [
+    "The readiness type and the API returning it use plain Kotlin types only: no ML Kit type is nameable from outside core-ai, and the seam interface is internal. State in the report which declarations are public and why each has to be.",
+    "FeatureStatus.AVAILABLE with structured output supported -> READY; AVAILABLE with structured output NOT supported -> a distinct not-ready state; DOWNLOADABLE, DOWNLOADING and UNAVAILABLE each map to their own distinct not-ready state. One test per mapping, driven through the fake seam.",
+    "isStructuredOutputFeatureAvailable() is only consulted when the status is AVAILABLE -- a test asserts the fake records zero structured-output calls for the DOWNLOADABLE, DOWNLOADING and UNAVAILABLE cases.",
+    "A checkStatus() or isStructuredOutputFeatureAvailable() that throws yields the check-failed state rather than propagating; the readiness check never throws for any fake behaviour, including an unexpected status integer.",
+    "The download operation exists as its own callable member and is NOT invoked by the readiness check: a test asserts the fake records zero download calls after a readiness check in every one of the five status cases, including DOWNLOADABLE. This is the owner's decision that nothing large downloads as a side effect of logging an activity -- it is the criterion to get right.",
+    "Download progress maps DownloadStatus.DownloadStarted / DownloadProgress / DownloadCompleted / DownloadFailed onto plain Kotlin values, with byte counts preserved; a failure carries a code, never a message or an exception. Tested through the fake.",
+    "Exactly one client instance is created per capability object no matter how many readiness checks run (assert a creation counter == 1 after several calls), and it is created lazily -- constructing the capability object alone creates no client.",
+    "close() releases the client and is safe to call twice; a test calls it twice and asserts no throw and exactly one underlying close.",
+    "AI1.4 can reach the same client instance to call generateContent without constructing a second one -- demonstrate with a test that exercises whatever internal accessor you expose and asserts the creation counter is still 1.",
+    "A grep of core-ai/src/main finds no println, Log., System.out, System.err; no returned value or state anywhere carries an exception message or user content -- name the failure representation you chose in the report.",
+    "`./gradlew :core-ai:assembleDebug`, `./gradlew :core-ai:test --rerun-tasks` and `./gradlew test` all pass; report the new test count and confirm AI1.1+AI1.2's 43 tests still pass.",
+    "Report explicitly whether you needed any dependency that is not already on core-ai's classpath (particularly for testing suspend functions) and how you avoided adding one."
+  ],
+  "verification_commands": [
+    "./gradlew :core-ai:assembleDebug",
+    "./gradlew :core-ai:test --rerun-tasks",
+    "./gradlew test",
+    "git diff HEAD --stat",
+    "git status --porcelain"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

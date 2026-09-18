@@ -47,6 +47,12 @@ dependencies {
     implementation(libs.mlkit.genai.prompt)
     ksp(libs.mlkit.genai.schema.compiler)
 
+    // Coroutines are used directly here (Flow, suspend seams), so they are declared rather than
+    // relied on arriving transitively through the ML Kit artifact. Pinned to the version ML Kit's
+    // own coroutines BOM already imposes on this module's classpath, so declaring it changes
+    // nothing about what resolves -- it only makes the existing dependency visible.
+    implementation(libs.kotlinx.coroutines.core.genai)
+
     // Resolves at the applied Kotlin plugin's own version, so it adds no new
     // version to gradle/libs.versions.toml. The `-junit` variant is explicit
     // because, unlike the Kotlin JVM plugin, the Android plugin does not pick a

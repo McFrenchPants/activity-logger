@@ -1,0 +1,65 @@
+{
+  "task_id": "AI1.6",
+  "plan_revision": "8d9e7f1",
+  "objective": "Document the AI vertical slice now that it is built AND proven on a real device, and settle two permanent decisions the device run surfaced. This is a documentation task plus one comment-only manifest edit. No Kotlin, no build files.\n\nFACTS YOU MUST USE (these come from the orchestrator's tracking docs, which you may not read; treat them as authoritative):\n- Source constants: core-ai `PROMPT_VERSION = \"2\"` (InterpretationPrompt.kt), `INTERPRETATION_SCHEMA_VERSION = 1` and `INTERPRETER_VERSION = \"gemini-nano-1\"` (GeminiNanoActivityInterpreter.kt). Re-read the source to confirm before writing them; the docs must match the source, not this text, if they differ.\n- Structured output type: `InterpretationResponse` in core-ai, a `@Generable` class with seven nullable String fields, one per `InterpretationCandidate` field, domain enums constrained with `@Guide(enumValues=...)`; decoded by an internal pure decoder into Decoded/Failed with value-free reason codes. Read the source for the exact field list.\n- Generation settings: temperature 0, topK 1, candidateCount 1, fixed seed, maxOutputTokens 256, thinking off; exactly one generateContent call per interpret, no retry, no repair prompt. `structuredResultJson` is always null by design: the typed API returns an already-decoded object, never the model's raw text, and re-serialising it would fabricate an audit field. On the real device the typed result confirmed there is no raw JSON available.\n- Capability: `OnDeviceModelCapability` with `readiness()` returning READY / NOT_INSTALLED / DOWNLOAD_IN_PROGRESS / UNSUPPORTED_DEVICE / STRUCTURED_OUTPUT_UNSUPPORTED / CHECK_FAILED, and a cold `download()` flow that does nothing until explicitly collected. Anything but READY makes the interpreter return Failure(UNAVAILABLE) without touching the model.\n- Wiring: `CapturePipeline.create(context, clock, interpreterDecorator)` in app-phone is the single composition point; AutoCloseable, one per process; no DI framework.\n- THE DEVICE RUN (Pixel 10 Pro, 2026-09-17): `CaptureVerticalSliceTest` PASSED, 1 test, 0 failures. Input \"I cut the grass yesterday.\" with a seeded \"Mow lawn\" activity. Result: AutoAccepted, matched the existing \"Mow lawn\" activity (no new activity created), dated to the previous local day at DATE_ONLY precision, linked to its capture, raw text byte-identical. Timings: interpret 6552 ms, capture-to-save 6920 ms. The model got nothing wrong on this one sentence -- but it is ONE sentence; say so, and say it is not evidence of general accuracy (that is Step 5's semantic regression corpus).\n- How it got there (for the results note): first attempts found the model NOT_INSTALLED; a 50-minute download attempt over Wi-Fi debugging was inconclusive (phone dropped off); a second bounded 20-minute attempt emitted zero events while the app logged being refused ACCESS_NETWORK_STATE. With ACCESS_NETWORK_STATE left in place (INTERNET still removed) the device reported the structured-output feature downloaded and ready. Whether the permission caused the download or it finished in the background meanwhile cannot be separated after the fact. Then, with the model ready, the pipeline still failed in 245 ms with INTERPRETER_FAILED because the test had no foreground Activity; Google permits GenAI calls only from the top foreground app. Launching MainActivity and holding it resumed around process() made it pass.\n\nDECISIONS ALREADY MADE BY THE ORCHESTRATOR -- record them, do not reopen them:\nD1. ADR-025 is AMENDED, not replaced: app-phone keeps ACCESS_NETWORK_STATE permanently (it only reads connectivity state and cannot transmit anything; the on-device model download appears to need it, and a user whose model silently never downloads has a broken app). app-phone still strips INTERNET. app-wear still strips BOTH (the watch never runs inference or downloads a model). The privacy guarantee -- capture text cannot leave the device, enforced by the platform -- is unchanged because it rests on INTERNET being absent. Update ADR-025's title, status line (e.g. 'Accepted, amended 2026-09-17') and body so it reads correctly as it stands now, with a short dated amendment paragraph stating what changed, the evidence, and that the evidence is suggestive rather than conclusive. Keep the merged-manifest INTERNET check requirement.\nD2. New ADR: every GenAI call must be made while the phone app is the top foreground app (platform rule; background calls are refused). Consequence: captures cannot be interpreted from a background service or worker; a capture arriving while the app is backgrounded (e.g. from the watch) is stored raw and interpreted when the app is next in the foreground. This constrains ARCHITECTURE's background-processing and capture-orchestration story and Steps 6/7. Cite the device evidence (245 ms INTERPRETER_FAILED without a foreground Activity; pass with one).\nD3. New ADR: one-shot decoding with no repair loop (reason: an undecodable answer becomes MALFORMED and goes to review; a repair loop is the trust-the-model failure mode ADR-010 exists to prevent; revisit only with measured evidence from Step 5).\nD4. New ADR: the model download is explicit, never implicit (owner decision 2026-09-17): nothing large downloads as a side effect of logging an activity; a not-installed model yields UNAVAILABLE; download is a separate call so the Step 7 UI can ask the user first.\nD5. New ADR: no dependency-injection framework for now (a hand-written factory; Hilt/Koin would be a large hard-to-reverse commitment with three collaborators to wire; revisit when the object graph is genuinely painful).\nNumber the new ADRs sequentially after the current highest (ADR-028), in the file's existing format (heading, **Status:** line, body, **Reason:** paragraph, --- separator).\n\nBUILD:\n1. docs/DECISIONS.md: D1 amendment to ADR-025, and new ADRs for D2-D5.\n2. app-phone/src/main/AndroidManifest.xml: replace the 'EXPERIMENT ... to be reverted or made permanent deliberately' comment and the commented-out ACCESS_NETWORK_STATE removal line with a short permanent comment that points to ADR-025 (as amended) and explains why ACCESS_NETWORK_STATE stays while INTERNET is removed. The effective merged manifest must NOT change: INTERNET removed, ACCESS_NETWORK_STATE present. Do not touch app-wear's manifest.\n3. docs/ARCHITECTURE.md: describe core-ai as implemented rather than conceptual in section 5 (Key interfaces) and section 6 (Capture orchestration); update section 13 (AI adapter), section 18 (Background processing) and section 21 (Device capability) wherever they conflict with D2 or with what was built. Also fix anything in the cloud-boundary/privacy sections (19, 20) that D1 makes stale.\n4. docs/AI_INTERPRETATION_SPEC.md: section 4 (Structured output) reflects the implemented schema shape and schema version; section 6 (Prompt design) and section 19 (Prompt versioning) carry the implemented prompt version; sections 16/17 (capability checks, AICore unavailable) reflect the real readiness states and the foreground rule. Do not copy the prompt's text here -- describe it, and point at the source file as the single source of truth for prompt text.\n5. docs/PROJECT_STATUS.md: move it on -- the AI vertical slice is built and has passed on a real device once; say what is next without inventing plans (read the file for its existing shape and docs/ROADMAP.md for the next step).\n6. docs/proposals/ai-vertical-slice/RESULTS.md (new): a short, honest note of what the first real run did -- device, date, input, outcome, timings, the two obstacles and how each was resolved, what is and is not proven (one sentence is not accuracy evidence; the permission's causal role is not separable), and what Step 5 should take from it.\n\nHONESTY RULE: no document may claim a device run, accuracy, or behaviour that the facts above do not support. Where something is unproven, say so plainly.",
+  "non_goals": [
+    "No Kotlin source changes of any kind, in any module.",
+    "No build file or version catalog changes.",
+    "No app-wear changes.",
+    "Do not edit BACKLOG.md, PROGRESS.md, or anything in docs/proposals/ai-vertical-slice except creating RESULTS.md.",
+    "Do not rewrite unrelated sections of the docs or reformat them; change only what this work item made stale.",
+    "Do not commit."
+  ],
+  "dependencies": ["AI1.5"],
+  "read_paths": [
+    "docs",
+    "core-ai/src/main",
+    "app-phone",
+    "app-wear/src/main/AndroidManifest.xml",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "docs/DECISIONS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/AI_INTERPRETATION_SPEC.md",
+    "docs/PROJECT_STATUS.md",
+    "docs/proposals/ai-vertical-slice/RESULTS.md",
+    "app-phone/src/main/AndroidManifest.xml"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    ".sdlc",
+    "agents",
+    "scripts",
+    ".claude",
+    "docs/proposals/ai-vertical-slice/PROGRESS.md",
+    "docs/proposals/ai-vertical-slice/IMPLEMENTATION_PLAN.md",
+    "docs/proposals/ai-vertical-slice/DESIGN_SPEC.md",
+    "app-wear",
+    "core-ai",
+    "core-domain",
+    "core-data",
+    "gradle",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "acceptance_criteria": [
+    "New ADRs (D2-D5) follow the existing numbering and format and each states its reason, not just the decision.",
+    "ADR-025 reads correctly as amended: phone keeps ACCESS_NETWORK_STATE and strips INTERNET, watch strips both, with a dated amendment paragraph whose evidence is described as suggestive, not conclusive.",
+    "app-phone's manifest carries a permanent comment instead of the experiment comment, and the merged manifest still contains ACCESS_NETWORK_STATE and does not contain INTERNET.",
+    "Prompt version, schema version and interpreter version stated in the docs match the source constants.",
+    "No document claims device verification, accuracy, or behaviour that did not happen; RESULTS.md states the one-sentence limitation and the unseparated permission cause.",
+    "ARCHITECTURE and AI_INTERPRETATION_SPEC reflect the foreground-only rule and describe core-ai as implemented.",
+    "BACKLOG.md, PROGRESS.md and the proposal's plan/spec/progress files are untouched; no Kotlin or build files changed."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:processDebugMainManifest",
+    "grep -n \"permission\" app-phone/build/intermediates/merged_manifest/debug/processDebugMainManifest/AndroidManifest.xml",
+    "git diff HEAD --stat",
+    "git status --porcelain"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

@@ -154,7 +154,7 @@ interface ActivityRepository {
 }
 ```
 
-`ActivityInterpreter` is implemented only by `FakeActivityInterpreter` in `core-testing` so far; the Gemini Nano adapter (§13) is not built. `ActivityRepository` is implemented by `RoomActivityRepository` in `core-data` (the app obtains it through `createActivityRepository(context, clock)`) and by `InMemoryActivityRepository` in `core-testing`. Integrity violations (unknown ids, non-ACTIVE target activity, `recordOutcome` on a capture that already has an occurrence) throw `IllegalArgumentException` with nothing written; `acceptInterpretation` is idempotent per capture.
+`ActivityInterpreter` is implemented by `GeminiNanoActivityInterpreter` in `core-ai` (the Gemini Nano adapter, §13) and by `FakeActivityInterpreter` in `core-testing`. `ActivityRepository` is implemented by `RoomActivityRepository` in `core-data` (the app obtains it through `createActivityRepository(context, clock)`) and by `InMemoryActivityRepository` in `core-testing`. Integrity violations (unknown ids, non-ACTIVE target activity, `recordOutcome` on a capture that already has an occurrence) throw `IllegalArgumentException` with nothing written; `acceptInterpretation` is idempotent per capture.
 
 Domain services (`...core.domain.services`), each taking the repository and a `java.time.Clock`:
 
@@ -190,6 +190,38 @@ Supporting deterministic components: `CandidateSelector` (§16), `TemporalResolv
 
 Known seam: if the matched activity is archived between `loadCatalog` and `acceptInterpretation`, `process` throws `IllegalArgumentException` with nothing written; the caller must catch it and rerun `process`.
 
+### Implemented (`core-ai` and `app-phone`, work item AI1)
+
+The on-device interpreter and its capability check live in `core-ai` (`...core.ai`). Every ML Kit type stays inside that module (ADR-023); its public surface is plain Kotlin and core-domain types. Abridged:
+
+```kotlin
+class OnDeviceModelCapability : AutoCloseable {            // one per process; owns the single model client
+    suspend fun readiness(): ModelReadiness                  // never downloads, never throws (except cancellation)
+    fun download(): Flow<ModelDownloadProgress>              // cold: nothing happens until collected (ADR-031)
+}
+// ModelReadiness = READY | NOT_INSTALLED | DOWNLOAD_IN_PROGRESS | UNSUPPORTED_DEVICE
+//                | STRUCTURED_OUTPUT_UNSUPPORTED | CHECK_FAILED
+// ModelDownloadProgress = Started(bytesToDownload) | Progress(totalBytesDownloaded) | Completed | Failed(errorCode)
+
+class GeminiNanoActivityInterpreter(capability: OnDeviceModelCapability) : ActivityInterpreter {
+    // provenance: interpreterVersion "gemini-nano-1", promptVersion "2", schemaVersion 1
+    suspend fun warmUp()                                     // optional, explicit pre-load; no-op unless READY
+}
+```
+
+The phone app wires these by hand (no DI framework, ADR-032):
+
+```kotlin
+class CapturePipeline : AutoCloseable {                      // exactly one per app process
+    companion object {
+        fun create(context, clock = Clock.systemDefaultZone(), interpreterDecorator = { it }): CapturePipeline
+    }
+    // exposes repository, capability, interpreter, clock, orchestrator; close() releases the model client
+}
+```
+
+`CapturePipeline.create` is the single composition point for the capture pipeline. Creating it checks nothing and downloads nothing. `interpreterDecorator` is an observation seam for tests (timing only) and the identity in production.
+
 ### Conceptual (not built)
 
 These remain design sketches; signatures will be fixed when they are implemented.
@@ -211,7 +243,9 @@ interface WearCaptureTransport {
 
 ## 6. Capture orchestration
 
-Implemented by `CaptureInterpretationOrchestrator.process(captureId)`. The raw capture is persisted beforehand by `createRawCapture`; speech transcription and acknowledgement to the watch are outside `process` and not built yet.
+Implemented by `CaptureInterpretationOrchestrator.process(captureId)`, driving the real Gemini Nano interpreter when obtained through `CapturePipeline` (§5). The raw capture is persisted beforehand by `createRawCapture`; speech transcription and acknowledgement to the watch are outside `process` and not built yet.
+
+`process` must be called while the phone app is the top foreground app: the platform refuses on-device AI calls from the background (ADR-029). A capture that arrives while the app is backgrounded is persisted raw and processed when the app is next in the foreground. The full flow below (capture, real interpretation, auto-accept, persistence) has passed once on a real device, for one sentence (`docs/proposals/ai-vertical-slice/RESULTS.md`).
 
 ```text
 Raw input (transcript available)
@@ -232,8 +266,8 @@ Load ACTIVE catalog (loadCatalog)
 Candidate selection (CandidateSelector: bound 40, candidate context hash)
    |
    v
-ActivityInterpreter.interpret
-   |
+ActivityInterpreter.interpret           (Gemini Nano: one call, no retry or repair, ADR-030;
+   |                                     not READY -> UNAVAILABLE without calling the model)
    +-- Failure UNAVAILABLE / RETRYABLE ---> recordOutcome(no interpretation, FAILED_RETRYABLE)
    |                                          -> InterpreterUnavailable
    +-- Failure MALFORMED / OTHER ---------> recordOutcome(INVALID interpretation: operation UNSUPPORTED,
@@ -254,7 +288,7 @@ Validation (InterpretationValidator)
                        -> Rejected (nothing logged)
 ```
 
-Each run appends at most one interpretation. A capture without an occurrence can be processed again; a capture in `NEEDS_REVIEW` is resolved by the user through `ReviewResolutionService` (§5). The stored interpretation's `matched_activity_id` is the model's id only if that id is in the catalog loaded for the run, otherwise null (it is a foreign key, and an invented id must still reach review); the model's full answer is kept in `structured_result_json`, and the validator judges the unmodified answer.
+Each run appends at most one interpretation. A capture without an occurrence can be processed again; a capture in `NEEDS_REVIEW` is resolved by the user through `ReviewResolutionService` (§5). The stored interpretation's `matched_activity_id` is the model's id only if that id is in the catalog loaded for the run, otherwise null (it is a foreign key, and an invented id must still reach review); `structured_result_json` holds whatever raw answer text the interpreter supplies (`structuredResultJson`), and the validator judges the unmodified decoded answer. The Gemini Nano adapter always supplies null there, by design: ML Kit's typed API returns an already-decoded object, never the model's raw text, so there is nothing genuine to store (§13).
 
 Persisting raw evidence early reduces data loss on process death.
 
@@ -358,6 +392,17 @@ Responsibilities:
 
 Domain code should not import model-specific response types.
 
+Implemented in `core-ai` (§5) as `OnDeviceModelCapability` plus `GeminiNanoActivityInterpreter`:
+
+- **Capability detection:** `readiness()` maps ML Kit's `checkStatus()` and `isStructuredOutputFeatureAvailable()` onto `ModelReadiness` (§21). Anything but `READY` makes `interpret` return `Failure(UNAVAILABLE)` without touching the model. No download is ever implicit (ADR-031).
+- **Model/session setup and lifecycle:** one lazily created ML Kit client per process, owned by `OnDeviceModelCapability` and released by `close()`; the interpreter borrows it and never creates its own. `warmUp()` is an explicit, optional pre-load.
+- **Prompt construction:** a fixed system instruction plus a pure, deterministic per-capture prompt (`InterpretationPrompt.kt`, prompt version `"2"`); see AI_INTERPRETATION_SPEC §6.
+- **Structured output invocation:** a typed request against `InterpretationResponse` (a `@Generable` class, schema version 1), decoded by an internal pure decoder; generation settings are chosen for determinism (temperature 0, topK 1, one candidate, fixed seed, at most 256 output tokens, thinking off). Exactly one `generateContent` call per `interpret`, with no retry or repair prompt (ADR-030).
+- **Error translation:** not ready -> `UNAVAILABLE`; ML Kit error with a positive retry delay -> `RETRYABLE`; no candidate or undecodable response -> `MALFORMED`; anything else -> `OTHER`. Failures carry a kind only, never a message or content.
+- **Cancellation:** propagates; it is never reported as a failure.
+- **Foreground only:** calls must be made while the phone app is the top foreground app (ADR-029). A backgrounded call is refused by the platform and currently surfaces as `OTHER`.
+- **Raw output:** `structuredResultJson` is always null. The typed API returns an already-decoded object and never the model's raw text (confirmed on the device), and re-serialising the decoded object would fabricate an audit field.
+
 ## 14. Speech adapter
 
 Speech implementation should likewise be replaceable.
@@ -421,15 +466,18 @@ MVP should minimize background complexity.
 
 Use background/retry mechanisms only for:
 
-- queued watch captures
-- retryable on-device inference preparation
+- receiving and durably storing queued watch captures (raw, uninterpreted)
 - database maintenance if later required
 
 Do not create broad always-on services.
 
+Semantic interpretation is **not** a background job. The platform refuses on-device AI calls unless the phone app is the top foreground app (ADR-029), so a background service or worker cannot interpret captures. Captures received in the background are stored raw and interpreted when the app next comes to the foreground; `FAILED_RETRYABLE` captures are likewise retried from the foreground. The model download is not background preparation either: it runs only when the user explicitly asks for it (ADR-031).
+
 ## 19. Cloud boundary
 
 MVP has no cloud backend.
+
+The platform enforces this for the phone app: its merged manifest does not contain `INTERNET`, so it cannot open a network connection. It does keep `ACCESS_NETWORK_STATE`, which only reads connectivity status and appears to be needed for the on-device model download; the watch app strips both (ADR-025, amended 2026-09-17).
 
 However, schema and identifiers must support later sync.
 
@@ -449,7 +497,7 @@ This is post-MVP.
 
 ## 20. Security and privacy
 
-- no raw utterance network transmission in MVP
+- no raw utterance network transmission in MVP, enforced by `INTERNET` being absent from both apps' merged manifests (ADR-025); the phone app's `ACCESS_NETWORK_STATE` cannot transmit anything
 - no cloud AI fallback
 - avoid user text in logs
 - use app-private storage
@@ -466,6 +514,19 @@ The phone app must detect:
 - Wear Data Layer availability
 
 If semantic AI capability is unavailable, the application may still preserve raw captures but must not pretend interpretation succeeded.
+
+AI capability is implemented as `OnDeviceModelCapability.readiness()` in `core-ai` (§5, §13), returning:
+
+| `ModelReadiness` | Meaning | What the user needs |
+|---|---|---|
+| `READY` | model installed and structured output supported | nothing; the only state that interprets |
+| `NOT_INSTALLED` | model could be fetched but is not present | an offer to download (explicit, ADR-031) |
+| `DOWNLOAD_IN_PROGRESS` | a download is under way | wait |
+| `UNSUPPORTED_DEVICE` | this device cannot run the model | none possible |
+| `STRUCTURED_OUTPUT_UNSUPPORTED` | model installed but cannot produce structured output | none possible for now |
+| `CHECK_FAILED` | the check itself failed (or the capability is closed) | try again later |
+
+Any state other than `READY` makes interpretation fail as `UNAVAILABLE` without calling the model; the capture is kept as `FAILED_RETRYABLE`. Readiness alone is not sufficient: the app must also be the top foreground app when interpreting (ADR-029). Speech and Wear Data Layer capability detection are not built yet.
 
 ## 22. Supported platform baseline
 

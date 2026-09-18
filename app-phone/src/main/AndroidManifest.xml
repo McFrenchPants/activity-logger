@@ -4,12 +4,19 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-        ADR-025: genai-prompt (via core-ai) transitively brings Google's datatransport
-        telemetry stack, whose library manifests declare these permissions. Strip them
-        from the merged manifest so the app cannot reach the network.
+        ADR-025 (as amended 2026-09-17): genai-prompt (via core-ai) transitively brings
+        Google's datatransport telemetry stack, whose library manifests declare INTERNET and
+        ACCESS_NETWORK_STATE.
+
+        INTERNET is stripped from the merged manifest, so the app cannot open a network
+        connection and capture text cannot leave the device. That is the privacy guarantee.
+
+        ACCESS_NETWORK_STATE is deliberately kept. It only lets the app read whether the
+        device is connected and cannot transmit anything, and the on-device model download
+        appears to need it (the evidence, which is suggestive rather than conclusive, is in
+        ADR-025's amendment). The watch app strips both.
     -->
     <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
 
     <application
         android:allowBackup="false"

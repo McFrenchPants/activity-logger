@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-17T15:17:02.969Z",
+  "updated_at": "2026-09-18T03:04:10.000Z",
   "work_items": [
     {
       "id": "SS1",
@@ -325,6 +325,115 @@
           "task_packet_path": ".sdlc/task-packets/DS1.6.packet.json",
           "report_path": null,
           "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE \u00c2\u00a75/\u00c2\u00a76/\u00c2\u00a715/\u00c2\u00a716, AI_INTERPRETATION_SPEC \u00c2\u00a710/\u00c2\u00a711/\u00c2\u00a717, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
+        }
+      ]
+    },
+    {
+      "id": "AI1",
+      "title": "AI vertical slice (backlog item 4)",
+      "lifecycle_state": null,
+      "tasks": [
+        {
+          "id": "AI1.1",
+          "title": "Structured output type and decode mapping",
+          "status": "done",
+          "lifecycle_state": null,
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/AI1.1.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier pass. core.ai.InterpretationResponse (@Generable, 7 nullable String fields) + internal InterpretationResponseDecoder returning InterpretationDecodeResult.Decoded/Failed with a payload-free InterpretationDecodeFailure enum. Scaffold placeholders deleted. Nullable String fields are supported by the alpha schema compiler (generated provider records nullable=true), so no sentinel needed. Packet defect to avoid: docs listed in both read_paths and forbidden_paths."
+        },
+        {
+          "id": "AI1.2",
+          "title": "Prompt: system instruction, builder, versioning",
+          "status": "done",
+          "lifecycle_state": null,
+          "dependencies": [
+            "AI1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/AI1.2.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier pass plus two orchestrator follow-ups. core.ai.InterpretationPrompt: PROMPT_VERSION=\"2\", INTERPRETATION_SYSTEM_INSTRUCTION, buildInterpretationPrompt(InterpretationInput). Id instruction is branch-specific (empty candidate list -> give no id, answer NEW_ACTIVITY or UNRESOLVED). Drift guard pins three SHA-256 digests; the empty-candidate branch needed its own fixture, which the original guard lacked. 43 core-ai tests."
+        },
+        {
+          "id": "AI1.3",
+          "title": "Capability detection and model client lifecycle",
+          "status": "done",
+          "lifecycle_state": null,
+          "dependencies": [
+            "AI1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/AI1.3.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier pass. core.ai.OnDeviceModelCapability (public: readiness(): ModelReadiness, download(): Flow<ModelDownloadProgress>, close()); internal GenerativeModelSession seam + factory, internal session() accessor for AI1.4. download() is a cold flow -- the client is not even obtained until collection -- so nothing downloads implicitly (owner decision). Orchestrator fix: readiness() now rethrows CancellationException instead of reporting CHECK_FAILED. 70 core-ai tests. Carry-forward: core-ai uses kotlinx.coroutines transitively via ML Kit; declare it explicitly in AI1.5."
+        },
+        {
+          "id": "AI1.4",
+          "title": "GeminiNanoActivityInterpreter",
+          "status": "done",
+          "lifecycle_state": null,
+          "dependencies": [
+            "AI1.1",
+            "AI1.2",
+            "AI1.3"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/AI1.4.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier pass. core.ai.GeminiNanoActivityInterpreter(capability): readiness gate -> Failure(UNAVAILABLE) with zero generate/download calls; one generateContent per interpret, no retry; GenAiException retryDelay>0 -> RETRYABLE, zero -> OTHER; empty candidates or decode failure -> MALFORMED; Error and CancellationException propagate. structuredResultJson always null on purpose (typed API returns no raw model text; re-serialising would fabricate an audit field). Separate warmUp(). Build: new catalog alias kotlinx-coroutines-core-genai at 1.7.3 for core-ai, kept apart from Room's 1.8.1 entry; resolved classpath unchanged, debugApiElements still empty. 96 core-ai tests."
+        },
+        {
+          "id": "AI1.5",
+          "title": "Phone wiring and the on-device vertical slice",
+          "status": "done",
+          "lifecycle_state": null,
+          "dependencies": [
+            "AI1.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/AI1.5.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier pass -- but the end-to-end behaviour is UNPROVEN. app-phone CapturePipeline.create(context, clock, interpreterDecorator) is the single composition point (AutoCloseable, no DI). androidTest infra added; CaptureVerticalSliceTest ran on the attached Pixel 10 Pro via connectedDebugAndroidTest and SKIPPED at its org.junit.Assume because readiness() = NOT_INSTALLED. Nothing was downloaded (owner decision). No timing numbers exist. Host-side InterpreterUnavailableGuardTest passes. Known: AGP 9 exits 1 on an Assume-aborted instrumented test. Follow-up: ModelDownloadTest added (double-gated: instrumentation arg downloadModel=true plus readiness assumptions). Run with owner approval; started at 17:03 with readinessBefore=NOT_INSTALLED, no terminal event by 17:53 when the phone dropped off Wi-Fi ADB. Gradle's failure is the disconnect (empty JUnit failure body), not an assertion. Model state on the device is now UNKNOWN -- check readiness before downloading again. Wireless debugging needs re-pairing."
+        },
+        {
+          "id": "AI1.6",
+          "title": "Documentation",
+          "status": "done",
+          "lifecycle_state": null,
+          "dependencies": [
+            "AI1.5"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/AI1.6.packet.json",
+          "report_path": null,
+          "notes": "Done. Doc tier, orchestrator spot-check. ADR-025 amended; ADR-029..032."
         }
       ]
     }
