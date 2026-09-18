@@ -2,8 +2,11 @@ package com.mcfrenchpants.activityledger.pipeline
 
 import android.content.Context
 import android.util.Log
+import androidx.lifecycle.Lifecycle
+import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.mcfrenchpants.activityledger.MainActivity
 import com.mcfrenchpants.activityledger.core.ai.ModelReadiness
 import com.mcfrenchpants.activityledger.core.domain.interpretation.ActivityInterpreter
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpretationInput
@@ -141,8 +144,14 @@ class CaptureVerticalSliceTest {
         )
 
         // --- Capture to saved occurrence, through the real model. ------------------------------
+        // The app must be the top foreground app: Google refuses GenAI calls from the background,
+        // and without this the whole pipeline came back INTERPRETER_FAILED in a quarter of a
+        // second while the same call from a foregrounded app succeeded.
         val startedAt = System.nanoTime()
-        val outcome = pipeline.orchestrator.process(captureId)
+        val outcome = ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.moveToState(Lifecycle.State.RESUMED)
+            pipeline.orchestrator.process(captureId)
+        }
         val totalMillis = (System.nanoTime() - startedAt) / 1_000_000
         // Numbers only: how long the model call took, and how long the whole capture-to-save
         // path took. No capture text, prompt or model output is ever logged (AGENTS.md #11).

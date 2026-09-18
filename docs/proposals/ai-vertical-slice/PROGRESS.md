@@ -17,12 +17,22 @@ tier: spec §7 (verifier for every non-doc task).
 | AI1.2 | Prompt: system instruction, builder, versioning | done | Verifier pass; orchestrator sent back two fixes (empty-candidate wording, weak few-shot assertions). Prompt version 2 |
 | AI1.3 | Capability detection and model client lifecycle | done | Verifier pass. `OnDeviceModelCapability`; download flow is cold so nothing starts implicitly. Orchestrator made cancellation propagate |
 | AI1.4 | GeminiNanoActivityInterpreter | done | Verifier pass. One shot, no retry; structuredResultJson is honestly null; coroutines now declared explicitly |
-| AI1.5 | Phone wiring and the on-device vertical slice | done (unproven) | Verifier pass. Ran on the Pixel 10 Pro and **skipped**: the device reports the model NOT_INSTALLED. End-to-end behaviour still unproven |
+| AI1.5 | Phone wiring and the on-device vertical slice | done, **PROVEN** | Verifier pass, then passed for real on the Pixel 10 Pro 2026-09-17: AutoAccepted, matched "Mow lawn", yesterday at DATE_ONLY. interpret 6552 ms, capture-to-save 6920 ms |
 | AI1.6 | Documentation | todo | Must not claim a device run that did not happen |
 
 ## Open items (carry forward)
 
-- **The model's state on the Pixel 10 Pro is unknown.** It was NOT_INSTALLED, a
+- **Two permanent decisions are now pending, both from the passing run:**
+  (1) `ACCESS_NETWORK_STATE` is currently left in place by a commented-out line
+  in `app-phone`'s manifest, marked as an experiment. ADR-025 needs amending to
+  say so properly, or the line needs restoring. `INTERNET` stays removed either
+  way. (2) Every GenAI call needs the app in the foreground; that is a product
+  constraint on Step 6/7 (no background re-processing of captures), and belongs
+  in ARCHITECTURE and probably its own ADR.
+- Superseded: the model's state on the Pixel 10 Pro. It is installed and READY;
+  the slice passes.
+
+- **(superseded) The model's state on the Pixel 10 Pro was unknown.** It was NOT_INSTALLED, a
   download was approved and started, and the phone dropped off Wi-Fi debugging
   ~50 minutes in with no terminal event. Check readiness first next time; do not
   assume either way, and do not start a second download before checking.
@@ -45,6 +55,39 @@ tier: spec §7 (verifier for every non-doc task).
   generic failure text.
 
 ## Session log
+
+### 2026-09-17 (evening) — THE SLICE PASSES ON THE REAL DEVICE
+
+`CaptureVerticalSliceTest` passed on the Pixel 10 Pro: 1 test, 0 failures,
+0 skipped. "I cut the grass yesterday." went through the real Gemini Nano model
+and came out as an auto-accepted occurrence against the seeded "Mow lawn"
+activity, dated to the previous local day at DATE_ONLY precision, linked to its
+capture, with the raw text unchanged. **interpret 6552 ms, capture-to-save
+6920 ms** — the first real numbers this project has (TEST_STRATEGY §12).
+
+Two causes were found, in order:
+
+1. **The model was not installed, and the app could not ask about the network.**
+   ADR-025 strips `INTERNET` and `ACCESS_NETWORK_STATE`; the app's own log showed
+   it being refused connectivity state. With `ACCESS_NETWORK_STATE` restored (and
+   `INTERNET` still removed), the device reported
+   `Feature SAPI Open Prompt (Structured Output) is downloaded and ready`.
+   Whether the permission caused the download or it completed in the background
+   meanwhile is not separable after the fact — the evidence supports the
+   permission mattering, it does not prove it alone.
+2. **The app must be the top foreground app.** With the model ready, the
+   pipeline still failed in 245 ms with `INTERPRETER_FAILED`, while a direct
+   interpreter call from a foregrounded app returned SUCCESS in the same minute.
+   The slice test never put an Activity on screen; Google refuses GenAI calls
+   from the background. Launching `MainActivity` and holding it RESUMED around
+   `process()` turned the failure into a pass. This is a real product constraint,
+   not a test artifact: captures cannot be interpreted from a background service.
+
+Also confirmed along the way: `structuredResultJson` is genuinely absent from
+the typed API (`hasJson=false` on a real success), as AI1.4 assumed.
+
+A temporary `InterpreterDiagnosticTest` was used to separate the two causes
+(it logged only the result kind, no content) and has been deleted.
 
 ### 2026-09-17 (later still) — the download is almost certainly blocked by our own ADR-025
 
