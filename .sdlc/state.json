@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-18T03:51:44.251Z",
+  "updated_at": "2026-09-18T04:08:28.045Z",
   "work_items": [
     {
       "id": "SS1",
@@ -460,19 +460,19 @@
         {
           "id": "SR1.2",
           "title": "Recording format, replay scorer, report, regression gate",
-          "status": "todo",
-          "lifecycle_state": "approved",
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [
             "SR1.1"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/SR1.2.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done, verifier pass. Recording format v1 (SemanticRecording), CorpusInterpretationInput.forCase shared input builder, SemanticReplay through the real orchestrator, 4 classes NOT_RUN/CORRECT/SAFE_MISS/UNSAFE_MISS (+WRONG_NEW_NAME unsafe check), SemanticReport, gate SemanticRegressionGateTest (Assume-skips until recordings exist). Verifier note: a malformed recording's parse error message may echo recorded answer text in test output (synthetic data, low risk)."
         },
         {
           "id": "SR1.3",

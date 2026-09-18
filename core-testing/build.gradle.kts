@@ -28,3 +28,11 @@ dependencies {
     // signature takes or returns a kotlinx.serialization type.
     implementation(libs.kotlinx.serialization.json)
 }
+
+// The semantic regression gate (SemanticRegressionGateTest) writes its Markdown reports here.
+tasks.test {
+    systemProperty(
+        "semanticCorpus.reportDir",
+        layout.buildDirectory.dir("reports/semantic-corpus").get().asFile.absolutePath,
+    )
+}

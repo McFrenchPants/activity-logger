@@ -88,13 +88,24 @@ class InMemoryActivityRepository(private val clock: Clock) : ActivityRepository 
     fun interpretationsFor(captureId: String): List<InterpretationRecord> =
         interpretationRows.filter { interpretationOwners[it.first] == captureId }.map { it.second }
 
-    /** Creates an activity directly (test seeding; not counted as a write). Returns its id. */
+    /**
+     * Creates an activity directly (test seeding; not counted as a write). Returns its id.
+     *
+     * @param id Explicit id to use (e.g. a semantic-corpus fixture's fixed id); when null (the
+     *   default) the next generated "activity-N" id is used. An explicit id must not already
+     *   exist. Explicit ids do not advance the generated-id counter.
+     */
     fun seedActivity(
         displayName: String,
         status: CanonicalActivityStatus = CanonicalActivityStatus.ACTIVE,
         aliases: List<String> = emptyList(),
+        id: String? = null,
     ): String {
-        val id = nextId("activity")
+        if (id != null) {
+            require(id.isNotBlank()) { "explicit activity id must not be blank" }
+            require(!activityRows.containsKey(id)) { "activity $id already exists" }
+        }
+        val id = id ?: nextId("activity")
         activityRows[id] = Activity(
             id, displayName, NameNormalizer.normalize(displayName), status, aliases.map(NameNormalizer::normalize),
         )

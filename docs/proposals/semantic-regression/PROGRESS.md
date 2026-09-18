@@ -14,7 +14,7 @@ tier: spec §6 (verifier for SR1.2-SR1.4).
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
 | SR1.1 | Corpus format, loader and cases | done | Spot-check. 48 cases, 3 catalogs. One known resolver gap ("Saturday morning"). Orchestrator bumped kotlinx-serialization to 1.11.0 |
-| SR1.2 | Recording format, replay scorer, report, regression gate | todo | Depends SR1.1. Verifier |
+| SR1.2 | Recording format, replay scorer, report, regression gate | done | Verifier pass. Gate: `core.testing.corpus.SemanticRegressionGateTest`; skips until recordings exist |
 | SR1.3 | Device recorder and phone-session script | todo | Depends SR1.2. Verifier. Compile-only is acceptable |
 | SR1.4 | Stand-in recorder (local model) | todo | Depends SR1.2. Verifier |
 | SR1.5 | Install stand-in, first stand-in recording | todo | Orchestrator run. Ask owner right before installing |
@@ -22,6 +22,21 @@ tier: spec §6 (verifier for SR1.2-SR1.4).
 | SR1.7 | First device recording and baseline | todo | Needs the Pixel 10 Pro ~5-10 min; owner schedules |
 
 ## Session log
+
+### 2026-09-18 — SR1.2 done
+
+Replay runs each recorded answer through the real orchestrator (fresh
+`InMemoryActivityRepository` seeded with the corpus's fixed ids via the new
+`seedActivity(id=...)`), refusing stale recordings (context hash / candidate
+ids / unknown case). Classes: NOT_RUN, CORRECT, SAFE_MISS, UNSAFE_MISS.
+Reports go to `core-testing/build/reports/semantic-corpus/{device,standin}.md`.
+Recorders MUST build entries with `CorpusInterpretationInput.forCase` +
+`RecordingEntry.of`. Verifier's non-blocking note: a malformed recording's
+parse error may quote recorded (synthetic) answer text in test output.
+
+A Motorola moto g 2025 was found attached over USB during this run. It is
+not a Gemini Nano test device; nothing was installed on it and SR1.3 is
+compile-only.
 
 ### 2026-09-17 — SR1.1 done
 
