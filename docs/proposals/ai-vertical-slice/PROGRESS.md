@@ -18,17 +18,19 @@ tier: spec §7 (verifier for every non-doc task).
 | AI1.3 | Capability detection and model client lifecycle | done | Verifier pass. `OnDeviceModelCapability`; download flow is cold so nothing starts implicitly. Orchestrator made cancellation propagate |
 | AI1.4 | GeminiNanoActivityInterpreter | done | Verifier pass. One shot, no retry; structuredResultJson is honestly null; coroutines now declared explicitly |
 | AI1.5 | Phone wiring and the on-device vertical slice | done, **PROVEN** | Verifier pass, then passed for real on the Pixel 10 Pro 2026-09-17: AutoAccepted, matched "Mow lawn", yesterday at DATE_ONLY. interpret 6552 ms, capture-to-save 6920 ms |
-| AI1.6 | Documentation | todo | Must not claim a device run that did not happen |
+| AI1.6 | Documentation | done | Orchestrator spot-check (doc tier). ADR-025 amended, ADR-029..032 added, RESULTS.md written |
 
 ## Open items (carry forward)
 
-- **Two permanent decisions are now pending, both from the passing run:**
-  (1) `ACCESS_NETWORK_STATE` is currently left in place by a commented-out line
-  in `app-phone`'s manifest, marked as an experiment. ADR-025 needs amending to
-  say so properly, or the line needs restoring. `INTERNET` stays removed either
-  way. (2) Every GenAI call needs the app in the foreground; that is a product
-  constraint on Step 6/7 (no background re-processing of captures), and belongs
-  in ARCHITECTURE and probably its own ADR.
+- **Background refusal is not retryable yet.** A GenAI call refused because the
+  app is backgrounded surfaces as OTHER -> INTERPRETER_FAILED -> review, not
+  FAILED_RETRYABLE (documented as-built in ADR-029 and AI spec §17). Must be
+  fixed before any background/watch capture path (Steps 6-8) interprets.
+- ADR-025's amendment rests on suggestive evidence. A download from a fresh
+  NOT_INSTALLED state with ACCESS_NETWORK_STATE present from the start has not
+  been observed; check during Step 7's download UI.
+- Closed: both permanent decisions from the passing run (ADR-025 amended,
+  ADR-029 foreground-only) were recorded in AI1.6.
 - Superseded: the model's state on the Pixel 10 Pro. It is installed and READY;
   the slice passes.
 
@@ -55,6 +57,27 @@ tier: spec §7 (verifier for every non-doc task).
   generic failure text.
 
 ## Session log
+
+### 2026-09-17 (night) — AI1.6 done; work item complete on the branch
+
+Orchestrator decided the two pending questions rather than escalating them:
+`ACCESS_NETWORK_STATE` stays permanently on the phone (read-only, cannot
+transmit; the download appears to need it; `INTERNET` still stripped, the watch
+still strips both) — ADR-025 amended in place with the evidence described as
+suggestive. The foreground-only rule became ADR-029. ADR-030 (one-shot), ADR-031
+(explicit download), ADR-032 (no DI) record the spec's §5 decisions.
+ARCHITECTURE, AI_INTERPRETATION_SPEC, PROJECT_STATUS updated; RESULTS.md written.
+Merged manifest re-checked: ACCESS_NETWORK_STATE present, no INTERNET.
+Orchestrator also fixed the stale `structured_result_json` line in
+DATA_MODEL.md (outside the packet).
+
+Process slip, mine: the first implementer spawn went out with a placeholder
+instead of the packet; the implementer correctly refused, and was resumed with
+the packet inline.
+
+All six AI1 tasks are done. Lite mode: the branch is ready for the owner to merge
+by hand. Next after merge: post-merge bookkeeping (state `released`, backlog
+item 4 `done`), then Step 5 (semantic regression corpus).
 
 ### 2026-09-17 (evening) — THE SLICE PASSES ON THE REAL DEVICE
 

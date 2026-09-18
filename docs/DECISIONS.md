@@ -318,22 +318,33 @@ Revisiting this is a measurement question, not a design one: once Step 6 provide
 
 ---
 
-## ADR-025 — The apps strip the `INTERNET` permission that arrives with ML Kit
+## ADR-025 — The apps strip the `INTERNET` permission that arrives with ML Kit; the phone keeps `ACCESS_NETWORK_STATE`
 
-**Status:** Accepted
+**Status:** Accepted, amended 2026-09-17
 
 `com.google.mlkit:genai-prompt` depends transitively on Google's `datatransport` stack (`transport-backend-cct`, `transport-runtime`). Those libraries declare `android.permission.INTERNET` and `ACCESS_NETWORK_STATE` in their own manifests, plus a `TransportBackendDiscovery` service pointing at the Clearcut telemetry backend, a `JobInfoSchedulerService` and an alarm receiver. Android's manifest merger folds all of that into any app that depends on `core-ai`, so `app-phone` would silently gain network permission the first time it uses the AI path.
 
-`app-phone` and `app-wear` therefore explicitly remove them in their own manifests:
+The apps therefore explicitly remove permissions in their own manifests:
+
+| App | `INTERNET` | `ACCESS_NETWORK_STATE` |
+|---|---|---|
+| `app-phone` | removed | **kept** (see amendment) |
+| `app-wear` | removed | removed |
 
 ```xml
+<!-- app-phone -->
+<uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+
+<!-- app-wear -->
 <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
 ```
 
-The merged manifest of every release build must be checked for `INTERNET` as part of the privacy/logging review in the hardening step. A dependency bump is the realistic way this regresses.
+The merged manifest of every release build must be checked for `INTERNET` as part of the privacy/logging review in the hardening step. A dependency bump is the realistic way this regresses. `app-wear`'s merged manifest must also stay free of `ACCESS_NETWORK_STATE`.
 
-Gemini Nano inference is local and binds to AICore over IPC, so nothing in the MVP needs network access to work. The permissions are an artifact of a shared telemetry library, not a requirement of the feature.
+Gemini Nano inference is local and binds to AICore over IPC, so inference itself needs no network access. `ACCESS_NETWORK_STATE` only lets an app read whether the device is connected; it cannot open a connection or send anything. The privacy guarantee rests entirely on `INTERNET` being absent, and that is unchanged.
+
+**Amendment (2026-09-17):** originally both apps also stripped `ACCESS_NETWORK_STATE`, on the reasoning that inference is local. That reasoning covered inference but not the one-time download of the on-device model, which the phone must be able to obtain when the user asks for it (ADR-031). On the Pixel 10 Pro, with `ACCESS_NETWORK_STATE` stripped, a bounded 20-minute explicit download attempt emitted no progress events at all while the app process logged being refused `ACCESS_NETWORK_STATE` by the connectivity service. With `ACCESS_NETWORK_STATE` left in place (and `INTERNET` still removed), the device then reported the model and its structured-output feature downloaded and ready. This evidence is **suggestive, not conclusive**: an earlier, inconclusive download attempt may have completed in the background in the meantime, and the two causes cannot be separated after the fact. `app-phone` keeps the permission anyway, because it cannot transmit anything, and a user whose model silently never downloads has a broken app. `app-wear` still strips both, because the watch never runs inference or downloads a model (ADR-003).
 
 **Reason:** ADR-013 and the product's core promise are that captured activity text never leaves the device. A privacy guarantee that depends on a transitive dependency not choosing to use a permission it holds is not a guarantee. Removing the permission makes the guarantee enforced by the platform rather than by trust, and turns any future need for it into a deliberate, visible change.
 
@@ -418,3 +429,52 @@ Deliberately unresolvable: "a few days ago" (no defined count, so any date would
 English only. Another language, or a new phrase, is an additional rule.
 
 **Reason:** ADR-018 — temporal precision must not be fabricated. A fixed table is testable, reproducible for re-interpretation, and keeps time arithmetic out of the model and the prompt; anything outside it asks the user instead of guessing.
+
+---
+
+## ADR-029 — On-device AI calls are made only while the phone app is in the foreground
+
+**Status:** Accepted (2026-09-17)
+
+The platform permits ML Kit GenAI (Gemini Nano) calls only from the app that is currently the top foreground app; calls made from the background are refused. This is a platform rule, not a project choice, and the project designs around it:
+
+- Every `generateContent` call (and so every `ActivityInterpreter.interpret` on the Gemini Nano adapter) is made while the phone app is in the foreground.
+- Captures cannot be interpreted from a background service, `WorkManager` worker or other backgrounded code path.
+- A capture that arrives while the phone app is in the background (for example from the watch, Step 8) is to be stored raw immediately (ADR-007) and interpreted when the app is next in the foreground.
+- Callers must therefore check they are in the foreground before calling `CaptureInterpretationOrchestrator.process()`. As built, a refused background call is not distinguishable from other runtime errors: the adapter reports it as `OTHER`, which the orchestrator records as an `INVALID` interpretation with `INTERPRETER_FAILED` and sends the capture to review rather than marking it retryable. Recognising the refusal specifically is left for when a background capture path is actually built (Steps 6–8).
+
+This constrains ARCHITECTURE.md §6 (capture orchestration) and §18 (background processing), and Steps 6 and 7 (phone voice capture and phone UX), which must trigger interpretation from a foreground context.
+
+**Evidence:** on the Pixel 10 Pro (2026-09-17), with the model installed and ready, the vertical-slice instrumented test failed in 245 ms with `INTERPRETER_FAILED` while no Activity of the app was in the foreground. Launching `MainActivity` and holding it resumed around `process()` made the same test pass. Only this one pair of runs supports the rule on this project's hardware; Google's documentation states it generally.
+
+**Reason:** Designing a background interpretation path would build on a call the platform refuses. Storing the raw capture first and interpreting on the next foreground visit loses nothing (the raw capture is the evidence) and keeps the failure mode visible instead of silent.
+
+---
+
+## ADR-030 — Interpretation is one-shot: no retry, no repair prompt
+
+**Status:** Accepted (2026-09-17)
+
+The Gemini Nano adapter makes exactly one `generateContent` call per `interpret`. There is no automatic retry, no second call, no "fix your JSON" repair prompt and no fallback. A response that is missing or does not decode into the schema's permitted values becomes interpreter failure `MALFORMED`, which the orchestrator records as an `INVALID` interpretation (`INTERPRETER_OUTPUT_MALFORMED`) and sends to review (ADR-027). A runtime error that ML Kit marks as worth retrying later becomes `RETRYABLE` (capture `FAILED_RETRYABLE`), but the adapter itself does not retry.
+
+**Reason:** An undecodable answer already has a correct, lossless destination: review. A repair loop asks the model to rewrite its own output until it looks acceptable, which is the trust-the-model failure mode ADR-010 exists to prevent, and it spends the user's battery and latency on every bad answer. Revisit only with measured evidence from the semantic regression corpus (Step 5) that malformed answers are frequent enough to matter.
+
+---
+
+## ADR-031 — The on-device model is downloaded only when explicitly requested
+
+**Status:** Accepted (owner decision 2026-09-17)
+
+Nothing large is ever downloaded as a side effect of logging an activity. `OnDeviceModelCapability.readiness()` never starts a download; a model that is not installed yields `NOT_INSTALLED`, and the interpreter then returns `Failure(UNAVAILABLE)` without touching the model (the capture is kept and marked `FAILED_RETRYABLE`). Downloading is a separate call, `OnDeviceModelCapability.download()`, whose flow is cold: nothing happens until it is explicitly collected. Nothing on the interpretation path calls it, so the Step 7 UI can tell the user the size and ask first.
+
+**Reason:** The model is a large download over the user's connection and storage. Starting it silently because someone logged "I mowed the lawn" would spend the user's data and battery without their knowledge. Keeping download a separate, explicit call makes the choice the user's and keeps interpretation's behaviour predictable (ready or unavailable, never "maybe fetching").
+
+---
+
+## ADR-032 — No dependency-injection framework for now
+
+**Status:** Accepted (2026-09-17)
+
+The phone app wires its collaborators by hand. `CapturePipeline.create(context, clock, interpreterDecorator)` in `app-phone` is the single composition point: it builds the repository, the one `OnDeviceModelCapability`, the `GeminiNanoActivityInterpreter` and the `CaptureInterpretationOrchestrator`. `CapturePipeline` is `AutoCloseable` and is created once per app process. No Hilt, Koin or Dagger.
+
+**Reason:** There are three collaborators to wire. A DI framework (and its annotation processing, which ADR-022 already makes delicate) would be a large, hard-to-reverse commitment to solve a problem the project does not have, and would hide the ownership rule that exactly one model client exists per process. Revisit when the object graph becomes genuinely painful to wire by hand (likely no earlier than Step 7's ViewModels or Step 8's watch transport).

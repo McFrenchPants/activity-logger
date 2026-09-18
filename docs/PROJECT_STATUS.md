@@ -8,7 +8,9 @@
 
 Documentation baseline created. Platform/API validation complete: SDK baselines, build toolchain, AI stack and speech API are pinned (ADR-021 through ADR-024), The multi-module Gradle scaffold is built and merged (empty phone and watch apps plus the core modules; see `docs/proposals/gradle-scaffold/BUILD_NOTES.md`).
 
-No user-facing product behaviour has been implemented yet. Room schema v1 (backlog item 3, `docs/proposals/room-schema/`) is implemented, tested and merged to `main` (2026-09-16) in `core-data`; `docs/DATA_MODEL.md` describes it and ADR-026 records the row-identifier decision. The domain services (work item DS1, `docs/proposals/domain-services/`) are implemented, tested and merged to `main` (2026-09-17): interpreter and repository contracts, candidate selection, deterministic time resolution (ADR-028), the two-outcome validation policy (ADR-027), capture processing, corrections and review resolution; no real interpreter is wired in yet.
+No user-facing product behaviour has been implemented yet. Room schema v1 (backlog item 3, `docs/proposals/room-schema/`) is implemented, tested and merged to `main` (2026-09-16) in `core-data`; `docs/DATA_MODEL.md` describes it and ADR-026 records the row-identifier decision. The domain services (work item DS1, `docs/proposals/domain-services/`) are implemented, tested and merged to `main` (2026-09-17): interpreter and repository contracts, candidate selection, deterministic time resolution (ADR-028), the two-outcome validation policy (ADR-027), capture processing, corrections and review resolution.
+
+The AI vertical slice (Step 4, work item AI1, `docs/proposals/ai-vertical-slice/`) is built on branch `feature/ai-vertical-slice` (not yet merged to `main`): the Gemini Nano interpreter and capability check in `core-ai`, wired into the phone app through `CapturePipeline` (ARCHITECTURE.md §5, §13). It has passed **once** on a real device (Pixel 10 Pro, 2026-09-17): the hard-coded sentence "I cut the grass yesterday." was matched to an existing "Mow lawn" activity, dated to the previous day at date-only precision, auto-accepted and stored with its raw text intact (`docs/proposals/ai-vertical-slice/RESULTS.md`). That is one sentence, not evidence of general accuracy; accuracy is what the semantic regression corpus (Step 5) is for. Decisions from the device run: ADR-025 amended (the phone keeps `ACCESS_NETWORK_STATE`, still no `INTERNET`), ADR-029 (on-device AI only while the app is in the foreground), ADR-030 (one-shot interpretation, no repair loop), ADR-031 (model download only on explicit request), ADR-032 (no DI framework). There is still no user interface: capture is not yet possible by voice or by typing in the app.
 
 ## Completed
 
@@ -23,7 +25,8 @@ No user-facing product behaviour has been implemented yet. Room schema v1 (backl
 - Cloud sync explicitly deferred.
 - Semantic regression strategy defined.
 - Visual design system, phone/watch mockups, and UI decisions approved (`docs/UX_VISUAL_SPEC.md`, ADR-019, ADR-020).
-- Platform/API validation completed and dependency versions pinned (ADR-021 through ADR-024). The Pixel 10 Pro is confirmed *eligible* for Gemini Nano (AICore installed and enabled, bootloader locked, listed by Google on nano-v3); a real inference call is not proven until Step 4.
+- Platform/API validation completed and dependency versions pinned (ADR-021 through ADR-024). The Pixel 10 Pro is confirmed *eligible* for Gemini Nano (AICore installed and enabled, bootloader locked, listed by Google on nano-v3).
+- AI vertical slice (Step 4) built, and passed once on the Pixel 10 Pro on 2026-09-17: a real on-device structured interpretation call, through validation, into Room. One sentence only; see `docs/proposals/ai-vertical-slice/RESULTS.md`.
 
 ## Next milestone
 
@@ -33,17 +36,17 @@ Recommended tasks:
 
 1. ~~Verify current official Android API/device support.~~ Done 2026-09-15.
 2. ~~Select exact `minSdk`, `targetSdk`, Wear OS baseline.~~ Done — ADR-021.
-3. ~~Verify Gemini Nano Prompt API + Structured Output availability on target phone.~~ Done — ADR-023. Library-level availability confirmed from Google's device list and the device's AICore install; a real inference call is still unproven until Step 4.
+3. ~~Verify Gemini Nano Prompt API + Structured Output availability on target phone.~~ Done — ADR-023. Library-level availability confirmed from Google's device list and the device's AICore install; a real structured inference call succeeded on 2026-09-17 (item 9).
 4. ~~Verify selected on-device speech recognition approach.~~ Done — ADR-024.
 5. ~~Create Gradle project structure.~~ Done 2026-09-16 — work item SS1.
 6. ~~Define Room schema version 1.~~ Done 2026-09-16 — work item DB1 (see `docs/DATA_MODEL.md`, ADR-026).
 7. ~~Define domain interfaces.~~ Done 2026-09-17 — work item DS1 (merged to `main` 2026-09-17; see `docs/ARCHITECTURE.md` §5, ADR-027, ADR-028).
 8. Define watch/phone protocol.
-9. Build a minimal end-to-end technical spike:
+9. ~~Build a minimal end-to-end technical spike:~~ Built 2026-09-17 — work item AI1 (Step 4), on branch `feature/ai-vertical-slice`, passed once on the Pixel 10 Pro (`docs/proposals/ai-vertical-slice/RESULTS.md`):
    - hardcoded text input
    - Gemini Nano structured interpretation
    - Room persistence
-10. Run seed semantic corpus.
+10. **Next:** Run seed semantic corpus (Step 5 — semantic regression: automate the seed corpus; do not move on until core synonym and near-neighbour cases are measurable). This is also where the provisional choices recorded in the vertical slice (confidence policy, schema-in-prompt, one-shot decoding) get measured.
 11. Then add actual voice capture and Wear OS transport.
 
 The technical spike is not a throwaway architecture. It is a vertical validation of the intended MVP stack.
@@ -53,6 +56,9 @@ The technical spike is not a throwaway architecture. It is a vertical validation
 - Gemini Nano capability varies by supported device/configuration.
 - AICore/model preparation can temporarily be unavailable.
 - Structured Output availability must be feature-detected.
+- **On-device AI calls are refused unless the phone app is the top foreground app** (ADR-029). Background interpretation is impossible; watch captures (Step 8) arriving in the background must wait for the app to be opened. A refused call currently lands in review as `INTERPRETER_FAILED` rather than being retried, so callers must check they are in the foreground.
+- **The model download path is not well understood.** On the Pixel 10 Pro the download only completed after `ACCESS_NETWORK_STATE` was restored, but whether that caused it is unproven (ADR-025 amendment). The user-facing download flow (Step 7) should be tested on a device where the model is not yet installed.
+- Interpretation takes seconds, not milliseconds: about 6.5 s for one interpretation on the Pixel 10 Pro in the single device run. The Step 7 UX needs to account for that; it has not been measured beyond one call.
 - **ML Kit Structured Output is alpha** (`genai-schema-compiler:1.0.0-alpha1`) with no SLA and an explicit backward-compatibility warning. Contained to `core-ai` by ADR-023; a breaking change is expected to cost a one-module repair, and that containment must be maintained.
 - **Kotlin cannot advance past 2.3.x** while Room needs KSP and KSP has no 2.4.x release (ADR-022). A routine dependency bump can break the build here.
 - On-device speech API support must be verified for chosen phone baseline.
@@ -95,6 +101,7 @@ None currently. (Resolved 2026-09-15: UX_SPEC §6 example showed a clock time fo
 - Pixel 7 Pro is a test-only device (Tensor G2, predates the Gemini Nano hardware baseline). Use it for the "AI unavailable" capability-detection path, not for validating interpretation.
 - Pixel 10 Pro verified state (2026-09-15, via `adb` over Wi-Fi): Android 17 / API 37, build `CP2A.260805.005`, security patch 2026-08-05, arm64-v8a, 16 GB RAM, locale en-US. `com.google.android.aicore` installed and enabled at `prod_aicore_20260723.00_RC11`; `com.google.android.as` and `com.google.android.as.oss` also enabled. Google's device list places the Pixel 10 Pro on **Gemini Nano nano-v3** for the Prompt API.
 - The on-device speech recognizer role (`android.app.role.SYSTEM_SPEECH_RECOGNIZER`) is held by `com.google.android.tts` on the Pixel 10 Pro. `pm query-services android.speech.RecognitionService` returns nothing useful — check the role holder via `dumpsys role` instead.
+- On-device AI instrumented tests must hold an app Activity in the foreground (e.g. `ActivityScenario.launch(MainActivity::class.java)`) around the interpretation call; without one the call fails in ~250 ms with `INTERPRETER_FAILED` (ADR-029). Wi-Fi ADB can drop during long model downloads, so a download attempt over Wi-Fi debugging may be inconclusive.
 - `pm list features` does **not** advertise any AICore/GenAI feature flag. Do not capability-detect Gemini Nano with a system feature check; use the ML Kit `checkStatus()` / `isStructuredOutputFeatureAvailable()` APIs (ADR-023).
 - Local Android SDK has platforms up to `android-36` and build-tools up to `35.0.1`, on JDK 21. AGP 9.4.0 will want newer build-tools; let the SDK manager fetch them on first sync rather than pinning a stale build-tools version.
 

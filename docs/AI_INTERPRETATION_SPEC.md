@@ -81,6 +81,28 @@ activityId = null
 
 must fail validation.
 
+### Implemented shape (schema version 1)
+
+The output type is `InterpretationResponse` in `core-ai` (`InterpretationResponse.kt`), a `@Generable` data class compiled into the response schema by ML Kit's schema compiler (ADR-023). Its schema version is `INTERPRETATION_SCHEMA_VERSION = 1`, recorded as `schema_version` on every interpretation; it is bumped when a field is added, removed, renamed or retyped, or when a field's permitted enum spellings change.
+
+It has seven nullable `String` fields, one per `InterpretationCandidate` field:
+
+| Field | Permitted values (`@Guide(enumValues = ...)`) | Required to decode |
+|---|---|---|
+| `operation` | `LOG_ACTIVITY`, `QUERY_HISTORY`, `UNSUPPORTED` | yes |
+| `activityResolution` | `EXISTING_ACTIVITY`, `NEW_ACTIVITY`, `AMBIGUOUS`, `UNRESOLVED` | yes |
+| `matchedActivityId` | free text; must be copied from an offered id | no |
+| `proposedCanonicalName` | free text | no |
+| `activityState` | `COMPLETED`, `IN_PROGRESS` | no |
+| `temporalExpression` | free text, the user's own words | no |
+| `confidenceBand` | `HIGH`, `MEDIUM`, `LOW` | no |
+
+The alpha schema compiler has no enum support, so domain enums travel as strings constrained by `@Guide(enumValues = ...)`. An internal pure decoder maps the response onto `InterpretationCandidate`, matching enum spellings case-insensitively after trimming and nothing more (no synonyms or nearest-match guessing). It fails, with a value-free reason code, when a required enum is missing or any enum spelling is unrecognised; the interpreter reports that as `MALFORMED`. The decoder performs no semantic checks: the impossible combinations above decode successfully and are rejected by `InterpretationValidator` in `core-domain` (ADR-010, ADR-027).
+
+The example in §3 predates the implementation; the implemented field names are `matchedActivityId` and `activityState` rather than `activityId` and `state`.
+
+`structuredResultJson` (stored as `structured_result_json`) is always null for this interpreter: the typed API returns an already-decoded object, never the model's raw text, and re-serialising the decoded object would fabricate an audit field.
+
 ## 5. System instruction principles
 
 The interpreter system instruction should communicate:
@@ -132,6 +154,17 @@ Few-shot examples should include:
 - ambiguous activity
 - completed/in-progress
 - relative time phrase
+
+### Implemented prompt (prompt version `"2"`)
+
+The prompt text lives only in `core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/InterpretationPrompt.kt`, which is the single source of truth for it; this document deliberately does not copy it. It consists of:
+
+- a fixed system instruction: a short numbered list of the §5 principles;
+- a per-capture prompt built by a pure function (no clock, default locale, randomness, I/O or logging), with the five sections recommended above in that order: task, rules with the canonical-naming rule and all six kinds of worked example listed above, current context (the capture's local date-time and IANA zone, given only so relative wording can be understood; the model is told not to compute a date), the candidate activities (id, name, aliases, in the order the selector supplied them, or an explicit "none offered" instruction), and the user utterance inside fixed delimiters.
+
+The schema, including each field's `@Guide` description, is also included in the prompt (`includeSchemaInPrompt = true`). This is provisional and should be re-measured once the semantic regression corpus runs on a device.
+
+Generation settings are chosen for determinism: temperature 0, topK 1, one candidate, a fixed seed, at most 256 output tokens, thinking off. Exactly one call is made per capture, with no retry and no repair prompt (ADR-030).
 
 ## 7. Candidate activity selection
 
@@ -368,15 +401,30 @@ Structured Output availability must be checked where the API requires it.
 
 Do not assume installation implies model readiness.
 
+Implemented as `OnDeviceModelCapability.readiness()` in `core-ai` (ARCHITECTURE.md §21), which maps ML Kit's `checkStatus()` and `isStructuredOutputFeatureAvailable()` onto:
+
+- `READY` — installed **and** structured output supported; the only state in which the model is called
+- `NOT_INSTALLED` — downloadable but not present; never triggers a download by itself (ADR-031)
+- `DOWNLOAD_IN_PROGRESS`
+- `UNSUPPORTED_DEVICE`
+- `STRUCTURED_OUTPUT_UNSUPPORTED` — installed, but cannot produce the structured response this spec depends on
+- `CHECK_FAILED` — the check itself failed, or an unrecognised status was returned; never treated as runnable
+
+The interpreter re-checks readiness on every `interpret` call. The model is downloaded only through an explicit, separate `download()` call.
+
+Readiness is necessary but not sufficient: the platform refuses on-device AI calls unless the phone app is the top foreground app (ADR-029). Interpretation must therefore be run from the foreground.
+
 ## 17. AICore unavailable behavior
 
-If inference is unavailable:
+If the device is not `READY` (§16), the interpreter returns `Failure(UNAVAILABLE)` without calling the model. If inference is unavailable:
 
 1. retain raw capture
 2. mark capture `FAILED_RETRYABLE` (interpreter failure `UNAVAILABLE` or `RETRYABLE`); the capture can be processed again later, since any capture without an occurrence may be reprocessed
 3. do not fabricate interpretation (no interpretation row is stored for these failures)
 4. do not silently send to cloud
 5. expose diagnostic state to the user
+
+A call made while the phone app is in the background is refused by the platform even when the device is `READY` (ADR-029). As built, the adapter cannot tell that refusal apart from other runtime errors and reports it as `OTHER`, which the orchestrator records as `INTERPRETER_FAILED` and sends to review rather than `FAILED_RETRYABLE`. Callers must make sure the app is in the foreground before processing a capture; a capture that arrives in the background is kept raw and processed on the next foreground visit.
 
 ## 18. Privacy
 
@@ -397,6 +445,8 @@ Any material prompt change must:
 - increment prompt version
 - run semantic regression corpus
 - document behavior changes
+
+Implemented: the prompt text is in `InterpretationPrompt.kt` (`core-ai`), and its identifier is `PROMPT_VERSION`, currently `"2"`. The source requires any material change to the prompt text to bump that value and update the drift-guard fixture in `InterpretationPromptDriftTest`. Every interpretation records three separate versions: `prompt_version` (`"2"`), `schema_version` (`1`, §4) and `interpreter_version` (`"gemini-nano-1"`, bumped when generation settings, decoding or model family change). The semantic regression corpus (Step 5) does not exist yet, so no prompt version has been measured against it.
 
 ## 20. Seed semantic examples
 
