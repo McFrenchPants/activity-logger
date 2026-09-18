@@ -7,8 +7,12 @@
 // Deliberately no coroutines-test, Truth, Robolectric, androidx.test or mockk:
 // none is pinned by an ADR and nothing needs them yet. The task that first
 // genuinely needs one adds it then, after verifying it resolves.
+//
+// The serialization plugin and JSON library are here only to read the semantic regression
+// corpus (src/main/resources/semantic-corpus/corpus.json). No other module applies them.
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -20,4 +24,7 @@ dependencies {
     // version to gradle/libs.versions.toml.
     api(kotlin("test"))
     api(project(":core-domain"))
+    // `implementation`, not `api`: corpus decoding happens inside this module and no public
+    // signature takes or returns a kotlinx.serialization type.
+    implementation(libs.kotlinx.serialization.json)
 }

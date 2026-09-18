@@ -13,7 +13,7 @@ tier: spec §6 (verifier for SR1.2-SR1.4).
 
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
-| SR1.1 | Corpus format, loader and cases | todo | |
+| SR1.1 | Corpus format, loader and cases | done | Spot-check. 48 cases, 3 catalogs. One known resolver gap ("Saturday morning"). Orchestrator bumped kotlinx-serialization to 1.11.0 |
 | SR1.2 | Recording format, replay scorer, report, regression gate | todo | Depends SR1.1. Verifier |
 | SR1.3 | Device recorder and phone-session script | todo | Depends SR1.2. Verifier. Compile-only is acceptable |
 | SR1.4 | Stand-in recorder (local model) | todo | Depends SR1.2. Verifier |
@@ -22,6 +22,21 @@ tier: spec §6 (verifier for SR1.2-SR1.4).
 | SR1.7 | First device recording and baseline | todo | Needs the Pixel 10 Pro ~5-10 min; owner schedules |
 
 ## Session log
+
+### 2026-09-17 — SR1.1 done
+
+Corpus at `core-testing/src/main/resources/semantic-corpus/corpus.json` (48
+cases: synonym 18, near-neighbour 9, new-activity 4, temporal 11, ambiguity 5,
+state 3). Corpus file forced to LF so its SHA-256 is stable across checkouts.
+Known resolver gap: `TemporalResolver` has no weekday + part-of-day rule, so
+"Mowed Saturday morning." is Unresolvable (should be 2026-09-12 APPROXIMATE);
+the temporal test pins the gap set exactly. Candidate follow-up, not in SR1.
+SR1.2 must map orchestrator `Rejected` to the NEEDS_REVIEW expectation and
+treat a null in allowed states as "model left state empty".
+
+Framework note: `scripts/sdlc/validate-state.mjs` flags unchanged `released`
+items (SS1..AI1) as needing evidence files; transitions for SR1 are validated
+per item and pass. Not fixed here.
 
 ### 2026-09-17 — SR1 scaffolded
 

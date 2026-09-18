@@ -34,6 +34,11 @@ kotlinxCoroutines = "1.8.1"
 # implicit AND the resolved classpath is unchanged. Pointing core-ai at kotlinxCoroutines above
 # would silently upgrade it to 1.8.1. Do not merge the two without checking both modules.
 kotlinxCoroutinesGenai = "1.7.3"
+# JSON reading for core-testing's semantic regression corpus (test infrastructure only).
+# 1.11.0 requires kotlin-stdlib 2.3.20 (checked in its Maven Central .module file); its compiler plugin is
+# org.jetbrains.kotlin.plugin.serialization at the `kotlin` version above. Do not move to a
+# release built against a newer Kotlin without checking it against the Kotlin 2.3.x pin.
+kotlinxSerialization = "1.11.0"
 
 # Host-side (JVM, no device) test tooling -- see docs/proposals/room-schema/TOOLING_NOTES.md
 junit4 = "4.13.2"
@@ -59,6 +64,7 @@ androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "
 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-core-genai = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesGenai" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 
 junit4 = { module = "junit:junit", version.ref = "junit4" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
@@ -83,4 +89,5 @@ android-library = { id = "com.android.library", version.ref = "agp" }
 # hit this; do not add it back.
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
