@@ -46,6 +46,54 @@ tier: spec §7 (verifier for every non-doc task).
 
 ## Session log
 
+### 2026-09-17 (later still) — the download is almost certainly blocked by our own ADR-025
+
+Ran the download again with the phone charging and on USB, and with two fixes to
+the download test: it now launches `MainActivity` and holds it RESUMED for the
+whole collection (Google permits GenAI calls only from a foreground app), and it
+bounds the wait at twenty minutes with one log line per event, so a silent flow
+reports instead of hanging.
+
+Result, and it is informative this time: **twenty minutes, zero events.** Not a
+started event, not a progress event, not a failure code — the flow emitted
+nothing at all until the timeout fired. The app was confirmed foreground
+(`topResumedActivity=...MainActivity`) throughout.
+
+**The likely cause is ADR-025, our own decision.** The app's own log during the
+run says:
+
+```
+W TransportRuntime: Error scheduling event ConnectivityService:
+  Neither user 10537 nor current process has android.permission.ACCESS_NETWORK_STATE
+```
+
+ADR-025 strips both `INTERNET` and `ACCESS_NETWORK_STATE` from the merged
+manifest, reasoning that "Gemini Nano inference is local and binds to AICore over
+IPC, so nothing in the MVP needs network access to work". That reasoning is sound
+for **inference** and was never applied to the **model download**, which is a
+different operation and plainly does involve the network.
+
+The experiment set up but NOT yet run: `app-phone`'s manifest now leaves
+`ACCESS_NETWORK_STATE` in place (the removal line is commented out with the
+reasoning) while still stripping `INTERNET`. The merged manifest was verified to
+contain exactly `ACCESS_NETWORK_STATE` and no `INTERNET`. This is the narrowest
+possible probe: `ACCESS_NETWORK_STATE` only *reads* connectivity state and cannot
+transmit anything, so ADR-013's guarantee that capture text never leaves the
+device is untouched whichever way the experiment goes.
+
+The retry could not run: the phone dropped off USB (`No connected devices!`) and
+did not return after an adb daemon restart. So the hypothesis is **stated and
+set up, not confirmed**.
+
+Next session, in order:
+1. Reconnect the phone, re-run the download test, and see whether events appear.
+2. If they do, ADR-025 needs amending — narrowly, to keep `INTERNET` removed and
+   allow `ACCESS_NETWORK_STATE`, with the download reasoning written down. That
+   is an architectural decision to record properly, not a quiet manifest edit.
+3. If they do not, revert the manifest experiment and look elsewhere; the next
+   suspects are AICore's own configuration sync and whether a debug-signed build
+   is eligible at all.
+
 ### 2026-09-17 (later) — re-checked: still NOT_INSTALLED, and a likely cause
 
 Wireless debugging came back on a new port. `CaptureVerticalSliceTest` was run

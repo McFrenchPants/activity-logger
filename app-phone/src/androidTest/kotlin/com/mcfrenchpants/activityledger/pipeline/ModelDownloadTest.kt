@@ -1,13 +1,16 @@
 package com.mcfrenchpants.activityledger.pipeline
 
 import android.util.Log
+import androidx.lifecycle.Lifecycle
+import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mcfrenchpants.activityledger.core.ai.ModelDownloadProgress
 import com.mcfrenchpants.activityledger.core.ai.ModelReadiness
+import com.mcfrenchpants.activityledger.MainActivity
 import com.mcfrenchpants.activityledger.core.ai.OnDeviceModelCapability
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -61,8 +64,33 @@ class ModelDownloadTest {
             )
             Log.i(TAG, "readinessBefore=$before")
 
-            // Collected exactly once. No retry, no second attempt on failure.
-            val progress = capability.download().toList()
+            // The app must be the top foreground app. Google permits GenAI calls only from a
+            // foreground app -- a background caller is refused with BACKGROUND_USE_BLOCKED. An
+            // instrumented test puts nothing on screen by itself, and the first attempt at this
+            // download sat silent for fifty minutes without emitting even a failure, so the
+            // Activity is launched and held resumed for the whole collection.
+            val progress = mutableListOf<ModelDownloadProgress>()
+            ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+                scenario.moveToState(Lifecycle.State.RESUMED)
+
+                // Bounded on purpose. If the flow stays silent, this reports "no events in N
+                // minutes" instead of hanging, which is what made the first attempt uninformative.
+                val finished = withTimeoutOrNull(DOWNLOAD_TIMEOUT_MILLIS) {
+                    // Collected exactly once. No retry, no second attempt on failure.
+                    capability.download().collect { event ->
+                        progress += event
+                        // Numbers only, one line per event, so a timeout still leaves a trail.
+                        Log.i(TAG, "event#${progress.size} ${event.describeNumerically()}")
+                    }
+                    true
+                } ?: false
+                Log.i(TAG, "flowFinished=$finished events=${progress.size}")
+                assertTrue(
+                    "download emitted ${progress.size} event(s) and did not finish within " +
+                        "${DOWNLOAD_TIMEOUT_MILLIS / 60_000} minutes",
+                    finished,
+                )
+            }
 
             // Numbers only: the size reported, how far it got, and a numeric code if it failed.
             val started = progress.filterIsInstance<ModelDownloadProgress.Started>().lastOrNull()
@@ -89,8 +117,22 @@ class ModelDownloadTest {
         }
     }
 
+    /** Numbers only -- never any other content (AGENTS.md #11). */
+    private fun ModelDownloadProgress.describeNumerically(): String = when (this) {
+        is ModelDownloadProgress.Started -> "started bytesToDownload=$bytesToDownload"
+        is ModelDownloadProgress.Progress -> "progress bytesDownloaded=$totalBytesDownloaded"
+        ModelDownloadProgress.Completed -> "completed"
+        is ModelDownloadProgress.Failed -> "failed code=$errorCode"
+    }
+
     private companion object {
         const val TAG = "ModelDownload"
         const val DOWNLOAD_ARGUMENT = "downloadModel"
+
+        /**
+         * How long to wait for the download flow to finish. Generous, because the model is
+         * measured in gigabytes, but finite, because a silent flow must report rather than hang.
+         */
+        const val DOWNLOAD_TIMEOUT_MILLIS = 20L * 60L * 1000L
     }
 }

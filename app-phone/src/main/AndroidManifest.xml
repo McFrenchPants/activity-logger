@@ -9,7 +9,18 @@
         from the merged manifest so the app cannot reach the network.
     -->
     <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
+    <!--
+        EXPERIMENT, 2026-09-17, to be reverted or made permanent deliberately.
+        ACCESS_NETWORK_STATE is temporarily left in place. ADR-025 removed it on the
+        reasoning that inference is local IPC to AICore and needs no network, which is true
+        of inference, but the model DOWNLOAD was never considered. With it removed, the ML
+        Kit download flow emits nothing at all for twenty minutes while the app logs
+        "Error scheduling event ConnectivityService: Neither user nor current process has
+        android.permission.ACCESS_NETWORK_STATE". This permission only reads connectivity
+        state and cannot send anything, so INTERNET stays removed and the guarantee that
+        capture text cannot leave the device is untouched either way.
+    -->
+    <!-- <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" /> -->
 
     <application
         android:allowBackup="false"
