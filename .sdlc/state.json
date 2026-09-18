@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-18T03:04:10.000Z",
+  "updated_at": "2026-09-18T03:07:01.000Z",
   "work_items": [
     {
       "id": "SS1",
@@ -331,13 +331,13 @@
     {
       "id": "AI1",
       "title": "AI vertical slice (backlog item 4)",
-      "lifecycle_state": null,
+      "lifecycle_state": "released",
       "tasks": [
         {
           "id": "AI1.1",
           "title": "Structured output type and decode mapping",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -352,7 +352,7 @@
           "id": "AI1.2",
           "title": "Prompt: system instruction, builder, versioning",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "AI1.1"
           ],
@@ -369,7 +369,7 @@
           "id": "AI1.3",
           "title": "Capability detection and model client lifecycle",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "AI1.1"
           ],
@@ -386,7 +386,7 @@
           "id": "AI1.4",
           "title": "GeminiNanoActivityInterpreter",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "AI1.1",
             "AI1.2",
@@ -405,7 +405,7 @@
           "id": "AI1.5",
           "title": "Phone wiring and the on-device vertical slice",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "AI1.4"
           ],
@@ -422,7 +422,7 @@
           "id": "AI1.6",
           "title": "Documentation",
           "status": "done",
-          "lifecycle_state": null,
+          "lifecycle_state": "released",
           "dependencies": [
             "AI1.5"
           ],

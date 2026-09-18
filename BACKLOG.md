@@ -72,7 +72,10 @@ Status vocabulary:
    "Step 2 — Persistence". Depends on item 2 (needs the `core-data` module to
    exist).
 
-4. **AI vertical slice (hardcoded text -> Gemini Nano -> Room)** — `idea`
+4. **AI vertical slice (hardcoded text -> Gemini Nano -> Room)** — `done`
+   Completed and merged to `main` 2026-09-17 (work item AI1, see
+   `docs/proposals/ai-vertical-slice/`; passed once on the Pixel 10 Pro,
+   `RESULTS.md`). Original entry below for reference.
    Using hardcoded text input (e.g. "I cut the grass yesterday.") but the
    production Gemini Nano path, verify structured output, canonical-activity
    matching, temporal extraction, Room persistence, and raw-text retention

@@ -58,6 +58,13 @@ tier: spec §7 (verifier for every non-doc task).
 
 ## Session log
 
+### 2026-09-17 (night) — merged to main
+
+Owner asked for the merge: `feature/ai-vertical-slice` merged into `main`
+with `--no-ff` (aee459e). Post-merge bookkeeping: AI1 and its tasks
+`released`, backlog item 4 `done`, PROJECT_STATUS drops the branch wording.
+Not pushed.
+
 ### 2026-09-17 (night) — AI1.6 done; work item complete on the branch
 
 Orchestrator decided the two pending questions rather than escalating them:
