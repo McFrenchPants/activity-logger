@@ -17,11 +17,38 @@ tier: spec §6 (verifier for SR1.2-SR1.4).
 | SR1.2 | Recording format, replay scorer, report, regression gate | done | Verifier pass. Gate: `core.testing.corpus.SemanticRegressionGateTest`; skips until recordings exist |
 | SR1.3 | Device recorder and phone-session script | done | Verifier fail on the no-device-contact rule only (incident below); code accepted. Happy path not yet run |
 | SR1.4 | Stand-in recorder (local model) | done | Verifier pass. Fake-server tested only; no real model yet |
-| SR1.5 | Install stand-in, first stand-in recording | blocked | Owner's USB drives failing reads; needs a healthy place for the 7.5 GB model |
+| SR1.5 | Install stand-in, first stand-in recording | done | Model on `C:\Dev\ai\models`. 20 correct / 20 safe miss / 8 unsafe miss. Not official |
 | SR1.6 | Documentation | todo | Spot-check |
 | SR1.7 | First device recording and baseline | todo | Needs the Pixel 10 Pro ~5-10 min; owner schedules |
 
 ## Session log
+
+### 2026-09-18 — SR1.5 done: first stand-in recording
+
+Owner re-downloaded the model to `C:\Dev\ai\models` (internal NVMe). Blob
+sha256 verified against its digest. Ollama stopped; junction
+`C:\Users\ADRen\.ollama\models` repointed to `C:\Dev\ai\models` (the old
+F: junction was renamed to `models.old-F-drive-link`, not deleted -- the
+auto-mode classifier refused `rmdir` on it); user env `OLLAMA_MODELS` updated
+to match; tray app relaunched via `explorer.exe`. `/api/tags` lists
+`gemma3n:e4b` (Q4_K_M, 6.9B).
+
+`scripts/semantic/run-standin-corpus.sh`: 48/48 answered, 0 malformed, total
+214 s (median 2.5 s, max 95 s -- the first call is model load). Ollama accepted
+the `["string","null"]` schema, so the SR1.4 open risk is closed.
+Replay: CORRECT 20, SAFE_MISS 20, UNSAFE_MISS 8. Every answer is HIGH
+confidence, so confidence bands say nothing for this model.
+
+Findings worth carrying into prompt work (stand-in only, not official):
+- 18 of 20 safe misses are `STATE_MISSING`: the model leaves `state` null and
+  the orchestrator rejects. Likely prompt/schema wording rather than domain
+  logic; compare against the device run (SR1.7) before changing anything.
+- Unsafe misses cluster on edging vs mowing (4 of 8 incl. the no-edge catalog
+  and the STATE case), leaves (raking/blowing matched to an existing
+  activity), smoke-detector batteries matched to an existing activity, and
+  the generic "Cleaned the dryer" auto-accepted instead of review.
+- Temporal 9/11 correct; misses are the known Saturday-morning resolver gap
+  and one STATE_MISSING.
 
 ### 2026-09-18 — SR1.5 blocked on the owner's storage hardware
 
