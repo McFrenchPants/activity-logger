@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-18T05:01:38.704Z",
+  "updated_at": "2026-09-18T06:30:22.841Z",
   "work_items": [
     {
       "id": "SS1",
@@ -494,19 +494,19 @@
         {
           "id": "SR1.4",
           "title": "Stand-in recorder (local model)",
-          "status": "todo",
-          "lifecycle_state": "approved",
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [
             "SR1.2"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/SR1.4.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done, verifier pass. Ollama client (core-ai test source set) with loopback-only guard, NO_PROXY, no redirects; schema built reflectively from @Guide annotations; answers through the real InterpretationResponseDecoder; opt-in -PsemanticStandIn=true. Orchestrator added --noproxy to the script's curl check. Not yet run against a real model (Ollama not installed). Verifier notes: 'localhost' trusts hosts-file resolution; stdout shown for all core-ai test tasks in opt-in mode."
         },
         {
           "id": "SR1.5",

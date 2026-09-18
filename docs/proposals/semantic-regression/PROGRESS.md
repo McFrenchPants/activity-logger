@@ -16,12 +16,25 @@ tier: spec §6 (verifier for SR1.2-SR1.4).
 | SR1.1 | Corpus format, loader and cases | done | Spot-check. 48 cases, 3 catalogs. One known resolver gap ("Saturday morning"). Orchestrator bumped kotlinx-serialization to 1.11.0 |
 | SR1.2 | Recording format, replay scorer, report, regression gate | done | Verifier pass. Gate: `core.testing.corpus.SemanticRegressionGateTest`; skips until recordings exist |
 | SR1.3 | Device recorder and phone-session script | done | Verifier fail on the no-device-contact rule only (incident below); code accepted. Happy path not yet run |
-| SR1.4 | Stand-in recorder (local model) | todo | Depends SR1.2. Verifier |
+| SR1.4 | Stand-in recorder (local model) | done | Verifier pass. Fake-server tested only; no real model yet |
 | SR1.5 | Install stand-in, first stand-in recording | todo | Orchestrator run. Ask owner right before installing |
 | SR1.6 | Documentation | todo | Spot-check |
 | SR1.7 | First device recording and baseline | todo | Needs the Pixel 10 Pro ~5-10 min; owner schedules |
 
 ## Session log
+
+### 2026-09-18 — SR1.4 done
+
+Stand-in recorder in `core-ai/src/test/.../semantic/` (`OllamaStandInClient`,
+`StandInSchema`, `StandInCorpusRecorderTest`) plus
+`scripts/semantic/run-standin-corpus.sh`. Sends the real system instruction
+and `buildInterpretationPrompt` output to Ollama on loopback only; the JSON
+schema is read from `InterpretationResponse`'s `@Guide` annotations so it
+cannot drift. Refuses to overwrite a recording if every case came back OTHER.
+The implementer run was interrupted once by an owner usage limit and resumed
+with its context intact. Open risk: whether Ollama accepts `["string","null"]`
+types and null in enums in its grammar conversion -- first real run (SR1.5)
+will tell; if not, every case is OTHER and nothing is written.
 
 ### 2026-09-18 — SR1.3 done (with a device-contact incident)
 
