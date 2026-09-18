@@ -122,3 +122,26 @@ Status vocabulary:
    item DS1, see `docs/proposals/domain-services/`. Owner decision
    2026-09-17: no "save but mark for review" tier — anything short of
    confident goes to Needs review and nothing is logged until the user picks.
+
+9. **Semantic regression corpus, automated** — `in progress`
+   Work item SR1, see `docs/proposals/semantic-regression/`. Owner decision
+   2026-09-17: tests run on the PC by recording model answers (short phone
+   sessions, plus a local stand-in model) and replaying everything else.
+   Added 2026-09-17. Build-guide Step 5, the stated next milestone in
+   `docs/PROJECT_STATUS.md`. Encode the seed, temporal and ambiguity corpora of
+   `docs/TEST_STRATEGY.md` §3-6 in a machine-readable file, plus a runner that
+   pushes each case through the production interpreter + validator on the
+   Pixel 10 Pro (Gemini Nano only runs on-device and in the foreground,
+   ADR-029) and a deterministic JVM half for the temporal resolver and the
+   validator. Output: a per-case report and summary, so the provisional
+   choices (confidence policy ADR-027, schema-in-prompt, one-shot decoding
+   ADR-030) get measured. The query corpus (§7) waits for Step 9. Satisfies
+   REQUIREMENTS TST-001..004 and AGENTS.md §6. Build guide: "do not move on
+   until core synonym and near-neighbor cases are measurable."
+
+10. **Typed capture and history screens on the phone** — `idea`
+    Added 2026-09-17. The earliest usable slice of build-guide Step 7: a
+    Log screen with a text field, the History list, and the Needs-review
+    list, per `docs/UX_VISUAL_SPEC.md`. First point at which the app can be
+    used by hand. Skips ahead of Step 5, so interpretation accuracy would be
+    unmeasured while it is built.

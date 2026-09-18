@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-18T03:07:01.000Z",
+  "updated_at": "2026-09-18T03:36:05.090Z",
   "work_items": [
     {
       "id": "SS1",
@@ -324,7 +324,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/DS1.6.packet.json",
           "report_path": null,
-          "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE \u00c2\u00a75/\u00c2\u00a76/\u00c2\u00a715/\u00c2\u00a716, AI_INTERPRETATION_SPEC \u00c2\u00a710/\u00c2\u00a711/\u00c2\u00a717, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
+          "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE Â§5/Â§6/Â§15/Â§16, AI_INTERPRETATION_SPEC Â§10/Â§11/Â§17, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
         }
       ]
     },
@@ -434,6 +434,132 @@
           "task_packet_path": ".sdlc/task-packets/AI1.6.packet.json",
           "report_path": null,
           "notes": "Done. Doc tier, orchestrator spot-check. ADR-025 amended; ADR-029..032."
+        }
+      ]
+    },
+    {
+      "id": "SR1",
+      "title": "Semantic regression corpus (backlog item 9)",
+      "lifecycle_state": "approved",
+      "tasks": [
+        {
+          "id": "SR1.1",
+          "title": "Corpus format, loader and cases",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "SR1.2",
+          "title": "Recording format, replay scorer, report, regression gate",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "SR1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "SR1.3",
+          "title": "Device recorder and phone-session script",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "SR1.2"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "SR1.4",
+          "title": "Stand-in recorder (local model)",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "SR1.2"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "SR1.5",
+          "title": "Install stand-in, first stand-in recording",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "SR1.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "SR1.6",
+          "title": "Documentation",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "SR1.3",
+            "SR1.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "SR1.7",
+          "title": "First device recording and baseline",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "SR1.3",
+            "SR1.6"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
         }
       ]
     }
