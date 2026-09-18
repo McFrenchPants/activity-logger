@@ -15,13 +15,40 @@ tier: spec §6 (verifier for SR1.2-SR1.4).
 |---|---|---|---|
 | SR1.1 | Corpus format, loader and cases | done | Spot-check. 48 cases, 3 catalogs. One known resolver gap ("Saturday morning"). Orchestrator bumped kotlinx-serialization to 1.11.0 |
 | SR1.2 | Recording format, replay scorer, report, regression gate | done | Verifier pass. Gate: `core.testing.corpus.SemanticRegressionGateTest`; skips until recordings exist |
-| SR1.3 | Device recorder and phone-session script | todo | Depends SR1.2. Verifier. Compile-only is acceptable |
+| SR1.3 | Device recorder and phone-session script | done | Verifier fail on the no-device-contact rule only (incident below); code accepted. Happy path not yet run |
 | SR1.4 | Stand-in recorder (local model) | todo | Depends SR1.2. Verifier |
 | SR1.5 | Install stand-in, first stand-in recording | todo | Orchestrator run. Ask owner right before installing |
 | SR1.6 | Documentation | todo | Spot-check |
 | SR1.7 | First device recording and baseline | todo | Needs the Pixel 10 Pro ~5-10 min; owner schedules |
 
 ## Session log
+
+### 2026-09-18 — SR1.3 done (with a device-contact incident)
+
+Recorder `app-phone/.../semantic/SemanticCorpusRecorderTest.kt` (opt-in via
+runner arg `semanticCorpus=true`, holds MainActivity RESUMED for the whole
+loop, one `interpret` per case, atomic write to the app's external files dir)
+and `scripts/semantic/run-device-corpus.sh` (exit codes 0 ok / 1 error /
+2 model not ready / 3 gate failed; uses `leaveApksInstalledAfterRun=true` so
+AGP does not uninstall the app, which would delete the recording before the
+pull and wipe app data).
+
+AGP 9.4 writes an Assume-skip into the connected-test XML as a `<failure>` with
+`AssumptionViolatedException`, not `<skipped>`; the script handles both.
+
+**Incident.** The packet was compile-only with no device contact. The
+implementer tried to shadow `adb` with a fake by prepending a `C:/...` path to
+PATH; the colon split the entry, the real adb ran, and the script ran the
+recorder three times on the owner's USB-attached moto g 2025 (installed the
+debug and test APKs, first install ever on that phone; recorder skipped at
+`UNSUPPORTED_DEVICE`; no model call, download or recording). The implementer
+self-reported it as `failed`. The verifier failed criterion 9 for the same
+reason and passed everything else. The owner was told and said the phone is
+theirs to offer for testing anyway. Lesson for packets: when a phone is
+attached, a packet that forbids device contact should also have the
+implementer set `ANDROID_SERIAL` to a non-existent serial for every command,
+or the orchestrator should unplug-check first; PATH shims in Git Bash must use
+`/c/...` form.
 
 ### 2026-09-18 — SR1.2 done
 

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-18T04:08:28.045Z",
+  "updated_at": "2026-09-18T05:01:38.704Z",
   "work_items": [
     {
       "id": "SS1",
@@ -477,19 +477,19 @@
         {
           "id": "SR1.3",
           "title": "Device recorder and phone-session script",
-          "status": "todo",
-          "lifecycle_state": "approved",
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [
             "SR1.2"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/SR1.3.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done, verifier FAIL on criterion 9 only (device contact); orchestrator accepted the code. The implementer's fake-adb PATH shim broke on the Windows colon and its script ran the recorder 3x on the owner's USB-attached moto g 2025 (installed debug+test APKs, skipped at UNSUPPORTED_DEVICE, no model call/download/recording). Owner afterwards said that phone is available for testing. All other criteria met. Happy path (READY device, pull, validate, gate) unexercised until SR1.7."
         },
         {
           "id": "SR1.4",

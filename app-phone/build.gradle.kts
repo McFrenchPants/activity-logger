@@ -72,4 +72,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.junit4)
     androidTestImplementation(libs.kotlinx.coroutines.core)
+    // The semantic corpus recorder (semantic/SemanticCorpusRecorderTest): the corpus, its
+    // classpath resource, CorpusInterpretationInput and the recording format.
+    androidTestImplementation(project(":core-testing"))
 }
