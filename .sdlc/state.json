@@ -511,7 +511,7 @@
         {
           "id": "SR1.5",
           "title": "Install stand-in, first stand-in recording",
-          "status": "blocked",
+          "status": "done",
           "lifecycle_state": "approved",
           "dependencies": [
             "SR1.4"
@@ -523,7 +523,7 @@
           },
           "task_packet_path": null,
           "report_path": null,
-          "notes": "Blocked on owner hardware. Ollama 0.34.2 installed by owner; gemma3n:e4b pulled twice: to H: (USB, bad block, reads fail) then F: (USB, hardware I/O errors during download, ~8 MB/s reads, model load times out after 5 min). Both behind ASMT 2115 USB bridges. Model folder is a junction C:UsersADRen.ollamamodels -> F:AImodels; OLLAMA_MODELS user env var = F:AImodels. Needs owner choice of a healthy location (C: NVMe has ~70 GB free)."
+          "notes": "Done (orchestrator run). Owner moved the model to C:Devaimodels (blob sha256 verified); Ollama model-folder junction repointed there, old F: junction kept renamed as models.old-F-drive-link; user env OLLAMA_MODELS updated. First stand-in recording committed: 48/48 answered, 0 malformed; CORRECT 20, SAFE_MISS 20, UNSAFE_MISS 8; all HIGH confidence. Ollama accepted the [\"string\",\"null\"] schema. Not official."
         },
         {
           "id": "SR1.6",
