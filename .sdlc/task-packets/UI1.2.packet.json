@@ -39,7 +39,6 @@
     "app-phone/src/test/resources"
   ],
   "forbidden_paths": [
-    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline",
     "app-phone/src/androidTest",
     "app-phone/src/main/res/font",
     "app-phone/licenses",
