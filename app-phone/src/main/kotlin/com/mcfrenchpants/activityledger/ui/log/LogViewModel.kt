@@ -131,7 +131,7 @@ class LogViewModel(
     /** Stores the typed words as a raw capture and runs them through the pipeline. */
     fun submit() {
         val current = _state.value
-        if (!current.isStarted || current.isCapturing) return
+        if (!current.isStarted || current.isCapturing || current.isListening) return
         val text = current.input.trim()
         if (text.isEmpty()) return
 
@@ -286,8 +286,8 @@ class LogViewModel(
 
     /** Logs the card's capture as [target] via [ReviewResolutionService]. */
     fun resolve(target: ActivityTarget) {
-        val card = _state.value.card ?: return
-        if (card is ResultCard.Saved) return
+        // Only an unresolved card has a capture waiting for an activity; the type says so.
+        val card = _state.value.card as? ResultCard.Unresolved ?: return
         runAction(closePicker = true) {
             when (val result = reviewResolutionService.resolve(card.captureId, target)) {
                 is ResolutionResult.Resolved -> {
@@ -301,8 +301,84 @@ class LogViewModel(
 
     /** Dismisses the card; the capture stays waiting for review (reachable from History). */
     fun decideLater() {
-        if (_state.value.card is ResultCard.Saved) return
+        if (_state.value.card !is ResultCard.Unresolved) return
         dismissCard()
+    }
+
+    // ---- Voice capture (VC1.3: state only) ----------------------------------------------
+
+    // These four methods own the listening state and nothing else. VC1.4 replaces their bodies
+    // with real transcriber calls; deliberately nothing here knows about speech recognition, so
+    // the screen's listening behaviour is unit-testable on the JVM today.
+
+    /**
+     * The user asked to log by voice: dismisses any card, clears the last partial and blocks
+     * typed submit while listening. Ignored while stopped or while a capture is being processed.
+     */
+    fun startListening() {
+        val current = _state.value
+        if (!current.canUseMicrophone || current.isListening) return
+        dismissCard()
+        _state.update { it.copy(isListening = true, partialTranscript = "", message = null) }
+    }
+
+    /** The user (or, later, the recognizer) ended listening. Typing is available again. */
+    fun stopListening() {
+        if (!_state.value.isListening) return
+        _state.update { it.copy(isListening = false, partialTranscript = "") }
+    }
+
+    /** "Try again" on the recognition-failure card: drops the card and listens again. */
+    fun retryListening() {
+        if (_state.value.card !is ResultCard.RecognitionFailed) return
+        dismissCard()
+        startListening()
+    }
+
+    /** "Type instead": drops the recognition-failure card so only the capture field is left. */
+    fun dismissRecognitionFailure() {
+        if (_state.value.card !is ResultCard.RecognitionFailed) return
+        dismissCard()
+    }
+
+    /**
+     * The words heard so far. Never logged and never stored -- it is shown, then replaced
+     * (AGENTS.md #11). Ignored when nothing is listening.
+     */
+    fun onPartialTranscript(text: String) {
+        if (!_state.value.isListening) return
+        _state.update { it.copy(partialTranscript = text) }
+    }
+
+    /** Nothing usable was heard: stops listening and shows the recognition-failure card. */
+    fun showRecognitionFailure() {
+        _state.update { it.copy(isListening = false, partialTranscript = "") }
+        showCard(ResultCard.RecognitionFailed)
+    }
+
+    /**
+     * The microphone permission was refused this time. Says so in plain words and leaves the
+     * capture field exactly as it was, so typing is still available.
+     */
+    fun onMicrophonePermissionDenied() {
+        _state.update {
+            it.copy(
+                isListening = false,
+                partialTranscript = "",
+                message = UserMessage(R.string.log_mic_permission_denied),
+            )
+        }
+    }
+
+    /** The microphone permission can no longer be asked for. Same rule: typing stays available. */
+    fun onMicrophonePermissionBlocked() {
+        _state.update {
+            it.copy(
+                isListening = false,
+                partialTranscript = "",
+                message = UserMessage(R.string.log_mic_permission_blocked),
+            )
+        }
     }
 
     // ---- Picker -------------------------------------------------------------------------
@@ -327,8 +403,9 @@ class LogViewModel(
     fun onPickerChoice(target: ActivityTarget) {
         when (_state.value.card) {
             is ResultCard.Saved -> changeActivity(target)
-            is ResultCard.NeedsReview, is ResultCard.NotCategorized -> resolve(target)
-            null -> closePicker()
+            is ResultCard.Unresolved -> resolve(target)
+            // No picker can be opened over a card with no capture, or over no card at all.
+            ResultCard.RecognitionFailed, null -> closePicker()
         }
     }
 

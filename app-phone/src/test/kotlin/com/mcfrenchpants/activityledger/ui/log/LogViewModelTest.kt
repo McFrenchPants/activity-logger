@@ -756,4 +756,147 @@ class LogViewModelTest {
         assertEquals(2, readyChecks)
         assertTrue(vm.state.value.showAiNotReady)
     }
+
+    // ---- Voice capture: the listening state (VC1.3 stubs, no recognizer) ---------------------
+
+    @Test
+    fun startListeningBlocksTypedSubmitAndDropsAnyCard() {
+        fake.enqueue(Results.existing(mowLawn))
+        val vm = started()
+        vm.type("I cut the grass")
+        assertIs<ResultCard.Saved>(vm.card)
+        vm.onInputChange("more words")
+
+        vm.startListening()
+
+        assertTrue(vm.state.value.isListening)
+        assertNull(vm.card)
+        assertFalse(vm.state.value.canSubmit)
+        // The typed words are not thrown away, only held: submit is blocked, the field is intact.
+        assertEquals("more words", vm.state.value.input)
+        vm.submit()
+        scheduler.runCurrent()
+        assertTrue(repository.created.size == 1)
+    }
+
+    @Test
+    fun theMicrophoneIsUnavailableWhileStoppedAndWhileCapturing() {
+        val vm = viewModel()
+        assertFalse(vm.state.value.canUseMicrophone)
+        vm.startListening()
+        assertFalse(vm.state.value.isListening)
+
+        vm.onStart()
+        scheduler.runCurrent()
+        assertTrue(vm.state.value.canUseMicrophone)
+    }
+
+    @Test
+    fun stopListeningHandsTheScreenBackToTyping() {
+        fake.enqueue(Results.existing(mowLawn))
+        val vm = started()
+        vm.startListening()
+        vm.onPartialTranscript("I cut the")
+
+        vm.stopListening()
+
+        assertFalse(vm.state.value.isListening)
+        assertEquals("", vm.state.value.partialTranscript)
+        vm.type("I cut the grass")
+        assertIs<ResultCard.Saved>(vm.card)
+    }
+
+    @Test
+    fun partialsOnlyArriveWhileListeningAndNeverOutliveIt() {
+        val vm = started()
+        vm.onPartialTranscript("ignored")
+        assertEquals("", vm.state.value.partialTranscript)
+
+        vm.startListening()
+        vm.onPartialTranscript("I cut the")
+        assertEquals("I cut the", vm.state.value.partialTranscript)
+
+        vm.showRecognitionFailure()
+        assertEquals("", vm.state.value.partialTranscript)
+    }
+
+    // ---- Voice capture: the recognition-failure card -----------------------------------------
+
+    @Test
+    fun recognitionFailureShowsACardWithNoCaptureAndSavesNothing() {
+        val vm = started()
+        vm.startListening()
+
+        vm.showRecognitionFailure()
+
+        assertEquals(ResultCard.RecognitionFailed, vm.card)
+        assertFalse(vm.state.value.isListening)
+        // Nothing was heard, so nothing was stored: no raw capture exists at all.
+        assertTrue(repository.created.isEmpty())
+        assertTrue(read { memory.loadHistory() }.isEmpty())
+    }
+
+    @Test
+    fun tryAgainListensAgainAndTypeInsteadJustDropsTheCard() {
+        val vm = started()
+        vm.startListening()
+        vm.showRecognitionFailure()
+
+        vm.retryListening()
+        assertTrue(vm.state.value.isListening)
+        assertNull(vm.card)
+
+        vm.showRecognitionFailure()
+        vm.dismissRecognitionFailure()
+        assertNull(vm.card)
+        assertFalse(vm.state.value.isListening)
+    }
+
+    @Test
+    fun theFailureCardIsNeitherResolvableNorCorrectable() {
+        val vm = started()
+        vm.startListening()
+        vm.showRecognitionFailure()
+
+        // There is no capture behind it, so the review paths must simply not apply to it.
+        vm.resolve(ActivityTarget.Existing(mowLawn))
+        scheduler.runCurrent()
+        assertEquals(ResultCard.RecognitionFailed, vm.card)
+
+        vm.decideLater()
+        assertEquals(ResultCard.RecognitionFailed, vm.card)
+
+        vm.onPickerChoice(ActivityTarget.Existing(mowLawn))
+        scheduler.runCurrent()
+        assertEquals(ResultCard.RecognitionFailed, vm.card)
+        assertTrue(read { memory.loadHistory() }.isEmpty())
+    }
+
+    // ---- Voice capture: microphone permission outcomes ---------------------------------------
+
+    @Test
+    fun refusingTheMicrophoneSaysSoAndLeavesTypingWorking() {
+        fake.enqueue(Results.existing(mowLawn))
+        val vm = started()
+
+        vm.onMicrophonePermissionDenied()
+
+        assertFalse(vm.state.value.isListening)
+        assertEquals(UserMessage(R.string.log_mic_permission_denied), vm.state.value.message)
+        vm.type("I cut the grass")
+        assertIs<ResultCard.Saved>(vm.card)
+    }
+
+    @Test
+    fun refusingTheMicrophoneForGoodSaysSoAndLeavesTypingWorking() {
+        fake.enqueue(Results.existing(mowLawn))
+        val vm = started()
+
+        vm.onMicrophonePermissionBlocked()
+
+        assertFalse(vm.state.value.isListening)
+        assertEquals(UserMessage(R.string.log_mic_permission_blocked), vm.state.value.message)
+        vm.type("I cut the grass")
+        assertIs<ResultCard.Saved>(vm.card)
+    }
 }

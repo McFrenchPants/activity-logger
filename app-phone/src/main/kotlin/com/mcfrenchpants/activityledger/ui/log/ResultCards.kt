@@ -42,10 +42,11 @@ import com.mcfrenchpants.activityledger.ui.components.StateTag
 import com.mcfrenchpants.activityledger.ui.theme.ActivityLedgerTheme
 import com.mcfrenchpants.activityledger.ui.theme.LedgerShapes
 
-/** Test tags of the three result cards. */
+/** Test tags of the result cards. */
 const val SAVED_CARD_TAG = "SavedCard"
 const val NEEDS_REVIEW_CARD_TAG = "NeedsReviewCard"
 const val NOT_CATEGORIZED_CARD_TAG = "NotCategorizedCard"
+const val RECOGNITION_FAILED_CARD_TAG = "RecognitionFailedCard"
 
 /**
  * Saved (UX_VISUAL_SPEC 4.1, D5): primaryContainer, "✓ {name} — {time}", the user's words, Undo
@@ -191,6 +192,39 @@ internal fun NotCategorizedCard(
         CardActions {
             CardTextButton(stringResource(R.string.log_choose_an_activity), onChooseActivity, enabled)
             CardTextButton(stringResource(R.string.log_decide_later), onDecideLater)
+        }
+    }
+}
+
+/**
+ * Recognition failed (UX_VISUAL_SPEC 6): errorContainer, one sentence, and a way out either way.
+ *
+ * Nothing was heard, so nothing was captured and nothing was saved. This card therefore shows no
+ * quoted words at all -- not a best guess, not a partial, not an empty pair of quotes -- which is
+ * why [ResultCard.RecognitionFailed] carries no capture id and no text to begin with.
+ */
+@Composable
+internal fun RecognitionFailedCard(
+    enabled: Boolean,
+    onTryAgain: () -> Unit,
+    onTypeInstead: () -> Unit,
+    onTouched: (Boolean) -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    CardSurface(
+        tag = RECOGNITION_FAILED_CARD_TAG,
+        description = stringResource(R.string.log_recognition_failed_a11y),
+        container = colors.errorContainer,
+        onTouched = onTouched,
+    ) {
+        Text(
+            text = stringResource(R.string.log_recognition_failed),
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.onErrorContainer,
+        )
+        CardActions {
+            CardTextButton(stringResource(R.string.log_try_again), onTryAgain, enabled)
+            CardTextButton(stringResource(R.string.log_type_instead), onTypeInstead)
         }
     }
 }

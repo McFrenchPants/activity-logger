@@ -2,7 +2,7 @@
 <!--
     The phone app: one activity (MainActivity) hosting the Compose navigation shell, and one
     Application (ActivityLedgerApplication) that owns the process's single capture pipeline.
-    No permission is added here; INTERNET is removed below.
+    RECORD_AUDIO is the app's only requested permission; INTERNET is removed below.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
@@ -21,6 +21,15 @@
         ADR-025's amendment). The watch app strips both.
     -->
     <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+
+    <!--
+        Voice capture (VC1.3). RECORD_AUDIO is the only permission this app asks for, and it is
+        requested at the moment the user first taps the microphone, never at launch. It does not
+        weaken the privacy guarantee above: INTERNET is still stripped from the merged manifest,
+        so audio and transcripts cannot leave the device. Every permission outcome (granted,
+        denied, permanently denied) leaves typed capture fully available, so there is no dead end.
+    -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:name=".ActivityLedgerApplication"

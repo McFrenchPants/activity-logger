@@ -27,6 +27,21 @@
     <string name="log_row_interpreted_a11y">%1$s, %2$s. %3$s</string>
     <string name="log_row_uninterpreted_a11y">%1$s, %2$s. %3$s</string>
 
+    <!-- Voice capture on the Log screen (UX_VISUAL_SPEC 5 and 6). The text field stays the
+         primary control (owner decision, 2026-09-19); the microphone sits beside it. -->
+    <string name="log_mic">Log by voice</string>
+    <string name="log_mic_stop">Stop listening</string>
+    <string name="log_listening">Listening...</string>
+    <string name="log_mic_permission_denied">Voice logging needs the microphone. You can still type what you did.</string>
+    <string name="log_mic_permission_blocked">The microphone is switched off for this app in Settings, so voice logging can\'t start. You can still type what you did.</string>
+
+    <!-- Recognition-failure card (UX_VISUAL_SPEC 6). Nothing was heard and nothing was saved, so
+         this card shows no words of the user's at all. -->
+    <string name="log_recognition_failed">Couldn\'t make out any words. Nothing was saved.</string>
+    <string name="log_recognition_failed_a11y">Couldn\'t make out any words. Nothing was saved.</string>
+    <string name="log_try_again">Try again</string>
+    <string name="log_type_instead">Type instead</string>
+
     <!-- Saved card (UX_SPEC 4.1 feedback, UX_VISUAL_SPEC D5; owner decision: Undo + Change activity). -->
     <string name="log_saved_title">✓ %1$s — %2$s</string>
     <string name="log_saved_a11y">Saved. %1$s, %2$s. Undo available.</string>

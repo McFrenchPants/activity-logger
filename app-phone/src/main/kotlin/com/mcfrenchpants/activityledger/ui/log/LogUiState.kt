@@ -12,6 +12,10 @@ import com.mcfrenchpants.activityledger.ui.review.UserMessage
  * @property isStarted Whether the Log screen is in the foreground (ADR-029). Submitting is only
  *   possible while this is true.
  * @property isCapturing A capture is being stored and interpreted; submit is disabled meanwhile.
+ * @property isListening Speech recognition is running: the microphone shows its stop
+ *   affordance, the partial transcript is shown, Recent is dimmed and typed submit is blocked.
+ * @property partialTranscript The words heard so far while [isListening], or empty. Shown in the
+ *   evidence voice because they are the user's words, not the app's.
  * @property card The current result card, or null when none is shown.
  * @property picker The open activity picker, or null when it is closed.
  * @property recent The newest history rows (at most three), newest first.
@@ -26,6 +30,8 @@ data class LogUiState(
     val input: String = "",
     val isStarted: Boolean = false,
     val isCapturing: Boolean = false,
+    val isListening: Boolean = false,
+    val partialTranscript: String = "",
     val card: ResultCard? = null,
     val picker: PickerState? = null,
     val recent: List<HistoryRowModel> = emptyList(),
@@ -35,16 +41,35 @@ data class LogUiState(
     val actionInFlight: Boolean = false,
 ) {
     /** Whether the submit action is currently available. */
-    val canSubmit: Boolean get() = isStarted && !isCapturing && input.isNotBlank()
+    val canSubmit: Boolean get() = isStarted && !isCapturing && !isListening && input.isNotBlank()
+
+    /** Whether the microphone control can be used (the same gate submit uses, minus the text). */
+    val canUseMicrophone: Boolean get() = isStarted && !isCapturing
 }
 
-/** The result card shown after a capture (UX_VISUAL_SPEC 4.1). */
+/**
+ * The result card shown after a capture (UX_VISUAL_SPEC 4.1, 6).
+ *
+ * Most cards are about words that were stored, so they carry the capture they are about
+ * ([ForCapture]). [RecognitionFailed] is deliberately not one of them: nothing was heard, so
+ * there is no capture and no text to quote, and the type says so rather than holding blanks.
+ */
 sealed interface ResultCard {
-    /** The capture this card is about. */
-    val captureId: String
 
-    /** The user's own words, exactly as captured. */
-    val rawText: String
+    /** A card about a raw capture that exists in storage. */
+    sealed interface ForCapture : ResultCard {
+        /** The capture this card is about. */
+        val captureId: String
+
+        /** The user's own words, exactly as captured. */
+        val rawText: String
+    }
+
+    /**
+     * A card whose capture is stored but still has no occurrence: the user says which activity
+     * it was (resolve) or leaves it for later. These are the only cards the picker resolves.
+     */
+    sealed interface Unresolved : ForCapture
 
     /**
      * The capture was logged as occurrence [occurrenceId]. Undo and Change activity are offered
@@ -57,18 +82,25 @@ sealed interface ResultCard {
         val activityName: String,
         val time: String,
         val undoFractionRemaining: Float = 1f,
-    ) : ResultCard
+    ) : ForCapture
 
     /** The words are saved but the interpretation needs the user; nothing was guessed. */
     data class NeedsReview(
         override val captureId: String,
         override val rawText: String,
         val suggestions: List<Suggestion>,
-    ) : ResultCard
+    ) : Unresolved
 
     /** The words are saved but could not be categorized (on-device AI unavailable). */
     data class NotCategorized(
         override val captureId: String,
         override val rawText: String,
-    ) : ResultCard
+    ) : Unresolved
+
+    /**
+     * Speech recognition heard nothing usable (UX_VISUAL_SPEC 6). Nothing was captured and
+     * nothing was saved, so this card has no captureId, no rawText and no fabricated words of
+     * any kind -- only "Try again" and "Type instead".
+     */
+    data object RecognitionFailed : ResultCard
 }
