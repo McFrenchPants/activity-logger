@@ -21,6 +21,14 @@ tier: spec §6 (verifier for UI1.1 and UI1.3).
 
 ## Session log
 
+### 2026-09-19 — merged to main
+
+Owner asked for the merge. `feature/typed-capture` merged into `main` with
+`--no-ff` (4f90b59); full `./gradlew test testDebugUnitTest assembleDebug`
+green on `main` afterwards. UI1 and its five tasks -> lifecycle `released`
+(same as SR1's post-merge bookkeeping; no `.sdlc/evidence/` in lite mode).
+Not pushed.
+
 ### 2026-09-19 — UI1.5 done; UI1 complete, awaiting owner merge
 
 Orchestrator device pass on the Pixel 10 Pro (Wi-Fi ADB, debug build, owner

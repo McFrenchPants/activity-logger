@@ -142,8 +142,8 @@ Status vocabulary:
    REQUIREMENTS TST-001..004 and AGENTS.md §6. Build guide: "do not move on
    until core synonym and near-neighbor cases are measurable."
 
-10. **Typed capture and history screens on the phone** — `done` (UI1, on
-    `feature/typed-capture`, awaiting merge; device pass 2026-09-19)
+10. **Typed capture and history screens on the phone** — `done` (UI1, merged to
+    `main` 2026-09-19; device pass 2026-09-19)
     Work item UI1, see `docs/proposals/typed-capture/` (branch
     `feature/typed-capture`). Owner chose it 2026-09-18; scope and the Saved
     card's *Change activity* button (core of item 11) signed off 2026-09-19.

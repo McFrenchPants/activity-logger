@@ -583,13 +583,13 @@
     {
       "id": "UI1",
       "title": "Typed capture and history screens (backlog item 10)",
-      "lifecycle_state": "verifying",
+      "lifecycle_state": "released",
       "tasks": [
         {
           "id": "UI1.1",
           "title": "Ledger reads and hide for the screens",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -604,7 +604,7 @@
           "id": "UI1.2",
           "title": "App shell, theme, time display",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -619,7 +619,7 @@
           "id": "UI1.3",
           "title": "Log screen: typed capture, result cards, picker",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "UI1.1",
             "UI1.2"
@@ -637,7 +637,7 @@
           "id": "UI1.4",
           "title": "History screen",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "UI1.1",
             "UI1.3"
@@ -655,7 +655,7 @@
           "id": "UI1.5",
           "title": "Device pass and documentation",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "UI1.1",
             "UI1.2",
