@@ -1,7 +1,7 @@
 {
   "task_id": "VC1.1",
   "plan_revision": "uncommitted:2026-09-19T00:00:00Z",
-  "objective": "Add an instrumented (androidTest) source set to app-wear containing exactly one test class that answers, on real OnePlus Watch 3 hardware, whether the platform on-device speech recognizer is usable on Wear OS 5. It must report three things: (1) SpeechRecognizer.isRecognitionAvailable(context), (2) SpeechRecognizer.isOnDeviceRecognitionAvailable(context), and (3) whether createOnDeviceSpeechRecognizer(context) followed by startListening(...) reaches onReadyForSpeech within a bounded wait (proof the engine actually starts), or else which SpeechRecognizer.ERROR_* integer code it fails with. The platform SpeechRecognizer API must be created and called on the main thread (use androidx.test's InstrumentationRegistry.getInstrumentation().runOnMainSync { ... } or an equivalent main-looper hop) and the recognizer must be destroyed in a finally block on every exit path, including timeout and exception. The test stops the session as soon as onReadyForSpeech arrives; it must NOT try to transcribe real speech, because an automated run cannot supply audio. Results are surfaced as assertion messages and/or android.util.Log lines that state only the three booleans/ints and the resolved recognizer component -- never any transcript, partial text or other user content. RECORD_AUDIO must be declared in app-wear's AndroidManifest.xml; the permission is granted at run time by the orchestrator with `adb shell pm grant`, so do NOT add androidx.test:rules or a GrantPermissionRule for it. Add only the minimum androidTest dependencies to app-wear/build.gradle.kts, reusing the existing version-catalog aliases app-phone already uses (androidx-test-runner, androidx-test-core, androidx-test-ext-junit, junit4) and setting testInstrumentationRunner to androidx.test.runner.AndroidJUnitRunner in defaultConfig. No SDK level, JDK level or library version may be written as a literal in a build file -- everything comes from gradle/libs.versions.toml. This test is a one-off measurement, not a regression gate: it lives in androidTest so it never runs during `./gradlew test`, and it must degrade to a clear reported failure rather than hanging if the recognizer never calls back (use a bounded CountDownLatch await, not an unbounded wait).",
+  "objective": "Add an instrumented (androidTest) source set to app-wear containing exactly one test class that answers, on real OnePlus Watch 3 hardware, whether the platform on-device speech recognizer is usable on Wear OS 5. It must report three things: (1) SpeechRecognizer.isRecognitionAvailable(context), (2) SpeechRecognizer.isOnDeviceRecognitionAvailable(context), and (3) whether createOnDeviceSpeechRecognizer(context) followed by startListening(...) reaches onReadyForSpeech within a bounded wait (proof the engine actually starts), or else which SpeechRecognizer.ERROR_* integer code it fails with. The platform SpeechRecognizer API must be created and called on the main thread (use androidx.test's InstrumentationRegistry.getInstrumentation().runOnMainSync { ... } or an equivalent main-looper hop) and the recognizer must be destroyed in a finally block on every exit path, including timeout and exception. The test stops the session as soon as onReadyForSpeech arrives; it must NOT try to transcribe real speech, because an automated run cannot supply audio. Results are surfaced as assertion messages and/or android.util.Log lines that state only the three booleans/ints and the resolved recognizer component -- never any transcript, partial text or other user content. RECORD_AUDIO must be declared in app-wear's AndroidManifest.xml; the permission is granted at run time by the orchestrator with `adb shell pm grant`, so do NOT add androidx.test:rules or a GrantPermissionRule for it. Add only the minimum androidTest dependencies to app-wear/build.gradle.kts, reusing the existing version-catalog aliases app-phone already uses (androidx-test-runner, androidx-test-core, androidx-test-ext-junit, junit4) and setting testInstrumentationRunner to androidx.test.runner.AndroidJUnitRunner in defaultConfig. No SDK level, JDK level or library version may be written as a literal in a build file -- everything comes from gradle/libs.versions.toml. This test is a one-off measurement, not a regression gate: it lives in androidTest so it never runs during `./gradlew test`, and it must degrade to a clear reported failure rather than hanging if the recognizer never calls back (use a bounded CountDownLatch await, not an unbounded wait). SCOPE WIDENED BY THE ORCHESTRATOR AFTER THE FIRST HARDWARE RUN: the watch answered isOnDeviceRecognitionAvailable=false and createOnDeviceSpeechRecognizer threw UnsupportedOperationException. The same three questions must therefore be answered on the Pixel 10 Pro before any core-speech work starts, because the phone's only current evidence is the same kind of property inspection that just proved wrong for the watch. Add an equivalent probe test under app-phone/src/androidTest (app-phone already has an androidTest source set, dependencies and runner configured -- change no build file), reusing the same structure, the same no-user-content rule and a distinct log tag.",
   "non_goals": [
     "Do not modify app-wear's MainActivity or add any product UI to the watch app.",
     "Do not start building the Wear capture screen or any Data Layer transport.",
@@ -26,19 +26,22 @@
   "write_paths": [
     "app-wear/build.gradle.kts",
     "app-wear/src/main/AndroidManifest.xml",
-    "app-wear/src/androidTest/**"
+    "app-wear/src/androidTest/**",
+    "app-phone/src/androidTest/**"
   ],
   "forbidden_paths": [
     "BACKLOG.md",
     "PROGRESS.md",
     ".sdlc/**",
     "docs/**",
-    "app-phone/**",
     "core-ai/**",
     "core-speech/**",
     "core-data/**",
     "core-domain/**",
-    "gradle/libs.versions.toml"
+    "gradle/libs.versions.toml",
+    "app-phone/src/main/**",
+    "app-phone/src/test/**",
+    "app-phone/build.gradle.kts"
   ],
   "acceptance_criteria": [
     "`./gradlew :app-wear:assembleDebug :app-wear:assembleDebugAndroidTest` succeeds.",
@@ -48,11 +51,13 @@
     "RECORD_AUDIO is declared in app-wear/src/main/AndroidManifest.xml.",
     "app-wear/build.gradle.kts contains no com.google.mlkit coordinate and no literal version, SDK level or JDK level; every dependency is a libs.* catalog alias and testInstrumentationRunner is set.",
     "No transcript, partial result, or any other user content is logged or asserted on (AGENTS.md #11); output is limited to booleans, integer error codes and component names.",
-    "`./gradlew test` still passes and does not attempt to run this instrumented test."
+    "`./gradlew test` still passes and does not attempt to run this instrumented test.",
+    "An equivalent probe test exists under app-phone/src/androidTest reporting the same three questions plus the recognizer components, with its own distinct log tag, and `./gradlew :app-phone:assembleDebugAndroidTest` succeeds. No app-phone build file, main source or unit test is modified."
   ],
   "verification_commands": [
     "./gradlew :app-wear:assembleDebug :app-wear:assembleDebugAndroidTest",
-    "./gradlew test"
+    "./gradlew test",
+    "./gradlew :app-phone:assembleDebugAndroidTest"
   ],
   "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
   "max_attempts": 3

@@ -10,6 +10,13 @@
         Google's datatransport telemetry stack declares these permissions in its
         library manifests; strip them from the merged manifest.
     -->
+    <!--
+        Needed by the platform speech recognizer. Declared now so the one-off on-device
+        recognizer probe (src/androidTest) can be granted it with `adb shell pm grant`;
+        the shipping capture screen will need it too.
+    -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
 

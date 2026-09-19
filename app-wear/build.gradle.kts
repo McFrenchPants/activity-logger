@@ -31,6 +31,11 @@ android {
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0"
+
+        // Runs the one-off on-device speech-recognizer probe (src/androidTest). It is a
+        // measurement, not a regression gate: instrumented tests never run during
+        // `./gradlew test`, and the probe reports "unavailable" as a pass, not a failure.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildFeatures {
@@ -49,4 +54,15 @@ dependencies {
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.wear.compose.material3)
+
+    // On-device test only, and only what the recognizer probe actually uses: the runner that
+    // executes it, the AndroidJUnit4 runner class, ApplicationProvider/InstrumentationRegistry
+    // and JUnit 4 assertions. Catalog aliases are shared with app-phone.
+    //
+    // Deliberately NOT androidx.test:rules / GrantPermissionRule: RECORD_AUDIO is granted out
+    // of band with `adb shell pm grant` before the run.
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.junit4)
 }
