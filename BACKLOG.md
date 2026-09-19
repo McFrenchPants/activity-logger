@@ -142,7 +142,10 @@ Status vocabulary:
    REQUIREMENTS TST-001..004 and AGENTS.md §6. Build guide: "do not move on
    until core synonym and near-neighbor cases are measurable."
 
-10. **Typed capture and history screens on the phone** — `idea`
+10. **Typed capture and history screens on the phone** — `in progress`
+    Work item UI1, see `docs/proposals/typed-capture/` (branch
+    `feature/typed-capture`). Owner chose it 2026-09-18; scope and the Saved
+    card's *Change activity* button (core of item 11) signed off 2026-09-19.
     Added 2026-09-17. The earliest usable slice of build-guide Step 7: a
     Log screen with a text field, the History list, and the Needs-review
     list, per `docs/UX_VISUAL_SPEC.md`. First point at which the app can be

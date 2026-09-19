@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-19T03:54:29.838Z",
+  "updated_at": "2026-09-19T04:31:35.512Z",
   "work_items": [
     {
       "id": "SS1",
@@ -577,6 +577,99 @@
           "task_packet_path": ".sdlc/task-packets/SR1.8.packet.json",
           "report_path": null,
           "notes": "Done, verifier pass. allowedActivityIds field + scorer + integrity rules; three cases changed per owner review 2026-09-18. Device re-scored CORRECT 35 / SAFE_MISS 6 / UNSAFE_MISS 7; baseline.json 35 ids. corpus matches NO until next device run (expectations-only change)."
+        }
+      ]
+    },
+    {
+      "id": "UI1",
+      "title": "Typed capture and history screens (backlog item 10)",
+      "lifecycle_state": "approved",
+      "tasks": [
+        {
+          "id": "UI1.1",
+          "title": "Ledger reads and hide for the screens",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "UI1.2",
+          "title": "App shell, theme, time display",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "UI1.3",
+          "title": "Log screen: typed capture, result cards, picker",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "UI1.1",
+            "UI1.2"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "UI1.4",
+          "title": "History screen",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "UI1.1",
+            "UI1.3"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "UI1.5",
+          "title": "Device pass and documentation",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "UI1.1",
+            "UI1.2",
+            "UI1.3",
+            "UI1.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
         }
       ]
     }
