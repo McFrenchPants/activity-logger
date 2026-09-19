@@ -34,6 +34,10 @@
     <string name="log_listening">Listening...</string>
     <string name="log_mic_permission_denied">Voice logging needs the microphone. You can still type what you did.</string>
     <string name="log_mic_permission_blocked">The microphone is switched off for this app in Settings, so voice logging can\'t start. You can still type what you did.</string>
+    <!-- Recognition outcomes where "Try again" would be a dead end (no engine) or needs a moment
+         (engine busy): a plain sentence instead of the failure card. -->
+    <string name="log_voice_unavailable">This phone can\'t listen for what you did. You can still type it.</string>
+    <string name="log_voice_busy">Listening is busy right now. Try again in a moment.</string>
 
     <!-- Recognition-failure card (UX_VISUAL_SPEC 6). Nothing was heard and nothing was saved, so
          this card shows no words of the user's at all. -->

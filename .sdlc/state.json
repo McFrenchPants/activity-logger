@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-19T22:29:38.000Z",
+  "updated_at": "2026-09-19T23:08:44.000Z",
   "work_items": [
     {
       "id": "SS1",
@@ -733,42 +733,42 @@
         {
           "id": "VC1.2",
           "title": "SpeechTranscriber and platform adapter in core-speech",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "implemented",
           "dependencies": [
             "VC1.1"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/VC1.2.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done, spot-check. SpeechTranscriber + PlatformSpeechTranscriber; SpeechFailure is a payload-free enum; 30 JVM tests. ERROR_CLIENT->CANCELLED divergence approved."
         },
         {
           "id": "VC1.3",
           "title": "Mic button, listening state and failure card on Log",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "implemented",
           "dependencies": [
             "VC1.2"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/VC1.3.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done, spot-check. Mic beside text field (owner decision); listening state, failure card, permission flow. ResultCard restructured into ForCapture/Unresolved + RecognitionFailed data object. 21 tests."
         },
         {
           "id": "VC1.4",
           "title": "Wire voice through the capture pipeline",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "implemented",
           "dependencies": [
             "VC1.2",
             "VC1.3"
@@ -776,11 +776,11 @@
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/VC1.4.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done, VERIFIER PASS (raw_capture_immutability tier). One createRawCapture call site shared with typing; session-identity token drops late/stale events. 594 project tests green."
         },
         {
           "id": "VC1.5",

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.mcfrenchpants.activityledger.ActivityLedgerApplication
 import com.mcfrenchpants.activityledger.core.ai.ModelReadiness
+import com.mcfrenchpants.activityledger.core.speech.PlatformSpeechTranscriber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.ZoneId
@@ -26,6 +27,9 @@ class LogViewModelFactory(private val application: ActivityLedgerApplication) : 
             orchestrator = pipeline.orchestrator,
             reviewResolutionService = application.reviewResolutionService,
             correctionService = application.correctionService,
+            // The one Android speech implementation (ADR-024), on the application context: it
+            // outlives any Activity and never holds one.
+            transcriber = PlatformSpeechTranscriber(application.applicationContext),
             clock = pipeline.clock,
             isAiReady = {
                 withContext(Dispatchers.Default) { pipeline.capability.readiness() == ModelReadiness.READY }

@@ -1,5 +1,6 @@
 package com.mcfrenchpants.activityledger.ui.log
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mcfrenchpants.activityledger.R
@@ -16,6 +17,9 @@ import com.mcfrenchpants.activityledger.core.domain.services.CorrectionService
 import com.mcfrenchpants.activityledger.core.domain.services.ResolutionResult
 import com.mcfrenchpants.activityledger.core.domain.services.ReviewResolutionService
 import com.mcfrenchpants.activityledger.core.domain.services.ServiceRefusal
+import com.mcfrenchpants.activityledger.core.speech.SpeechEvent
+import com.mcfrenchpants.activityledger.core.speech.SpeechFailure
+import com.mcfrenchpants.activityledger.core.speech.SpeechTranscriber
 import com.mcfrenchpants.activityledger.ui.components.toHistoryRow
 import com.mcfrenchpants.activityledger.ui.review.PickerState
 import com.mcfrenchpants.activityledger.ui.review.ReviewSuggestions
@@ -38,6 +42,9 @@ import java.util.Locale
 /** `sourceSurface` recorded on raw captures typed on the Log screen. */
 const val LOG_TYPED_SOURCE_SURFACE: String = "log_typed"
 
+/** `sourceSurface` recorded on raw captures spoken on the Log screen. */
+const val LOG_VOICE_SOURCE_SURFACE: String = "log_voice"
+
 /** D5's undo window before accessibility adjustment. */
 const val DEFAULT_UNDO_TIMEOUT_MILLIS: Long = 8_000L
 
@@ -55,9 +62,19 @@ private const val RECENT_ROWS = 3
  * wires the real ones; ADR-032, no DI framework).
  *
  * Rules it keeps:
- * - Typed words become an immutable raw capture first, then go through [orchestrator] only.
- *   Each [CaptureProcessingOutcome] maps to exactly one card; the outcome's reasons are never
- *   inspected (ADR-010).
+ * - Typed *and* spoken words become an immutable raw capture first, then go through
+ *   [orchestrator] only. Each [CaptureProcessingOutcome] maps to exactly one card; the outcome's
+ *   reasons are never inspected (ADR-010).
+ * - There is exactly one place in this class that writes to the ledger -- [captureAndInterpret]'s
+ *   single `createRawCapture` call -- and no call anywhere that could update, rewrite or delete a
+ *   raw capture afterwards. Typed and spoken words differ only in the [NewRawCapture] handed to
+ *   it, so a voice capture reaches the model on exactly the path a typed one does (ADR-007,
+ *   AGENTS.md #4).
+ * - Speech is a session at a time, never continuous: one session exists only while
+ *   [listeningSession] is set, and it is ended by its own result, by the user, by the screen
+ *   stopping, by leaving Log, or by the view model being cleared. Partial transcripts are shown
+ *   and then dropped: they are never stored, never sent to [orchestrator] and never survive the
+ *   session that produced them (AGENTS.md #11).
  * - Submitting is only possible while the screen is started (ADR-029). Work already running
  *   lives in [viewModelScope], so neither backgrounding nor rotation cancels it, and its card is
  *   there when the user comes back.
@@ -67,6 +84,8 @@ private const val RECENT_ROWS = 3
  * - The AI-readiness check is asked once per start and never downloads anything.
  * - Nothing is logged (AGENTS.md #11).
  *
+ * @param transcriber Turns spoken words into text, one session at a time. A plain interface, so
+ *   these tests run on the JVM with a fake and nothing here knows about the platform recognizer.
  * @param isAiReady Whether on-device interpretation can run now. Must be cheap and must never
  *   start a download.
  * @param zone The zone recorded on new captures.
@@ -77,6 +96,7 @@ class LogViewModel(
     private val orchestrator: CaptureInterpretationOrchestrator,
     private val reviewResolutionService: ReviewResolutionService,
     private val correctionService: CorrectionService,
+    private val transcriber: SpeechTranscriber,
     private val clock: Clock,
     private val isAiReady: suspend () -> Boolean,
     private val zone: () -> ZoneId,
@@ -92,6 +112,17 @@ class LogViewModel(
     private var undoElapsedMillis: Long = 0L
     private var undoJob: Job? = null
     private var cardTouched = false
+
+    /**
+     * Identifies the one listening session that is allowed to change anything, or null when none
+     * is running. Every event carries the session it came from and is dropped unless it still
+     * matches, so a result that arrives after the user stopped listening (or after the screen
+     * stopped) changes nothing and stores nothing.
+     */
+    private var listeningSession: Any? = null
+
+    /** The coroutine collecting [listeningSession]'s flow. Cancelling it ends the session. */
+    private var listeningJob: Job? = null
 
     // ---- Lifecycle (ADR-029) --------------------------------------------------------------
 
@@ -111,14 +142,26 @@ class LogViewModel(
         }
     }
 
-    /** The Log screen went to the background. Nothing running is cancelled; submit is blocked. */
+    /**
+     * The Log screen went to the background. A capture already being stored or interpreted keeps
+     * running (its card is there on return) and submit is blocked, but listening stops: the
+     * microphone is never open off-screen (ADR-029).
+     */
     fun onStop() {
         _state.update { it.copy(isStarted = false) }
+        cancelListening()
     }
 
-    /** The user left the Log destination: the Saved card is dismissed (the occurrence stays). */
+    /** The user left the Log destination: listening stops and the Saved card is dismissed. */
     fun onLeftLog() {
+        cancelListening()
         if (_state.value.card is ResultCard.Saved) dismissCard()
+    }
+
+    /** The screen is gone for good. No listening session may outlive the view model. */
+    override fun onCleared() {
+        cancelListening()
+        super.onCleared()
     }
 
     // ---- Capture ------------------------------------------------------------------------
@@ -138,46 +181,63 @@ class LogViewModel(
         dismissCard()
         _state.update { it.copy(input = "", isCapturing = true, message = null) }
         viewModelScope.launch {
-            val captureId = try {
-                repository.createRawCapture(
-                    NewRawCapture(
-                        source = CaptureSource.PHONE_TEXT,
-                        sourceSurface = LOG_TYPED_SOURCE_SURFACE,
-                        capturedAt = clock.instant(),
-                        zoneId = zone(),
-                        rawText = text,
-                        speechConfidence = null,
-                        speechAlternativesJson = null,
-                        processingState = ProcessingState.CAPTURED,
-                    ),
-                )
-            } catch (cancellation: CancellationException) {
-                throw cancellation
-            } catch (expected: Exception) {
-                // Nothing was saved: give the words back so nothing is lost.
-                _state.update {
-                    it.copy(
-                        isCapturing = false,
-                        input = it.input.ifEmpty { text },
-                        message = UserMessage(R.string.log_capture_not_saved),
-                    )
-                }
-                return@launch
-            }
-
-            val card = try {
-                cardFor(captureId, text, orchestrator.process(captureId))
-            } catch (cancellation: CancellationException) {
-                throw cancellation
-            } catch (expected: Exception) {
-                // The words are stored, but no outcome was recorded: that is exactly
-                // "saved your words, but couldn't categorize them yet".
-                ResultCard.NotCategorized(captureId, text)
-            }
-            _state.update { it.copy(isCapturing = false) }
-            showCard(card)
-            reloadRecent()
+            captureAndInterpret(
+                NewRawCapture(
+                    source = CaptureSource.PHONE_TEXT,
+                    sourceSurface = LOG_TYPED_SOURCE_SURFACE,
+                    capturedAt = clock.instant(),
+                    zoneId = zone(),
+                    rawText = text,
+                    speechConfidence = null,
+                    speechAlternativesJson = null,
+                    processingState = ProcessingState.CAPTURED,
+                ),
+            )
         }
+    }
+
+    /**
+     * The one path from words to a card, whether they were typed or spoken.
+     *
+     * This is also the only place in this class that writes to the ledger: the raw capture is
+     * created here, once, and from then on it is only ever read -- there is no update, rewrite or
+     * delete of a capture anywhere in this class to find (ADR-007, AGENTS.md #4). Callers differ
+     * only in the [NewRawCapture] they build, so spoken words reach [orchestrator] and [cardFor]
+     * on exactly the path typed words do.
+     *
+     * If storage fails, nothing was saved and the words go back into the capture field rather
+     * than being lost; if interpretation fails, the words are stored and the card says so.
+     */
+    private suspend fun captureAndInterpret(capture: NewRawCapture) {
+        val text = capture.rawText
+        val captureId = try {
+            repository.createRawCapture(capture)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (expected: Exception) {
+            // Nothing was saved: give the words back so nothing is lost.
+            _state.update {
+                it.copy(
+                    isCapturing = false,
+                    input = it.input.ifEmpty { text },
+                    message = UserMessage(R.string.log_capture_not_saved),
+                )
+            }
+            return
+        }
+
+        val card = try {
+            cardFor(captureId, text, orchestrator.process(captureId))
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (expected: Exception) {
+            // The words are stored, but no outcome was recorded: that is exactly
+            // "saved your words, but couldn't categorize them yet".
+            ResultCard.NotCategorized(captureId, text)
+        }
+        _state.update { it.copy(isCapturing = false) }
+        showCard(card)
+        reloadRecent()
     }
 
     /** The one mapping from pipeline outcome to card. Reasons are never inspected (ADR-010). */
@@ -305,27 +365,40 @@ class LogViewModel(
         dismissCard()
     }
 
-    // ---- Voice capture (VC1.3: state only) ----------------------------------------------
-
-    // These four methods own the listening state and nothing else. VC1.4 replaces their bodies
-    // with real transcriber calls; deliberately nothing here knows about speech recognition, so
-    // the screen's listening behaviour is unit-testable on the JVM today.
+    // ---- Voice capture ------------------------------------------------------------------
 
     /**
-     * The user asked to log by voice: dismisses any card, clears the last partial and blocks
-     * typed submit while listening. Ignored while stopped or while a capture is being processed.
+     * The user asked to log by voice: dismisses any card, clears the last partial, blocks typed
+     * submit and starts exactly one listening session. Ignored while the screen is stopped, while
+     * a capture is being processed, and while a session is already running -- a second tap can
+     * never open a second microphone.
      */
     fun startListening() {
         val current = _state.value
         if (!current.canUseMicrophone || current.isListening) return
+        cancelListening() // belt and braces: no session may still be running when one starts
         dismissCard()
+
+        val session = Any()
+        listeningSession = session
         _state.update { it.copy(isListening = true, partialTranscript = "", message = null) }
+        listeningJob = viewModelScope.launch {
+            try {
+                transcriber.listen().collect { event -> onSpeechEvent(session, event) }
+            } finally {
+                // However the session ended -- result, failure, or cancellation, which in Kotlin
+                // emits no event at all -- no partial outlives it.
+                endListeningState(session)
+            }
+        }
     }
 
-    /** The user (or, later, the recognizer) ended listening. Typing is available again. */
+    /**
+     * The user ended listening. Cancelling the collection is what closes the microphone, and it
+     * emits no event, so the screen is handed back to typing here rather than waiting for one.
+     */
     fun stopListening() {
-        if (!_state.value.isListening) return
-        _state.update { it.copy(isListening = false, partialTranscript = "") }
+        cancelListening()
     }
 
     /** "Try again" on the recognition-failure card: drops the card and listens again. */
@@ -342,18 +415,86 @@ class LogViewModel(
     }
 
     /**
-     * The words heard so far. Never logged and never stored -- it is shown, then replaced
-     * (AGENTS.md #11). Ignored when nothing is listening.
+     * One event from [session]. Events from any other session -- a result that arrives after the
+     * user stopped, or anything a misbehaving transcriber emits after its terminal event -- are
+     * dropped without touching the screen or the ledger.
      */
-    fun onPartialTranscript(text: String) {
-        if (!_state.value.isListening) return
-        _state.update { it.copy(partialTranscript = text) }
+    private fun onSpeechEvent(session: Any, event: SpeechEvent) {
+        if (listeningSession !== session) return
+        when (event) {
+            // Shown, then replaced. Never stored, never sent anywhere (AGENTS.md #11).
+            is SpeechEvent.PartialTranscript ->
+                _state.update { it.copy(partialTranscript = event.text) }
+
+            is SpeechEvent.FinalTranscript -> {
+                endListeningState(session)
+                captureSpokenWords(event)
+            }
+
+            is SpeechEvent.Failed -> {
+                endListeningState(session)
+                showSpeechFailure(event.failure)
+            }
+        }
     }
 
-    /** Nothing usable was heard: stops listening and shows the recognition-failure card. */
-    fun showRecognitionFailure() {
+    /**
+     * The session's one result becomes one raw capture, on the typed path's own terms: the same
+     * [captureAndInterpret], the same [orchestrator] call, the same [cardFor] mapping. The speech
+     * fields are recorded as the engine reported them -- an unknown confidence stays unknown, and
+     * no alternatives means no JSON, never an empty list dressed up as one.
+     */
+    private fun captureSpokenWords(event: SpeechEvent.FinalTranscript) {
+        val text = event.text.trim()
+        if (text.isEmpty()) return // the contract says never blank; if it is, there is nothing to store
+        _state.update { it.copy(isCapturing = true, message = null) }
+        viewModelScope.launch {
+            captureAndInterpret(
+                NewRawCapture(
+                    source = CaptureSource.PHONE_VOICE,
+                    sourceSurface = LOG_VOICE_SOURCE_SURFACE,
+                    capturedAt = clock.instant(),
+                    zoneId = zone(),
+                    rawText = text,
+                    speechConfidence = event.confidence?.toDouble(),
+                    speechAlternativesJson = jsonArrayOrNull(event.alternatives),
+                    processingState = ProcessingState.CAPTURED,
+                ),
+            )
+        }
+    }
+
+    /**
+     * What a failed session says, in plain words. Nothing is stored on any of these paths.
+     *
+     * "Try again" is only offered where trying again could work. A missing permission or a phone
+     * with no on-device engine would make that button a dead end, so those say what happened and
+     * leave the capture field -- which is the whole screen anyway -- available.
+     */
+    private fun showSpeechFailure(failure: SpeechFailure) {
+        when (failure) {
+            SpeechFailure.NOTHING_HEARD, SpeechFailure.ENGINE_ERROR -> showCard(ResultCard.RecognitionFailed)
+            SpeechFailure.PERMISSION_MISSING -> showMessage(R.string.log_mic_permission_denied)
+            SpeechFailure.NO_ON_DEVICE_ENGINE -> showMessage(R.string.log_voice_unavailable)
+            SpeechFailure.RECOGNIZER_BUSY -> showMessage(R.string.log_voice_busy)
+            // The user stopped it. Saying anything about it would be noise.
+            SpeechFailure.CANCELLED -> Unit
+        }
+    }
+
+    /** Ends [session]'s listening state, dropping its partial. Later sessions are untouched. */
+    private fun endListeningState(session: Any) {
+        if (listeningSession !== session) return
+        listeningSession = null
         _state.update { it.copy(isListening = false, partialTranscript = "") }
-        showCard(ResultCard.RecognitionFailed)
+    }
+
+    /** Ends whatever session is running, if any: the microphone closes and the partial is gone. */
+    private fun cancelListening() {
+        listeningSession = null
+        listeningJob?.cancel()
+        listeningJob = null
+        _state.update { it.copy(isListening = false, partialTranscript = "") }
     }
 
     /**
@@ -453,6 +594,11 @@ class LogViewModel(
         _state.update { it.copy(card = null, picker = null, message = null) }
     }
 
+    /** Shows one plain-words message. Message text is always a resource, never a literal. */
+    private fun showMessage(@StringRes messageRes: Int) {
+        _state.update { it.copy(message = UserMessage(messageRes)) }
+    }
+
     private suspend fun showRefusal(refusal: ServiceRefusal) {
         val message = refusalMessageFor(repository, refusal)
         _state.update { it.copy(message = message) }
@@ -489,4 +635,35 @@ class LogViewModel(
         val rows = history.take(RECENT_ROWS).map { it.toHistoryRow(now, locale()) }
         _state.update { it.copy(recent = rows, recentLoaded = true) }
     }
+}
+
+/**
+ * [values] as a JSON array of strings, or null when there are none -- "no alternatives" is
+ * recorded as no JSON at all, never as `[]`.
+ *
+ * Hand-written rather than pulled from a JSON library: the shape is a flat array of strings and
+ * nothing else, and this keeps the escaping visible in one place a reader can check. Everything
+ * JSON requires to be escaped is escaped, including control characters.
+ */
+private fun jsonArrayOrNull(values: List<String>): String? {
+    if (values.isEmpty()) return null
+    return values.joinToString(prefix = "[", postfix = "]", separator = ",") { jsonString(it) }
+}
+
+private fun jsonString(value: String): String = buildString {
+    append('"')
+    value.forEach { character ->
+        when {
+            character == '"' -> append("\\\"")
+            character == '\\' -> append("\\\\")
+            character == '\n' -> append("\\n")
+            character == '\r' -> append("\\r")
+            character == '\t' -> append("\\t")
+            character == '\b' -> append("\\b")
+            character == '' -> append("\\f")
+            character < ' ' -> append("\\u").append(character.code.toString(16).padStart(4, '0'))
+            else -> append(character)
+        }
+    }
+    append('"')
 }

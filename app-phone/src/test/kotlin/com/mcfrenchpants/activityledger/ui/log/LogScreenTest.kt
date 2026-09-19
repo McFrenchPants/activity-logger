@@ -48,6 +48,7 @@ class LogScreenTest {
             orchestrator = CaptureInterpretationOrchestrator(repository, interpreter, clock),
             reviewResolutionService = ReviewResolutionService(repository, clock),
             correctionService = CorrectionService(repository, clock),
+            transcriber = ScriptedTranscriber(),
             clock = clock,
             isAiReady = { false },
             zone = { zone },

@@ -15,6 +15,8 @@ import com.mcfrenchpants.activityledger.core.domain.services.CaptureInterpretati
 import com.mcfrenchpants.activityledger.core.domain.services.CorrectionService
 import com.mcfrenchpants.activityledger.core.domain.services.ResolutionResult
 import com.mcfrenchpants.activityledger.core.domain.services.ReviewResolutionService
+import com.mcfrenchpants.activityledger.core.speech.SpeechEvent
+import com.mcfrenchpants.activityledger.core.speech.SpeechFailure
 import com.mcfrenchpants.activityledger.core.testing.FakeActivityInterpreter
 import com.mcfrenchpants.activityledger.core.testing.InMemoryActivityRepository
 import com.mcfrenchpants.activityledger.core.testing.MutableClock
@@ -54,6 +56,7 @@ class LogViewModelTest {
     private val memory = InMemoryActivityRepository(clock)
     private val repository = RecordingRepository(memory)
     private val fake = FakeActivityInterpreter()
+    private val transcriber = ScriptedTranscriber()
     private val dispatcher = StandardTestDispatcher()
     private val scheduler get() = dispatcher.scheduler
     private val store = ViewModelStore()
@@ -81,6 +84,7 @@ class LogViewModelTest {
                 orchestrator = CaptureInterpretationOrchestrator(repository, interpreter, clock),
                 reviewResolutionService = ReviewResolutionService(repository, clock),
                 correctionService = CorrectionService(repository, clock),
+                transcriber = transcriber,
                 clock = clock,
                 isAiReady = { readyChecks++; aiReady },
                 zone = { zone },
@@ -101,6 +105,23 @@ class LogViewModelTest {
         submit()
         scheduler.runCurrent()
     }
+
+    /** Starts one listening session that emits [events] as soon as it is collected. */
+    private fun LogViewModel.listen(vararg events: SpeechEvent) {
+        transcriber.willEmit(*events)
+        startListening()
+        scheduler.runCurrent()
+    }
+
+    private fun partial(text: String) = SpeechEvent.PartialTranscript(text)
+
+    private fun final(
+        text: String,
+        confidence: Float? = null,
+        alternatives: List<String> = emptyList(),
+    ) = SpeechEvent.FinalTranscript(text, confidence, alternatives)
+
+    private fun failed(failure: SpeechFailure) = SpeechEvent.Failed(failure)
 
     private val LogViewModel.card get() = state.value.card
 
@@ -547,6 +568,7 @@ class LogViewModelTest {
             orchestrator = CaptureInterpretationOrchestrator(repo, fake, clock),
             reviewResolutionService = ReviewResolutionService(repo, clock),
             correctionService = CorrectionService(repo, clock),
+            transcriber = transcriber,
             clock = clock,
             isAiReady = { true },
             zone = { zone },
@@ -792,32 +814,40 @@ class LogViewModelTest {
     }
 
     @Test
-    fun stopListeningHandsTheScreenBackToTyping() {
+    fun stopListeningHandsTheScreenBackToTypingWithoutWaitingForAnEvent() {
         fake.enqueue(Results.existing(mowLawn))
         val vm = started()
-        vm.startListening()
-        vm.onPartialTranscript("I cut the")
+        vm.listen(partial("I cut the"))
+        assertEquals("I cut the", vm.state.value.partialTranscript)
 
         vm.stopListening()
 
+        // Cancelling the collection emits no event, so the idle state is restored here and now.
         assertFalse(vm.state.value.isListening)
         assertEquals("", vm.state.value.partialTranscript)
+        scheduler.runCurrent()
+        assertEquals(1, transcriber.sessionsCancelled)
+        assertFalse(transcriber.isOpen)
         vm.type("I cut the grass")
         assertIs<ResultCard.Saved>(vm.card)
     }
 
     @Test
-    fun partialsOnlyArriveWhileListeningAndNeverOutliveIt() {
+    fun partialsAreShownButNeverStoredNeverInterpretedAndNeverOutliveTheSession() {
         val vm = started()
-        vm.onPartialTranscript("ignored")
-        assertEquals("", vm.state.value.partialTranscript)
+        vm.listen(partial("I cut the"))
 
-        vm.startListening()
-        vm.onPartialTranscript("I cut the")
         assertEquals("I cut the", vm.state.value.partialTranscript)
+        // Display only: no capture exists and the interpreter has not been asked anything.
+        assertTrue(repository.created.isEmpty())
+        assertEquals(0, fake.callCount)
 
-        vm.showRecognitionFailure()
+        transcriber.emitNow(failed(SpeechFailure.NOTHING_HEARD))
+        scheduler.runCurrent()
+
         assertEquals("", vm.state.value.partialTranscript)
+        assertTrue(repository.created.isEmpty())
+        assertEquals(0, fake.callCount)
     }
 
     // ---- Voice capture: the recognition-failure card -----------------------------------------
@@ -825,9 +855,8 @@ class LogViewModelTest {
     @Test
     fun recognitionFailureShowsACardWithNoCaptureAndSavesNothing() {
         val vm = started()
-        vm.startListening()
 
-        vm.showRecognitionFailure()
+        vm.listen(failed(SpeechFailure.NOTHING_HEARD))
 
         assertEquals(ResultCard.RecognitionFailed, vm.card)
         assertFalse(vm.state.value.isListening)
@@ -839,14 +868,16 @@ class LogViewModelTest {
     @Test
     fun tryAgainListensAgainAndTypeInsteadJustDropsTheCard() {
         val vm = started()
-        vm.startListening()
-        vm.showRecognitionFailure()
+        vm.listen(failed(SpeechFailure.NOTHING_HEARD))
 
         vm.retryListening()
+        scheduler.runCurrent()
         assertTrue(vm.state.value.isListening)
+        assertEquals(2, transcriber.sessionsStarted)
         assertNull(vm.card)
 
-        vm.showRecognitionFailure()
+        transcriber.emitNow(failed(SpeechFailure.NOTHING_HEARD))
+        scheduler.runCurrent()
         vm.dismissRecognitionFailure()
         assertNull(vm.card)
         assertFalse(vm.state.value.isListening)
@@ -855,8 +886,7 @@ class LogViewModelTest {
     @Test
     fun theFailureCardIsNeitherResolvableNorCorrectable() {
         val vm = started()
-        vm.startListening()
-        vm.showRecognitionFailure()
+        vm.listen(failed(SpeechFailure.NOTHING_HEARD))
 
         // There is no capture behind it, so the review paths must simply not apply to it.
         vm.resolve(ActivityTarget.Existing(mowLawn))
@@ -898,5 +928,252 @@ class LogViewModelTest {
         assertEquals(UserMessage(R.string.log_mic_permission_blocked), vm.state.value.message)
         vm.type("I cut the grass")
         assertIs<ResultCard.Saved>(vm.card)
+    }
+
+    // ---- Voice capture: spoken words reaching the ledger --------------------------------------
+
+    @Test
+    fun oneRecognitionStoresExactlyOneVoiceCaptureAndShowsItsCard() {
+        fake.enqueue(Results.existing(mowLawn))
+        val vm = started()
+
+        vm.listen(partial("I cut"), final("I cut the grass", confidence = 0.82f, alternatives = listOf("I cut the gas")))
+
+        val stored = repository.created.single()
+        assertEquals(CaptureSource.PHONE_VOICE, stored.source)
+        assertEquals(LOG_VOICE_SOURCE_SURFACE, stored.sourceSurface)
+        assertEquals("log_voice", stored.sourceSurface)
+        assertEquals(ProcessingState.CAPTURED, stored.processingState)
+        assertEquals("I cut the grass", stored.rawText)
+        assertEquals(now, stored.capturedAt)
+        assertEquals(zone, stored.zoneId)
+        assertEquals(0.82f.toDouble(), stored.speechConfidence)
+        assertEquals("[\"I cut the gas\"]", stored.speechAlternativesJson)
+        // The final transcript is what reached the model -- never the partial.
+        assertEquals("I cut the grass", fake.receivedInputs.single().rawText)
+        assertIs<ResultCard.Saved>(vm.card)
+        assertFalse(vm.state.value.isListening)
+        assertEquals("", vm.state.value.partialTranscript)
+        assertFalse(vm.state.value.isCapturing)
+    }
+
+    @Test
+    fun anUnknownConfidenceStaysUnknownAndNoAlternativesMeansNoJson() {
+        fake.enqueue(Results.existing(mowLawn))
+        val vm = started()
+
+        vm.listen(final("I cut the grass", confidence = null, alternatives = emptyList()))
+
+        val stored = repository.created.single()
+        assertNull(stored.speechConfidence)
+        assertNull(stored.speechAlternativesJson)
+    }
+
+    @Test
+    fun severalAlternativesAreStoredAsAJsonArrayWithTheirQuotesEscaped() {
+        fake.enqueue(Results.existing(mowLawn))
+        val vm = started()
+
+        vm.listen(final("I cut the grass", alternatives = listOf("I cut the gas", "I \"cut\" the grass")))
+
+        assertEquals(
+            "[\"I cut the gas\",\"I \\\"cut\\\" the grass\"]",
+            repository.created.single().speechAlternativesJson,
+        )
+    }
+
+    @Test
+    fun theRawCaptureIsCreatedOnceAndOnlyReadAfterwards() {
+        fake.enqueue(Results.existing(mowLawn))
+        val vm = started()
+
+        vm.listen(final("I cut the grass", confidence = 0.5f))
+
+        // One create for the whole session, and the stored capture is still exactly what was
+        // created: the repository offers no way to rewrite one, and nothing here tries (ADR-007).
+        val created = repository.created.single()
+        val captureId = assertIs<ResultCard.Saved>(vm.card).captureId
+        val stored = assertNotNull(read { memory.getCapture(captureId) })
+        assertEquals(created.rawText, stored.rawText)
+        assertEquals(created.source, stored.source)
+        assertEquals(created.capturedAt, stored.capturedAt)
+        assertEquals(created.speechConfidence, stored.speechConfidence)
+        assertEquals(1, read { memory.loadHistory() }.size)
+    }
+
+    @Test
+    fun spokenAndTypedWordsProduceTheSameCardThroughTheSamePath() {
+        fake.enqueue(Results.existing(mowLawn))
+        fake.enqueue(Results.existing(mowLawn))
+        val vm = started()
+
+        vm.listen(final("I cut the grass", confidence = 0.9f, alternatives = listOf("I cut the gas")))
+        val spoken = assertIs<ResultCard.Saved>(vm.card)
+        vm.type("I cut the grass")
+        val typed = assertIs<ResultCard.Saved>(vm.card)
+
+        // Same card, identifiers aside: no branch anywhere depends on how the words arrived.
+        assertEquals(
+            typed.copy(captureId = "", occurrenceId = ""),
+            spoken.copy(captureId = "", occurrenceId = ""),
+        )
+        // And both went through the orchestrator's one interpreter call with the same words.
+        assertEquals(2, fake.callCount)
+        assertEquals(listOf("I cut the grass", "I cut the grass"), fake.receivedInputs.map { it.rawText })
+    }
+
+    @Test
+    fun aStorageFailureOnASpokenCaptureGivesTheWordsBackInsteadOfLosingThem() {
+        val vm = started()
+        repository.failOn = setOf(FailPoint.CREATE)
+
+        vm.listen(final("I cut the grass"))
+
+        assertTrue(repository.created.isEmpty())
+        assertTrue(read { memory.loadHistory() }.isEmpty())
+        // Nothing was saved, so the words are handed back to the capture field, not lost.
+        assertEquals("I cut the grass", vm.state.value.input)
+        assertEquals(UserMessage(R.string.log_capture_not_saved), vm.state.value.message)
+        assertFalse(vm.state.value.isCapturing)
+        assertNull(vm.card)
+    }
+
+    // ---- Voice capture: failed sessions store nothing ------------------------------------------
+
+    @Test
+    fun engineErrorShowsTheFailureCardAndStoresNothing() {
+        val vm = started()
+
+        vm.listen(partial("I cut the"), failed(SpeechFailure.ENGINE_ERROR))
+
+        assertEquals(ResultCard.RecognitionFailed, vm.card)
+        assertTrue(repository.created.isEmpty())
+        assertEquals("", vm.state.value.partialTranscript)
+    }
+
+    @Test
+    fun aMissingPermissionAndAPhoneWithNoEngineSaySoWithNoCardAndStoreNothing() {
+        val vm = started()
+
+        vm.listen(failed(SpeechFailure.PERMISSION_MISSING))
+        assertNull(vm.card)
+        assertEquals(UserMessage(R.string.log_mic_permission_denied), vm.state.value.message)
+        assertFalse(vm.state.value.isListening)
+        assertTrue(repository.created.isEmpty())
+
+        vm.listen(failed(SpeechFailure.NO_ON_DEVICE_ENGINE))
+        assertNull(vm.card)
+        assertEquals(UserMessage(R.string.log_voice_unavailable), vm.state.value.message)
+        assertTrue(repository.created.isEmpty())
+    }
+
+    @Test
+    fun aBusyRecognizerSaysTryAgainInAMomentAndStoresNothing() {
+        val vm = started()
+
+        vm.listen(failed(SpeechFailure.RECOGNIZER_BUSY))
+
+        assertNull(vm.card)
+        assertEquals(UserMessage(R.string.log_voice_busy), vm.state.value.message)
+        assertTrue(repository.created.isEmpty())
+    }
+
+    @Test
+    fun aCancelledSessionShowsNothingAtAllAndStoresNothing() {
+        val vm = started()
+
+        vm.listen(failed(SpeechFailure.CANCELLED))
+
+        assertNull(vm.card)
+        assertNull(vm.state.value.message)
+        assertFalse(vm.state.value.isListening)
+        assertTrue(repository.created.isEmpty())
+        assertTrue(read { memory.loadHistory() }.isEmpty())
+    }
+
+    @Test
+    fun aResultAlreadyOnItsWayWhenTheUserStopsIsDroppedAndStoresNothing() {
+        fake.enqueue(Results.existing(mowLawn))
+        val vm = started()
+        transcriber.willEmit(final("I cut the grass"))
+        vm.startListening()
+
+        // The result is queued but not yet delivered when the user taps stop.
+        vm.stopListening()
+        scheduler.runCurrent()
+
+        assertTrue(repository.created.isEmpty())
+        assertNull(vm.card)
+        assertFalse(vm.state.value.isListening)
+        assertEquals(0, fake.callCount)
+    }
+
+    // ---- Voice capture: one session at a time, and none that outlives the screen ----------------
+
+    @Test
+    fun aSecondTapWhileListeningNeverOpensASecondSession() {
+        val vm = started()
+        vm.listen(partial("I cut the"))
+
+        vm.startListening()
+        scheduler.runCurrent()
+
+        assertEquals(1, transcriber.sessionsStarted)
+        assertTrue(vm.state.value.isListening)
+        assertEquals("I cut the", vm.state.value.partialTranscript)
+    }
+
+    @Test
+    fun listeningCannotStartWhileTheScreenIsStoppedOrWhileACaptureIsProcessed() {
+        val gated = GatedInterpreter(fake)
+        val vm = viewModel(gated)
+        vm.startListening()
+        scheduler.runCurrent()
+        assertEquals(0, transcriber.sessionsStarted) // stopped: ADR-029
+        assertFalse(vm.state.value.isListening)
+
+        vm.onStart()
+        scheduler.runCurrent()
+        fake.enqueue(Results.existing(mowLawn))
+        vm.type("I cut the grass") // still in flight: the interpreter is gated
+        assertTrue(vm.state.value.isCapturing)
+
+        vm.startListening()
+        scheduler.runCurrent()
+        assertEquals(0, transcriber.sessionsStarted)
+        assertFalse(vm.state.value.isListening)
+
+        gated.release()
+        scheduler.runCurrent()
+    }
+
+    @Test
+    fun theSessionEndsWhenTheScreenStopsWhenLogIsLeftAndWhenTheViewModelIsCleared() {
+        val vm = started()
+        vm.listen(partial("I cut the"))
+
+        vm.onStop()
+        scheduler.runCurrent()
+        assertFalse(vm.state.value.isListening)
+        assertEquals("", vm.state.value.partialTranscript)
+        assertFalse(transcriber.isOpen)
+        assertEquals(1, transcriber.sessionsCancelled)
+
+        vm.onStart()
+        scheduler.runCurrent()
+        vm.listen(partial("I cut the"))
+        vm.onLeftLog()
+        scheduler.runCurrent()
+        assertFalse(vm.state.value.isListening)
+        assertFalse(transcriber.isOpen)
+        assertEquals(2, transcriber.sessionsCancelled)
+
+        vm.listen(partial("I cut the"))
+        assertTrue(transcriber.isOpen)
+        store.clear() // the screen is gone for good
+        scheduler.runCurrent()
+        assertFalse(transcriber.isOpen)
+        assertEquals(3, transcriber.sessionsCancelled)
+        assertTrue(repository.created.isEmpty())
     }
 }

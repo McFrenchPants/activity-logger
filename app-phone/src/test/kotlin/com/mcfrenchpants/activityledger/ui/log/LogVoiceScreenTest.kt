@@ -25,6 +25,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mcfrenchpants.activityledger.core.domain.services.CaptureInterpretationOrchestrator
 import com.mcfrenchpants.activityledger.core.domain.services.CorrectionService
 import com.mcfrenchpants.activityledger.core.domain.services.ReviewResolutionService
+import com.mcfrenchpants.activityledger.core.speech.SpeechEvent
+import com.mcfrenchpants.activityledger.core.speech.SpeechFailure
 import com.mcfrenchpants.activityledger.core.testing.FakeActivityInterpreter
 import com.mcfrenchpants.activityledger.core.testing.InMemoryActivityRepository
 import com.mcfrenchpants.activityledger.core.testing.MutableClock
@@ -48,7 +50,8 @@ import kotlin.test.assertTrue
  * [LogScreen]'s `canAskAgain` seam -- the two together give the three real outcomes: granted,
  * refused-but-askable, refused-for-good.
  *
- * The ViewModel's listening methods are the VC1.3 state-only stubs: no recognizer runs here.
+ * Speech itself comes from a scripted transcriber ([ScriptedTranscriber]): real sessions and
+ * real events, but no recognizer and no microphone anywhere in the test.
  */
 @RunWith(AndroidJUnit4::class)
 class LogVoiceScreenTest {
@@ -61,6 +64,7 @@ class LogVoiceScreenTest {
     private val repository = InMemoryActivityRepository(clock)
     private val interpreter = FakeActivityInterpreter()
     private val mowLawn = repository.seedActivity("Mow lawn")
+    private val transcriber = ScriptedTranscriber()
 
     private lateinit var viewModel: LogViewModel
 
@@ -83,6 +87,7 @@ class LogVoiceScreenTest {
             orchestrator = CaptureInterpretationOrchestrator(repository, interpreter, clock),
             reviewResolutionService = ReviewResolutionService(repository, clock),
             correctionService = CorrectionService(repository, clock),
+            transcriber = transcriber,
             clock = clock,
             isAiReady = { true },
             zone = { zone },
@@ -167,7 +172,7 @@ class LogVoiceScreenTest {
         composeRule.onNodeWithTag(LOG_INPUT_TAG).performTextInput("cut the grass")
 
         tapMicrophone()
-        composeRule.runOnUiThread { viewModel.onPartialTranscript("I cut the grass") }
+        composeRule.runOnUiThread { transcriber.emitNow(SpeechEvent.PartialTranscript("I cut the grass")) }
         composeRule.waitForIdle()
 
         // Announced, not just drawn: the listening line is a polite live region.
@@ -209,7 +214,7 @@ class LogVoiceScreenTest {
         showLog(permissionGranted = true)
         tapMicrophone()
 
-        composeRule.runOnUiThread { viewModel.showRecognitionFailure() }
+        composeRule.runOnUiThread { transcriber.emitNow(SpeechEvent.Failed(SpeechFailure.NOTHING_HEARD)) }
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag(RECOGNITION_FAILED_CARD_TAG).assertIsDisplayed()
@@ -225,7 +230,7 @@ class LogVoiceScreenTest {
     fun tryAgainStartsListeningAgain() {
         showLog(permissionGranted = true)
         tapMicrophone()
-        composeRule.runOnUiThread { viewModel.showRecognitionFailure() }
+        composeRule.runOnUiThread { transcriber.emitNow(SpeechEvent.Failed(SpeechFailure.NOTHING_HEARD)) }
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("Try again").performScrollTo().performClick()
@@ -241,7 +246,7 @@ class LogVoiceScreenTest {
         interpreter.enqueue(Results.existing(mowLawn))
         showLog(permissionGranted = true)
         tapMicrophone()
-        composeRule.runOnUiThread { viewModel.showRecognitionFailure() }
+        composeRule.runOnUiThread { transcriber.emitNow(SpeechEvent.Failed(SpeechFailure.NOTHING_HEARD)) }
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("Type instead").performScrollTo().performClick()
@@ -251,6 +256,25 @@ class LogVoiceScreenTest {
         assertFalse(viewModel.state.value.isListening)
         typeAndSubmit("I cut the grass")
         composeRule.onNodeWithTag(SAVED_CARD_TAG).assertIsDisplayed()
+    }
+
+    // ---- Spoken words, end to end on the screen ---------------------------------------------
+
+    @Test
+    fun spokenWordsBecomeACaptureAndShowTheSavedCardLikeTypedOnesDo() {
+        interpreter.enqueue(Results.existing(mowLawn))
+        showLog(permissionGranted = true)
+        tapMicrophone()
+
+        composeRule.runOnUiThread {
+            transcriber.emitNow(SpeechEvent.FinalTranscript("I cut the grass", 0.9f, emptyList()))
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(SAVED_CARD_TAG).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("“I cut the grass”").assertIsDisplayed()
+        assertFalse(viewModel.state.value.isListening)
+        composeRule.onNodeWithTag(LOG_LISTENING_TAG).assertDoesNotExist()
     }
 
     // ---- Permission outcomes: none of them may be a dead end --------------------------------
