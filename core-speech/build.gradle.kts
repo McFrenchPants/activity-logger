@@ -39,10 +39,20 @@ kotlin {
 dependencies {
     implementation(project(":core-domain"))
 
+    // A listening session is exposed as a cold Flow, and the recognizer's callbacks are adapted
+    // with callbackFlow, so coroutines are a direct, declared dependency rather than an implicit
+    // one. `-core` only: Dispatchers.Main (from kotlinx-coroutines-android) is deliberately not
+    // used -- the main-thread hop the platform recognizer needs goes through this module's own
+    // injectable runner, which also makes it testable off-device.
+    implementation(libs.kotlinx.coroutines.core)
+
     // Resolves at the applied Kotlin plugin's own version, so it adds no new
     // version to gradle/libs.versions.toml. The `-junit` variant is explicit
     // because, unlike the Kotlin JVM plugin, the Android plugin does not pick a
     // kotlin-test framework variant automatically -- plain kotlin("test") leaves
     // kotlin.test.Test unresolved here. JUnit 4 arrives transitively with it.
     testImplementation(kotlin("test-junit"))
+
+    // runTest, for collecting a session's flow to completion in a host-JVM test.
+    testImplementation(libs.kotlinx.coroutines.test)
 }
