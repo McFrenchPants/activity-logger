@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-19T21:57:22.735Z",
+  "updated_at": "2026-09-19T22:10:33.000Z",
   "work_items": [
     {
       "id": "SS1",
@@ -324,7 +324,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/DS1.6.packet.json",
           "report_path": null,
-          "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE Â§5/Â§6/Â§15/Â§16, AI_INTERPRETATION_SPEC Â§10/Â§11/Â§17, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
+          "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE \u00c3\u201a\u00c2\u00a75/\u00c3\u201a\u00c2\u00a76/\u00c3\u201a\u00c2\u00a715/\u00c3\u201a\u00c2\u00a716, AI_INTERPRETATION_SPEC \u00c3\u201a\u00c2\u00a710/\u00c3\u201a\u00c2\u00a711/\u00c3\u201a\u00c2\u00a717, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
         }
       ]
     },
@@ -707,6 +707,97 @@
           "task_packet_path": ".sdlc/task-packets/FX1.2.packet.json",
           "report_path": null,
           "notes": "Spot-check. Rule 10a weekday + part-of-day, shared previousWeekday helper; corpus gap cleared; baseline 35 -> 36 (time-mowed-saturday-morning replays CORRECT from the 2026-09-18 device recording)."
+        }
+      ]
+    },
+    {
+      "id": "VC1",
+      "title": "Phone voice capture (build-guide Step 6)",
+      "lifecycle_state": "in_progress",
+      "tasks": [
+        {
+          "id": "VC1.1",
+          "title": "Watch on-device recognition probe (OnePlus Watch 3)",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/VC1.1.packet.json",
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "VC1.2",
+          "title": "SpeechTranscriber and platform adapter in core-speech",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "VC1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/VC1.2.packet.json",
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "VC1.3",
+          "title": "Mic button, listening state and failure card on Log",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "VC1.2"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/VC1.3.packet.json",
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "VC1.4",
+          "title": "Wire voice through the capture pipeline",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "VC1.2",
+            "VC1.3"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/VC1.4.packet.json",
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "VC1.5",
+          "title": "Device pass and documentation",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "VC1.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/VC1.5.packet.json",
+          "report_path": null,
+          "notes": ""
         }
       ]
     }

@@ -1,0 +1,59 @@
+{
+  "task_id": "VC1.1",
+  "plan_revision": "uncommitted:2026-09-19T00:00:00Z",
+  "objective": "Add an instrumented (androidTest) source set to app-wear containing exactly one test class that answers, on real OnePlus Watch 3 hardware, whether the platform on-device speech recognizer is usable on Wear OS 5. It must report three things: (1) SpeechRecognizer.isRecognitionAvailable(context), (2) SpeechRecognizer.isOnDeviceRecognitionAvailable(context), and (3) whether createOnDeviceSpeechRecognizer(context) followed by startListening(...) reaches onReadyForSpeech within a bounded wait (proof the engine actually starts), or else which SpeechRecognizer.ERROR_* integer code it fails with. The platform SpeechRecognizer API must be created and called on the main thread (use androidx.test's InstrumentationRegistry.getInstrumentation().runOnMainSync { ... } or an equivalent main-looper hop) and the recognizer must be destroyed in a finally block on every exit path, including timeout and exception. The test stops the session as soon as onReadyForSpeech arrives; it must NOT try to transcribe real speech, because an automated run cannot supply audio. Results are surfaced as assertion messages and/or android.util.Log lines that state only the three booleans/ints and the resolved recognizer component -- never any transcript, partial text or other user content. RECORD_AUDIO must be declared in app-wear's AndroidManifest.xml; the permission is granted at run time by the orchestrator with `adb shell pm grant`, so do NOT add androidx.test:rules or a GrantPermissionRule for it. Add only the minimum androidTest dependencies to app-wear/build.gradle.kts, reusing the existing version-catalog aliases app-phone already uses (androidx-test-runner, androidx-test-core, androidx-test-ext-junit, junit4) and setting testInstrumentationRunner to androidx.test.runner.AndroidJUnitRunner in defaultConfig. No SDK level, JDK level or library version may be written as a literal in a build file -- everything comes from gradle/libs.versions.toml. This test is a one-off measurement, not a regression gate: it lives in androidTest so it never runs during `./gradlew test`, and it must degrade to a clear reported failure rather than hanging if the recognizer never calls back (use a bounded CountDownLatch await, not an unbounded wait).",
+  "non_goals": [
+    "Do not modify app-wear's MainActivity or add any product UI to the watch app.",
+    "Do not start building the Wear capture screen or any Data Layer transport.",
+    "Do not add a com.google.mlkit dependency of any kind (ADR-023 confines every ML Kit artifact to core-ai).",
+    "Do not attempt real speech transcription in the test -- no audio can be supplied to an automated run.",
+    "Do not touch core-speech, app-phone, or any docs; other tasks own those.",
+    "Do not add androidx.test:rules or GrantPermissionRule; the orchestrator grants RECORD_AUDIO over adb.",
+    "Do not make this test part of the normal test task or any CI gate."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "app-wear/**",
+    "app-phone/build.gradle.kts",
+    "app-phone/src/androidTest/**",
+    "gradle/libs.versions.toml",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "AGENTS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/DECISIONS.md"
+  ],
+  "write_paths": [
+    "app-wear/build.gradle.kts",
+    "app-wear/src/main/AndroidManifest.xml",
+    "app-wear/src/androidTest/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-phone/**",
+    "core-ai/**",
+    "core-speech/**",
+    "core-data/**",
+    "core-domain/**",
+    "gradle/libs.versions.toml"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew :app-wear:assembleDebug :app-wear:assembleDebugAndroidTest` succeeds.",
+    "Exactly one instrumented test class exists under app-wear/src/androidTest, and it reports all three questions: isRecognitionAvailable, isOnDeviceRecognitionAvailable, and whether startListening on an on-device recognizer reaches onReadyForSpeech (or the ERROR_* code it failed with).",
+    "Every SpeechRecognizer creation and call happens on the main thread, and the recognizer is destroyed in a finally block on every exit path including timeout and exception.",
+    "All waits are bounded (e.g. CountDownLatch.await with a timeout); the test cannot hang if no callback arrives.",
+    "RECORD_AUDIO is declared in app-wear/src/main/AndroidManifest.xml.",
+    "app-wear/build.gradle.kts contains no com.google.mlkit coordinate and no literal version, SDK level or JDK level; every dependency is a libs.* catalog alias and testInstrumentationRunner is set.",
+    "No transcript, partial result, or any other user content is logged or asserted on (AGENTS.md #11); output is limited to booleans, integer error codes and component names.",
+    "`./gradlew test` still passes and does not attempt to run this instrumented test."
+  ],
+  "verification_commands": [
+    "./gradlew :app-wear:assembleDebug :app-wear:assembleDebugAndroidTest",
+    "./gradlew test"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
