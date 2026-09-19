@@ -17,9 +17,55 @@ tier: spec §6 (verifier for UI1.1 and UI1.3).
 | UI1.2 | App shell, theme, time display | done | Spot-check. Robolectric UI tests at SDK 35 |
 | UI1.3 | Log screen: typed capture, result cards, picker | done | Verifier pass + follow-up fixes. 74 app-phone host tests |
 | UI1.4 | History screen | done | Spot-check. 90 app-phone host tests |
-| UI1.5 | Device pass and documentation | todo | Needs Pixel 10 Pro. After UI1.1-UI1.4 |
+| UI1.5 | Device pass and documentation | done | Pixel 10 Pro pass 2026-09-19; fix: keyboard closes on submit; ADR-034 |
 
 ## Session log
+
+### 2026-09-19 — UI1.5 done; UI1 complete, awaiting owner merge
+
+Orchestrator device pass on the Pixel 10 Pro (Wi-Fi ADB, debug build, owner
+approved light mode + 200% font with restore; restored to dark + 1.0 and
+re-checked). Driven with `uiautomator dump` + `input`. Covered: empty Log;
+first capture with an empty catalog -> Needs review (no suggestions) ->
+Create new activity "Mow lawn" -> Saved card; "just mowed the grass" ->
+auto-accepted Mow lawn, card expired after ~8 s; Undo (row disappears from
+Recent and History); "mowed it again" -> Needs review with Mow lawn
+suggested -> Decide later; Change activity -> picker -> New activity "Trim
+hedges" -> card and Recent show Trim hedges, words unchanged; History: 4
+rows, hidden one omitted, filters Needs review (1 row) / Not categorized
+(empty-state copy), resolving from the row sheet (suggestions Mow lawn +
+Trim hedges) -> Mow lawn; light theme; 200% font on Log, History (chips wrap
+to two lines) and a Needs-review card (buttons stack, nothing clipped).
+Interpretation ~2-5 s per call.
+
+Found and fixed (orchestrator inline, LogScreen `CaptureField`): the IME
+stayed open after *Log it* / Done and covered the result card; submit now
+clears focus when `canSubmit`. `:app-phone:testDebugUnitTest` 90/90 green,
+`assembleDebug` green, re-checked on device (IME hidden, card visible).
+Contrast: computed from `ui/theme/Color.kt` for every text/background pair
+the two screens use -- min 4.59:1 light (onSurfaceVariant on
+reviewContainer), 5.04:1 dark. Not re-checked on device: rotation mid-call,
+touch-to-pause on the Undo bar, TalkBack reading order (adb-driven pass
+can't hold a touch or listen), the AI-not-ready row (Pixel is READY; the
+Moto G would show it). Minor, not fixed: state-tag icon does not scale with
+font size; resolving a Needs-review card turns it into a Saved card with
+Undo/Change (reasonable, not in the spec text).
+
+Docs: PROJECT_STATUS (UI1 status, open decisions on hide/review list
+resolved, adb-driving lesson), UX_VISUAL_SPEC (D1 built-so-far note: no Ask,
+no Settings icon; D5 Change activity + ADR-034; contrast open item closed),
+BACKLOG 10 -> done (awaiting merge), 11 annotated, ADR-034 (hide is a
+visibility change, not a correction). state.json: UI1/UI1.5 approved ->
+implementing -> verifying, each step validated. Note for agents:
+`validate-state.mjs` against HEAD also reports "released requires evidence"
+for every older released item -- pre-existing, lite mode keeps no
+`.sdlc/evidence/`; not introduced here.
+
+Test data left on the Pixel's app install: 7 typed entries (Mow lawn x3,
+Trim hedges x2, one hidden, one "did a thing" waiting in review) and the
+activities Mow lawn, Trim hedges.
+
+Next: owner merges `feature/typed-capture` into `main` by hand (lite mode).
 
 ### 2026-09-19 — UI1.4 done; run stops before the device pass
 

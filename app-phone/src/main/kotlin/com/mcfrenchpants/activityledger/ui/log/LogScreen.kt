@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -208,6 +209,12 @@ internal fun LogContent(
 
 @Composable
 private fun CaptureField(state: LogUiState, onInputChange: (String) -> Unit, onSubmit: () -> Unit) {
+    // Close the keyboard on send so the result card is not hidden behind it.
+    val focusManager = LocalFocusManager.current
+    val submit = {
+        if (state.canSubmit) focusManager.clearFocus()
+        onSubmit()
+    }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
             value = state.input,
@@ -218,14 +225,14 @@ private fun CaptureField(state: LogUiState, onInputChange: (String) -> Unit, onS
                 capitalization = KeyboardCapitalization.Sentences,
                 imeAction = ImeAction.Done,
             ),
-            keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+            keyboardActions = KeyboardActions(onDone = { submit() }),
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(LOG_INPUT_TAG),
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Button(
-                onClick = onSubmit,
+                onClick = submit,
                 enabled = state.canSubmit,
                 shape = LedgerShapes.button,
                 modifier = Modifier

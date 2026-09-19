@@ -583,7 +583,7 @@
     {
       "id": "UI1",
       "title": "Typed capture and history screens (backlog item 10)",
-      "lifecycle_state": "approved",
+      "lifecycle_state": "verifying",
       "tasks": [
         {
           "id": "UI1.1",
@@ -654,8 +654,8 @@
         {
           "id": "UI1.5",
           "title": "Device pass and documentation",
-          "status": "todo",
-          "lifecycle_state": "approved",
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [
             "UI1.1",
             "UI1.2",
@@ -665,11 +665,11 @@
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
           "task_packet_path": null,
           "report_path": null,
-          "notes": ""
+          "notes": "Orchestrator device pass on Pixel 10 Pro with owner OK (light/dark, 200% text; settings restored). Fixed: keyboard now closes on submit. Docs: PROJECT_STATUS, UX_VISUAL_SPEC D1/D5/open items, BACKLOG 10/11, ADR-034."
         }
       ]
     }

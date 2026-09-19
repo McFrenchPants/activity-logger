@@ -497,3 +497,15 @@ Details: `docs/SEMANTIC_CORPUS.md`.
 **Reason:** Gemini Nano runs only on a real phone, and only while the app is in the foreground (ADR-029); there is no emulator or JVM path to it, and the project's only AI-capable test phone is rarely available. Recording once and replaying everywhere keeps every deterministic part of the pipeline measured on every build without the phone, while keeping the official number tied to the real model. Letting a stand-in gate or stand in for the official result would measure a different model and hide real regressions.
 
 **Revisit** if Gemini Nano (or its replacement) becomes callable from an emulator, a CI device or the JVM, so the corpus can run live on every build; if the stand-in's results turn out to track the device's poorly enough that it misleads prompt work; or if the phone becomes routinely available so recordings can be refreshed on every prompt change.
+
+## ADR-034 — Hiding an occurrence is a visibility change, not a correction
+
+**Status:** Accepted (decided in the UI1 implementation plan; recorded 2026-09-19 after the device pass)
+
+Undo on the Log screen's Saved card (UX_VISUAL_SPEC D5), and later *Remove from history*, call `ActivityRepository.hideOccurrence(occurrenceId)`. It flips the occurrence's `visibility_status` from ACTIVE to HIDDEN and sets `updated_at`; hiding an already hidden occurrence is a no-op, an unknown id throws. It writes **no correction row** and never touches the raw capture or its interpretations. History (`loadHistory()`) omits a capture whose only occurrence is hidden.
+
+*Change activity* on the same card is different: it is a real correction (`CorrectionService.correct`, source USER), recorded alongside the original interpretation.
+
+**Reason:** `corrections` records changes to *what* an occurrence says (activity, time, state) and has no visibility columns (DATA_MODEL.md); forcing a hide through it would mean a schema change for a flag the occurrence row already carries. The audit need is met without one: the raw capture and interpretation stay, the hidden row stays, and `updated_at` shows when it was hidden. This settles the PROJECT_STATUS open decision "hide/restore ... how it is audited".
+
+**Revisit** if a restore / "show hidden items" feature needs to say *who* hid something and why, or if sync (deferred, ADR-013) needs hides as ordered events rather than a current-state flag.
