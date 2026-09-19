@@ -1,0 +1,76 @@
+{
+  "task_id": "VC1.3",
+  "plan_revision": "497ab23",
+  "objective": "Add the voice-capture UI to the phone's Log screen: a microphone control, the listening state, the recognition-failure card, and the RECORD_AUDIO permission flow. The owner decided on 2026-09-19 that the text field stays the PRIMARY control and the microphone sits beside it -- do NOT rebuild the screen around a large 'Tap to speak' button, even though docs/UX_VISUAL_SPEC.md 4.1 describes that layout; the divergence is deliberate and a later task amends the spec. Deliver five things. (1) Declare android.permission.RECORD_AUDIO in app-phone/src/main/AndroidManifest.xml, with a comment explaining that it is the only new permission and that ADR-025's INTERNET removal is unaffected. (2) Add an icon-button microphone control to the existing submit Row in LogScreen.kt beside the text field and the existing submit Button. Content description 'Log by voice' when idle and 'Stop listening' while listening (docs/UX_VISUAL_SPEC.md 5). It is disabled while a capture is being processed or while the screen is stopped, exactly as submit already is. Use a Material icon already available to the project; do not add an icon dependency. (3) Add the listening state to LogUiState and render it in LogContent: an announced 'Listening...' live region (Modifier.semantics with liveRegion), the live partial transcript rendered in the same evidence style the result cards already use for quoted words, and the microphone control switched to its stop affordance. While listening, the Recent list is visually dimmed AND removed from the accessibility tree (Modifier.alpha plus clearAndSetSemantics {}), and submitting typed text is blocked. (4) Add a recognition-failure result card to ResultCards.kt / the ResultCard sealed interface: errorContainer colours, NO fabricated text of any kind, the exact copy 'Couldn't make out any words. Nothing was saved.' (docs/UX_VISUAL_SPEC.md 6) as a new string resource, and two actions -- 'Try again' (starts listening again) and 'Type instead' (dismisses the card and focuses the text field). Note this card is the one ResultCard member with NO captureId and NO rawText, because nothing was saved; model it so that is structurally true rather than filled with blanks, adjusting the sealed interface as needed and keeping every existing card's behaviour identical. (5) The permission flow, using androidx.activity.compose.rememberLauncherForActivityResult with ActivityResultContracts.RequestPermission: on the first microphone tap, if the permission is not granted, request it; granted -> start listening; denied -> return to the normal typing state with a plain-words message; permanently denied (shouldShowRequestPermissionRationale false after a denial) -> say so once, in plain words, and leave typing fully available. There must be no dead end: every permission outcome leaves the user able to type. Add new user-facing copy as string resources in the existing strings.xml, never as literals in Kotlin. Wire the ViewModel side as METHOD STUBS ONLY: add startListening(), stopListening(), retryListening() and dismissRecognitionFailure() (or equivalently named methods) to LogViewModel that update LogUiState correctly and are fully unit-testable, but do NOT reference SpeechTranscriber, core-speech, or any real recognizer -- VC1.4 replaces those bodies with real transcriber calls. Do NOT add a core-speech dependency to app-phone's build file; VC1.4 does that. Add Robolectric/Compose host tests in the style of the existing LogScreenTest for: the microphone control's two content descriptions, the listening state (live region present, Recent dimmed and absent from the semantics tree, submit blocked), the failure card's copy and both its actions, and both denied-permission states leaving typing available.",
+  "non_goals": [
+    "Do not rebuild the Log screen around a 'Tap to speak' hero button or add a 'Type instead' primary-layout switch. The owner chose text-field-primary with a mic beside it; UX_VISUAL_SPEC 4.1's hero layout is deliberately not built here.",
+    "Do not reference core-speech, SpeechTranscriber, SpeechEvent, SpeechFailure or android.speech in any file. This task builds UI states and the permission flow only.",
+    "Do not add a dependency to app-phone/build.gradle.kts. VC1.4 adds the core-speech dependency.",
+    "Do not create, read or modify any RawCapture, and do not change how typed capture works. Typed submit must behave exactly as it does today in every state except while listening.",
+    "Do not change CaptureInterpretationOrchestrator, InterpretationValidator, TemporalResolver, the prompt, or anything in core-domain, core-data or core-ai.",
+    "Do not modify LogViewModelFactory to construct a transcriber; VC1.4 owns the factory wiring.",
+    "Do not modify any file under docs/, BACKLOG.md, PROGRESS.md or .sdlc/.",
+    "Do not touch app-wear or either PlatformSpeechRecognizerProbeTest.",
+    "Do not add any icon, permission-helper or Accompanist-style dependency."
+  ],
+  "dependencies": ["VC1.2"],
+  "read_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/MainActivity.kt",
+    "app-phone/src/main/res/**",
+    "app-phone/src/main/AndroidManifest.xml",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/**",
+    "app-phone/build.gradle.kts",
+    "core-speech/src/main/kotlin/com/mcfrenchpants/activityledger/core/speech/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/**",
+    "gradle/libs.versions.toml",
+    "AGENTS.md",
+    "docs/UX_VISUAL_SPEC.md",
+    "docs/DECISIONS.md",
+    "docs/ARCHITECTURE.md"
+  ],
+  "write_paths": [
+    "app-phone/src/main/AndroidManifest.xml",
+    "app-phone/src/main/res/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/log/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/log/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-wear/**",
+    "core-ai/**",
+    "core-data/**",
+    "core-domain/**",
+    "core-speech/**",
+    "core-testing/**",
+    "core-wear-protocol/**",
+    "gradle/libs.versions.toml",
+    "app-phone/build.gradle.kts",
+    "app-phone/src/androidTest/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline/**"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew :app-phone:testDebugUnitTest` passes, including new tests for the microphone control, the listening state, the failure card and both denied-permission states.",
+    "`./gradlew test assembleDebug` passes for the whole project.",
+    "android.permission.RECORD_AUDIO is declared in app-phone/src/main/AndroidManifest.xml, and the ADR-025 INTERNET removal is still present and unchanged.",
+    "The microphone control sits beside the existing text field and submit button; the text field remains the primary control and no 'Tap to speak' hero layout was introduced.",
+    "The microphone control's content description is 'Log by voice' when idle and 'Stop listening' while listening, and it is disabled while capturing or while the screen is stopped.",
+    "While listening: a live region announces listening, the partial transcript is shown in the existing evidence style, the Recent list is both dimmed and absent from the semantics tree, and typed submit is blocked -- each asserted by a test.",
+    "The recognition-failure card uses errorContainer colours, shows exactly 'Couldn't make out any words. Nothing was saved.' from a string resource, offers 'Try again' and 'Type instead', and structurally carries no captureId and no rawText.",
+    "Every existing result card (Saved, NeedsReview, NotCategorized) behaves exactly as before; the existing LogScreenTest and LogViewModelTest suites still pass unchanged in behaviour.",
+    "Every permission outcome -- granted, denied, permanently denied -- leaves typed capture fully available, asserted by a test. No dead end.",
+    "No new user-facing string is a Kotlin literal; all are string resources.",
+    "No file in this task references core-speech, android.speech, SpeechTranscriber, SpeechEvent or SpeechFailure, and app-phone/build.gradle.kts is unchanged.",
+    "No log call anywhere contains a transcript, a partial, or any user content (AGENTS.md #11)."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:testDebugUnitTest",
+    "./gradlew test",
+    "./gradlew assembleDebug"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
