@@ -123,7 +123,8 @@ Status vocabulary:
    2026-09-17: no "save but mark for review" tier — anything short of
    confident goes to Needs review and nothing is logged until the user picks.
 
-9. **Semantic regression corpus, automated** — `done` (on branch `feature/semantic-regression`, not yet merged)
+9. **Semantic regression corpus, automated** — `done`
+   Merged to `main` 2026-09-18 (work item SR1).
    First device run 2026-09-18: 32 of 48 correct, 10 wrong entries that would
    have been saved; see `docs/proposals/semantic-regression/RESULTS.md`.
    Work item SR1, see `docs/proposals/semantic-regression/`. Owner decision
@@ -171,3 +172,21 @@ Status vocabulary:
     activity as an allowed answer, so the score measures real mistakes.
     Owner confirmed 2026-09-18: wash→Wax car, lint trap→Clean dryer vent,
     "Cleaned the dryer"→Clean dryer vent.
+
+13. **Cut down wrong confident matches** — `idea`
+    Added 2026-09-18 from SR1.7/SR1.8 follow-up (a). The Pixel 10 Pro still
+    files 7 of 48 corpus cases under the wrong existing activity, all at HIGH
+    confidence (edging→mowing, raking→mowing, water heater, smoke-detector
+    batteries, "the furnace thing"). Prompt wording and/or the confidence
+    policy (ADR-027), measured against the SR1 baseline (35 correct). Needs
+    short Pixel 10 Pro sessions to re-record. Overlaps item 11, which attacks
+    the same problem from the UI side.
+
+14. **Two small fixes the corpus turned up** — `idea`
+    Added 2026-09-18 from SR1 follow-ups (b) and (c). (b) The production
+    interpreter treats AICore's "busy" refusal (GenAiException BUSY,
+    statusCode 9) as a permanent failure (OTHER) instead of retryable, so a
+    real capture made while the model is busy would fail instead of waiting.
+    (c) `TemporalResolver` has no weekday + part-of-day rule, so "Mowed
+    Saturday morning." is unresolvable. Both JVM-testable; (c) moves one
+    corpus case from miss to correct.
