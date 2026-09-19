@@ -390,7 +390,7 @@ This replaces the four suggested tiers previously sketched in AI_INTERPRETATION_
 
 ## ADR-028 — Relative time phrases resolve by a fixed deterministic rule table
 
-**Status:** Accepted (weekday and "N days/weeks ago" rules: owner decision 2026-09-17)
+**Status:** Accepted (weekday and "N days/weeks ago" rules: owner decision 2026-09-17; weekday + part-of-day rule added 2026-09-19, FX1.2)
 
 `TemporalResolver` (`core-domain`) resolves the model's verbatim `temporalExpression` against the capture instant, doing all calendar arithmetic in the capture's IANA zone. The model never produces a time. The expression is normalized (whitespace, case, edge punctuation) and one leading filler (`on`, `at`, `about`, `around`, `approximately`) is dropped. Rules are checked in order and the first whole-phrase match wins:
 
@@ -405,6 +405,7 @@ This replaces the four suggested tiers previously sketched in AI_INTERPRETATION_
 | "today" / "yesterday" | start of that local day | `DATE_ONLY` |
 | "(about) half an hour ago", "(about) N minutes/hours ago" | capture instant minus the duration | `APPROXIMATE` |
 | "(about) N days/weeks ago" | start of the local day N days (or 7·N days) before today | `DATE_ONLY` |
+| weekday + morning/afternoon/evening/night, optionally "last …" ("Saturday morning") | band anchor on the day the weekday rule below picks (night = 21:00, as "last night") | `APPROXIMATE` |
 | weekday name, optionally "last …" | start of the most recent previous such day (never today; same weekday as today means 7 days ago) | `DATE_ONLY` |
 | month name + day ("Sep 14", "14th of September") | start of the most recent such date not after today | `DATE_ONLY` |
 | clock time today ("3pm", "3:30 pm", "7 this evening") | that local time today | `EXACT` |

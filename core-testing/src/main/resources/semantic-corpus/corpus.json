@@ -1267,8 +1267,7 @@
         ],
         "outcome": "AUTO_ACCEPT"
       },
-      "note": "Correct behaviour: Saturday 2026-09-12, approximate (a part of day).",
-      "knownResolverGap": "TemporalResolver has no weekday + part-of-day rule: 'Saturday morning' is Unresolvable, so the capture goes to review instead of being logged on 2026-09-12 (APPROXIMATE)."
+      "note": "Correct behaviour: Saturday 2026-09-12, approximate (a part of day)."
     },
     {
       "id": "ambiguous-worked-on-the-yard",

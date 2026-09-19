@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-19T16:19:27.430Z",
+  "updated_at": "2026-09-19T16:24:06.395Z",
   "work_items": [
     {
       "id": "SS1",
@@ -676,7 +676,7 @@
     {
       "id": "FX1",
       "title": "Two small fixes the corpus turned up (backlog item 14)",
-      "lifecycle_state": "implementing",
+      "lifecycle_state": "ready_to_release",
       "tasks": [
         {
           "id": "FX1.1",
@@ -696,17 +696,17 @@
         {
           "id": "FX1.2",
           "title": "TemporalResolver: weekday + part-of-day rule (\"Saturday morning\")",
-          "status": "todo",
-          "lifecycle_state": "draft",
+          "status": "done",
+          "lifecycle_state": "ready_to_release",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/FX1.2.packet.json",
           "report_path": null,
-          "notes": "Spot-check. Clears the corpus knownResolverGap."
+          "notes": "Spot-check. Rule 10a weekday + part-of-day, shared previousWeekday helper; corpus gap cleared; baseline 35 -> 36 (time-mowed-saturday-morning replays CORRECT from the 2026-09-18 device recording)."
         }
       ]
     }

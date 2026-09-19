@@ -29,7 +29,7 @@ Both recorders and the replay build the model's input through one shared functio
 | Phone recorder | `app-phone/src/androidTest/kotlin/com/mcfrenchpants/activityledger/semantic/SemanticCorpusRecorderTest.kt`, run by `scripts/semantic/run-device-corpus.sh` |
 | Stand-in recorder | `core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai/semantic/` -- `StandInCorpusRecorderTest`, `OllamaStandInClient`, `StandInSchema`; run by `scripts/semantic/run-standin-corpus.sh` |
 
-As of 2026-09-18 all three exist: the first device recording (Pixel 10 Pro), its baseline (32 case ids), and the stand-in recording.
+As of 2026-09-18 all three exist: the first device recording (Pixel 10 Pro), its baseline (36 case ids as of 2026-09-19), and the stand-in recording.
 
 ## 3. What is in the corpus
 
@@ -67,7 +67,7 @@ Every field without a default is required, including nullable ones: write `"acti
 | `note` | Optional explanation of a non-obvious expectation. |
 | `knownResolverGap` | Set only when the real `TemporalResolver` does not produce the expected date/precision; describes the difference. |
 
-`CorpusTemporalTest` resolves every acceptable time expression through the real `TemporalResolver` and requires the set of cases that do not resolve as expected to equal **exactly** the set marked `knownResolverGap`, so both a resolver fix and a resolver regression fail loudly. Today there is one: `time-mowed-saturday-morning` ("Mowed Saturday morning.") resolves as Unresolvable, where the product-correct answer is 2026-09-12 at APPROXIMATE precision; the capture goes to review instead of being logged.
+`CorpusTemporalTest` resolves every acceptable time expression through the real `TemporalResolver` and requires the set of cases that do not resolve as expected to equal **exactly** the set marked `knownResolverGap`, so both a resolver fix and a resolver regression fail loudly. Today there are none. The last one, `time-mowed-saturday-morning` ("Mowed Saturday morning."), was cleared on 2026-09-19 (FX1.2) when the resolver gained a weekday + part-of-day rule (ADR-028); its `knownResolverGap` field was removed in the same change. A future case the resolver cannot yet handle gets the field again until the resolver is fixed.
 
 ## 4. Outcome classes
 
