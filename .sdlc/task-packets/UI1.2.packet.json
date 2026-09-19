@@ -56,9 +56,7 @@
     "agents",
     ".claude",
     "scripts",
-    "docs/proposals",
-    "docs/sdlc",
-    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository"
+    "docs/sdlc"
   ],
   "acceptance_criteria": [
     "Catalog has navigation-compose 2.10.1, lifecycle 2.11.0 (viewmodel-compose, runtime-compose) and BOM-versioned compose test entries; no existing version changed; app-phone build file uses only catalog references and no ML Kit coordinate.",
