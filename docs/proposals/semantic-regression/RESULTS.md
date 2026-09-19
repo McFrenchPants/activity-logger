@@ -28,15 +28,16 @@ not safe on its own.
 ## What the device gets wrong (unsafe — a wrong entry would be saved)
 
 1. **New activity matched to an existing one** (6): "I edged the lawn" /
-   "Finished edging" with no edging activity in the catalog (→ mowing);
-   "Emptied the dryer lint trap" (→ dryer vent); "Raked the leaves" (→ blow
-   leaves); "Washed the car" (→ wax car); "Flushed the water heater" and
-   "Replaced the smoke detector batteries" (→ some existing activity). The model
+   "Finished edging" with no edging activity in the catalog (→ Mow lawn);
+   "Emptied the dryer lint trap" (→ Clean dryer vent); "Raked the leaves"
+   (→ Mow lawn); "Washed the car" (→ Wax car); "Flushed the water heater" and
+   "Replaced the smoke detector batteries" (→ Replace furnace filter). The model
    strongly prefers MATCHED_EXISTING over NEW when anything nearby is offered.
 2. **Ambiguous sentence auto-accepted** (2): "Cleaned the dryer", "Did the
-   furnace thing" — matched with HIGH confidence instead of AMBIGUOUS.
-3. **State case** (1): "Just finished edging the lawn" matched the wrong
-   activity and time.
+   furnace thing" — matched (Clean dryer vent, Replace furnace filter) with
+   HIGH confidence instead of AMBIGUOUS.
+3. **State case** (1): "Just finished edging the lawn" matched Mow lawn
+   although Edge lawn was offered, and got the time wrong.
 
 Safe misses (6): two `TIME_UNRESOLVABLE` where the model put a non-time phrase
 in the temporal field ("Finished edging", "Changed the furnace filter"), one

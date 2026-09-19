@@ -147,3 +147,26 @@ Status vocabulary:
     list, per `docs/UX_VISUAL_SPEC.md`. First point at which the app can be
     used by hand. Skips ahead of Step 5, so interpretation accuracy would be
     unmeasured while it is built.
+
+11. **Short countdown before the AI's match is saved** — `idea`
+    Added 2026-09-18 by the owner, after the first device corpus run showed
+    every wrong match at HIGH confidence (see
+    `docs/proposals/semantic-regression/RESULTS.md`). After a capture, show
+    the activity the AI picked for ~3 seconds with a countdown spinner; it
+    saves automatically unless the user acts. One button opens the existing
+    activities to pick a different one, or "New activity". Replaces
+    "HIGH confidence -> silent auto-accept" (ADR-027) with a brief, cheap
+    correction window, without falling back to confirming every entry.
+    Owner flagged it may widen scope. Open questions for analysis: how it
+    fits the watch capture flow (small screen, often glanced at, not
+    watched); whether a correction after the window lands in the
+    Needs-review list; how it interacts with raw captures being immutable
+    (a correction is a new interpretation, not an edit); dependency on item
+    10 (no phone capture screen exists yet).
+
+12. **Corpus expectations: which near matches are acceptable** — `idea`
+    Added 2026-09-18. The owner judged some "unsafe" device answers as
+    acceptable (e.g. "Washed the car" filed under Wax car). Corpus cases
+    whose product-correct answer is really "either" should list the existing
+    activity as an allowed answer, so the score measures real mistakes.
+    Owner to confirm which cases.
