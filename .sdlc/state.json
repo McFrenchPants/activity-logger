@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-19T04:43:30.696Z",
+  "updated_at": "2026-09-19T04:56:21.387Z",
   "work_items": [
     {
       "id": "SS1",
@@ -603,8 +603,8 @@
         {
           "id": "UI1.2",
           "title": "App shell, theme, time display",
-          "status": "in-progress",
-          "lifecycle_state": "implementing",
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -613,7 +613,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/UI1.2.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Spot-check. Robolectric at SDK 35 (same as core-data). Theme, StateTag, EvidenceText, OccurrenceTimeFormatter, NavHost with Log/History."
         },
         {
           "id": "UI1.3",

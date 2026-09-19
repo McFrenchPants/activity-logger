@@ -14,12 +14,26 @@ tier: spec §6 (verifier for UI1.1 and UI1.3).
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
 | UI1.1 | Ledger reads and hide for the screens | done | Verifier pass. `loadHistory` one SQL statement; `hideOccurrence` is a ledger transaction, no correction row |
-| UI1.2 | App shell, theme, time display | in-progress | Spot-check. Independent of UI1.1 |
+| UI1.2 | App shell, theme, time display | done | Spot-check. Robolectric UI tests at SDK 35 |
 | UI1.3 | Log screen: typed capture, result cards, picker | todo | Verifier. After UI1.1, UI1.2 |
 | UI1.4 | History screen | todo | Spot-check. After UI1.1, UI1.3 |
 | UI1.5 | Device pass and documentation | todo | Needs Pixel 10 Pro. After UI1.1-UI1.4 |
 
 ## Session log
+
+### 2026-09-19 — UI1.2 done
+
+Implementer (packet `.sdlc/task-packets/UI1.2.packet.json`), orchestrator
+spot-check (diff read, build + 25 host tests re-run, merged manifest still has
+no INTERNET). `ActivityLedgerApplication` owns the one `CapturePipeline` and the
+review/correction services (lazy). D3 theme incl. extended review colours and
+bundled variable fonts; `StateTag` (Canvas icons, dashed outline for Not
+categorized), `EvidenceText`; `OccurrenceTimeFormatter` (TemporalResolver's
+part-of-day bands match 05/12/17/21); NavHost Log/History, no Ask tab.
+Decisions worth knowing: M3 secondary/tertiary roles reuse primary (one accent,
+so the nav indicator stays green); a window theme in res/values matches D3
+background before Compose draws; 'Today' and part-of-day words are English
+literals in the formatter. Still open: 4.5:1 contrast check on device (UI1.5).
 
 ### 2026-09-19 — UI1.1 done
 

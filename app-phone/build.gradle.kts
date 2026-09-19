@@ -1,8 +1,8 @@
 // Android application module: the phone app.
 //
 // The phone owns the database and all semantic interpretation (AGENTS.md), so this
-// is the one app module that depends on core-data and core-ai. At this stage it is
-// a scaffold only: a single empty activity, no product UI.
+// is the one app module that depends on core-data and core-ai. It holds the app shell
+// (Application wiring, theme, navigation) and the phone's Compose screens.
 //
 // Every version here is read from gradle/libs.versions.toml -- no SDK level, JDK
 // level or library version may be written as a literal in this file.
@@ -17,6 +17,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    // For type-safe Compose Navigation routes (@Serializable route objects).
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -40,6 +42,13 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // Host-side Compose/Robolectric tests need the app's resources (strings, fonts, drawables).
+    // Robolectric's SDK is pinned in src/test/resources/robolectric.properties -- see
+    // docs/proposals/room-schema/TOOLING_NOTES.md for why it is not the target SDK.
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 kotlin {
@@ -57,12 +66,25 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     // Host-side (JVM, no device) guard for the interpreter-unavailable path. Deliberately
     // minimal: JUnit 4 plus the shared pure-JVM fixtures, nothing else.
     testImplementation(project(":core-testing"))
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.core)
+
+    // Host-side (JVM, no device) UI tests: Robolectric runs the real activity and Compose
+    // test rules drive it. Mirrors core-data's Robolectric setup.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(platform(libs.androidx.compose.bom))
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     // On-device test only. Only what the vertical-slice test actually uses: the runner that
     // executes it, the AndroidJUnit4 runner class, ApplicationProvider, JUnit 4 assertions and

@@ -3,20 +3,23 @@ package com.mcfrenchpants.activityledger
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.Text
-import androidx.compose.ui.res.stringResource
+import androidx.activity.enableEdgeToEdge
+import com.mcfrenchpants.activityledger.ui.navigation.LedgerNavigation
+import com.mcfrenchpants.activityledger.ui.theme.ActivityLedgerTheme
 
 /**
- * SCAFFOLD PLACEHOLDER -- no product meaning.
- *
- * Exists only so the phone app module builds and launches. It shows the app name
- * as plain text. Real UI replaces this in a later step.
+ * The phone app's single activity (UX_VISUAL_SPEC D1): edge-to-edge, themed with
+ * [ActivityLedgerTheme], hosting the navigation shell ([LedgerNavigation]) with the Log and
+ * History destinations.
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            Text(text = stringResource(R.string.app_name))
+            ActivityLedgerTheme {
+                LedgerNavigation()
+            }
         }
     }
 }

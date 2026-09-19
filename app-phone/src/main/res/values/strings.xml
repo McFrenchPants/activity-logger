@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Scaffold placeholder resource: no product meaning beyond naming the app. -->
 <resources>
     <string name="app_name">Activity Ledger</string>
+
+    <!-- Top-level navigation labels (always visible in the navigation bar). -->
+    <string name="nav_log">Log</string>
+    <string name="nav_history">History</string>
+
+    <!-- Row state tags (UX_VISUAL_SPEC D3 state vocabulary). -->
+    <string name="state_in_progress">In progress</string>
+    <string name="state_needs_review">Needs review</string>
+    <string name="state_not_categorized">Not categorized yet</string>
+    <string name="state_capture_failed">Couldn\'t capture</string>
 </resources>
