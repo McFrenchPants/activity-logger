@@ -546,8 +546,8 @@
         {
           "id": "SR1.7",
           "title": "First device recording and baseline",
-          "status": "in-progress",
-          "lifecycle_state": "implementing",
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [
             "SR1.3",
             "SR1.6"

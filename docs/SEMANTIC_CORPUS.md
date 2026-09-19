@@ -29,7 +29,7 @@ Both recorders and the replay build the model's input through one shared functio
 | Phone recorder | `app-phone/src/androidTest/kotlin/com/mcfrenchpants/activityledger/semantic/SemanticCorpusRecorderTest.kt`, run by `scripts/semantic/run-device-corpus.sh` |
 | Stand-in recorder | `core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai/semantic/` -- `StandInCorpusRecorderTest`, `OllamaStandInClient`, `StandInSchema`; run by `scripts/semantic/run-standin-corpus.sh` |
 
-As of 2026-09-18 only `standin-latest.json` exists; there is no device recording and no baseline yet.
+As of 2026-09-18 all three exist: the first device recording (Pixel 10 Pro), its baseline (32 case ids), and the stand-in recording.
 
 ## 3. What is in the corpus
 
@@ -150,7 +150,7 @@ scripts/semantic/run-device-corpus.sh
 
 It builds and installs the app and its test package (neither uninstalled afterwards; app data left alone), runs only `SemanticCorpusRecorderTest` with the opt-in instrumentation argument `semanticCorpus=true`, pulls the recording, checks it, and only then overwrites `device-latest.json`, then runs the gate test. Expect roughly 6-7 seconds per case -- about 5-6 minutes for the corpus -- plus a few minutes of build and install.
 
-The recorder makes one model call per case with no retries or repair (ADR-030); a failure is recorded as data. It writes to a temp file and renames it, so an interrupted run never looks complete.
+The recorder records one model answer per case with no repair (ADR-030); a failure is recorded as data. The one exception is a fast refusal (a failure in under 1 s, before any inference could run -- AICore throttling back-to-back calls): it waits and asks again, up to six times, and records the retry count in the recording's `notes`. It writes to a temp file and renames it, so an interrupted run never looks complete.
 
 Exit codes: `0` recorded and gate passed; `1` setup or run problem (nothing overwritten); `2` model not ready, recorder skipped (nothing overwritten); `3` recording saved but the regression gate failed.
 
@@ -176,4 +176,8 @@ Read unsafe misses first. The console prints a shorter summary: source, counts, 
 
 ## 11. Results so far
 
-The only recording is the stand-in run of 2026-09-18 (`gemma3n:e4b` via Ollama, prompt version `2`): 48 of 48 answered, 0 malformed; CORRECT 20, SAFE_MISS 20, UNSAFE_MISS 8; every answer HIGH confidence; 17 of the 20 safe misses were `STATE_MISSING` (the model left the state empty). **Not official.** The first device recording, and the baseline written from it, are still to do.
+The only recording is the stand-in run of 2026-09-18 (`gemma3n:e4b` via Ollama, prompt version `2`): 48 of 48 answered, 0 malformed; CORRECT 20, SAFE_MISS 20, UNSAFE_MISS 8; every answer HIGH confidence; 17 of the 20 safe misses were `STATE_MISSING` (the model left the state empty). **Not official.**
+
+First device recording, 2026-09-18 (Pixel 10 Pro, Gemini Nano, prompt version `2`): 48 of 48 answered, 0 malformed; CORRECT 32, SAFE_MISS 6, UNSAFE_MISS 10. All 10 unsafe misses were HIGH confidence -- mostly a new or ambiguous activity matched to an existing near-neighbour -- so HIGH confidence alone does not make an answer safe to auto-accept. `baseline.json` lists the 32 correct cases. Details and the stand-in comparison: [`proposals/semantic-regression/RESULTS.md`](proposals/semantic-regression/RESULTS.md).
+
+The phone throttles back-to-back requests (AICore `BUSY`, after about 20 calls in a row); the device recorder waits and retries such fast refusals and records the retry count in the recording's `notes`.

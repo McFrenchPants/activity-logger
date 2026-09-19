@@ -1,0 +1,1286 @@
+{
+    "formatVersion": 1,
+    "source": "DEVICE",
+    "modelLabel": "gemini-nano (AICore)",
+    "deviceModel": "Pixel 10 Pro",
+    "interpreterVersion": "gemini-nano-1",
+    "promptVersion": "2",
+    "schemaVersion": 1,
+    "corpusSha256": "63c9ff8074359886f06903912513199190744f71c8e04bd3cab951f94aaabafb",
+    "recordedAt": "2026-09-19T00:44:33.873470Z",
+    "notes": "busy retries: 17",
+    "entries": [
+        {
+            "caseId": "mow-i-mowed-the-lawn",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": null,
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5679
+        },
+        {
+            "caseId": "mow-i-cut-the-grass",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": null,
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 4847
+        },
+        {
+            "caseId": "mow-finished-mowing",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5144
+        },
+        {
+            "caseId": "mow-just-mowed",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "Just",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 4270
+        },
+        {
+            "caseId": "mow-i-did-the-grass",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5080
+        },
+        {
+            "caseId": "mow-the-lawn-is-cut",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5029
+        },
+        {
+            "caseId": "edge-i-edged-the-lawn",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-edge-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 4902
+        },
+        {
+            "caseId": "edge-finished-edging",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-edge-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "Finished",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 4951
+        },
+        {
+            "caseId": "edge-did-the-lawn-edges",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-edge-lawn",
+                "proposedCanonicalName": null,
+                "activityState": null,
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 4318
+        },
+        {
+            "caseId": "edge-no-edge-catalog-i-edged-the-lawn",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "814924b30fcb8656bb88475787e00aa4054eb417044aed1a5efcf90fee69b6ce",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5158
+        },
+        {
+            "caseId": "edge-no-edge-catalog-finished-edging",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "814924b30fcb8656bb88475787e00aa4054eb417044aed1a5efcf90fee69b6ce",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5155
+        },
+        {
+            "caseId": "furnace-changed-the-furnace-filter",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-replace-furnace-filter",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "UNRESOLVED",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5112
+        },
+        {
+            "caseId": "furnace-replaced-the-hvac-filter",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-replace-furnace-filter",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": null,
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5003
+        },
+        {
+            "caseId": "furnace-put-a-new-filter-in-the-furnace",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-replace-furnace-filter",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": null,
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5119
+        },
+        {
+            "caseId": "furnace-swapped-the-air-filter",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-replace-furnace-filter",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": null,
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 4929
+        },
+        {
+            "caseId": "gutters-cleaned-the-gutters",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-clean-gutters",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": null,
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 4900
+        },
+        {
+            "caseId": "gutters-cleared-leaves-out-of-the-gutters",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-clean-gutters",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5169
+        },
+        {
+            "caseId": "gutters-did-the-gutters",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-clean-gutters",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": null,
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 4920
+        },
+        {
+            "caseId": "dryer-vent-cleaned-the-dryer-vent",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-clean-dryer-vent",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5154
+        },
+        {
+            "caseId": "dryer-vent-cleared-lint-out-of-the-dryer-pipe",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-clean-dryer-vent",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "now",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5887
+        },
+        {
+            "caseId": "dryer-generic-cleaned-the-dryer",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-clean-dryer-vent",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": null,
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5781
+        },
+        {
+            "caseId": "dryer-emptied-the-lint-trap",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-clean-dryer-vent",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": null,
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5126
+        },
+        {
+            "caseId": "leaves-raked-the-leaves",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5819
+        },
+        {
+            "caseId": "leaves-blew-leaves-off-the-driveway",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-blow-leaves",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "now",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5162
+        },
+        {
+            "caseId": "car-washed-the-car",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-wax-car",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": null,
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5604
+        },
+        {
+            "caseId": "car-waxed-the-car",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-wax-car",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": null,
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 4877
+        },
+        {
+            "caseId": "new-flushed-the-water-heater",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-replace-furnace-filter",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5947
+        },
+        {
+            "caseId": "new-replaced-smoke-detector-batteries",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-replace-furnace-filter",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5375
+        },
+        {
+            "caseId": "new-empty-catalog-changed-the-furnace-filter",
+            "offeredCandidateIds": [],
+            "contextHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "Replace furnace filter",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5868
+        },
+        {
+            "caseId": "new-empty-catalog-mowed-the-lawn",
+            "offeredCandidateIds": [],
+            "contextHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "Mow lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": null,
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 4807
+        },
+        {
+            "caseId": "time-mowed-yesterday",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5019
+        },
+        {
+            "caseId": "time-mowed-this-morning",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "this morning",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5846
+        },
+        {
+            "caseId": "time-mowed-saturday",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "Saturday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 4972
+        },
+        {
+            "caseId": "time-mowed-about-an-hour-ago",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "about an hour ago",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 6161
+        },
+        {
+            "caseId": "time-just-finished-mowing",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "just finished",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5030
+        },
+        {
+            "caseId": "time-mowed-on-september-1st",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "September 1st",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 6063
+        },
+        {
+            "caseId": "time-changed-the-furnace-filter-yesterday",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-replace-furnace-filter",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5155
+        },
+        {
+            "caseId": "time-cleaned-the-gutters-two-days-ago",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-clean-gutters",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "two days ago",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5928
+        },
+        {
+            "caseId": "time-took-out-the-trash-last-night",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-take-out-trash",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "last night",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 6095
+        },
+        {
+            "caseId": "time-watered-the-garden-at-7pm",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-water-garden",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "7pm",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5074
+        },
+        {
+            "caseId": "time-mowed-saturday-morning",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "Saturday morning",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5849
+        },
+        {
+            "caseId": "ambiguous-worked-on-the-yard",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "AMBIGUOUS",
+                "matchedActivityId": null,
+                "proposedCanonicalName": "Ambiguous",
+                "activityState": "IN_PROGRESS",
+                "temporalExpression": null,
+                "confidenceBand": "LOW"
+            },
+            "failureKind": null,
+            "latencyMs": 4942
+        },
+        {
+            "caseId": "ambiguous-did-the-furnace-thing",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-replace-furnace-filter",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5968
+        },
+        {
+            "caseId": "ambiguous-handled-the-filter",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-replace-furnace-filter",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "UNRESOLVED",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5066
+        },
+        {
+            "caseId": "ambiguous-fixed-that-thing-outside",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "AMBIGUOUS",
+                "matchedActivityId": null,
+                "proposedCanonicalName": "Fixed thing outside",
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "MEDIUM"
+            },
+            "failureKind": null,
+            "latencyMs": 5825
+        },
+        {
+            "caseId": "state-im-mowing-now",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "IN_PROGRESS",
+                "temporalExpression": "now",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5635
+        },
+        {
+            "caseId": "state-cleaning-the-gutters-right-now",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-clean-gutters",
+                "proposedCanonicalName": null,
+                "activityState": "IN_PROGRESS",
+                "temporalExpression": "right now",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5088
+        },
+        {
+            "caseId": "state-just-finished-edging-the-lawn",
+            "offeredCandidateIds": [
+                "act-blow-leaves",
+                "act-clean-dryer-vent",
+                "act-clean-gutters",
+                "act-edge-lawn",
+                "act-mow-lawn",
+                "act-replace-fridge-water-filter",
+                "act-replace-furnace-filter",
+                "act-take-out-trash",
+                "act-water-garden",
+                "act-wax-car"
+            ],
+            "contextHash": "9d7be2cdbe1439cd688e543212192fe02d3153196078376d837204b44db553b7",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "activityResolution": "EXISTING_ACTIVITY",
+                "matchedActivityId": "act-mow-lawn",
+                "proposedCanonicalName": null,
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "confidenceBand": "HIGH"
+            },
+            "failureKind": null,
+            "latencyMs": 5915
+        }
+    ]
+}

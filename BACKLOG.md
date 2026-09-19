@@ -123,7 +123,9 @@ Status vocabulary:
    2026-09-17: no "save but mark for review" tier — anything short of
    confident goes to Needs review and nothing is logged until the user picks.
 
-9. **Semantic regression corpus, automated** — `in progress`
+9. **Semantic regression corpus, automated** — `done` (on branch `feature/semantic-regression`, not yet merged)
+   First device run 2026-09-18: 32 of 48 correct, 10 wrong entries that would
+   have been saved; see `docs/proposals/semantic-regression/RESULTS.md`.
    Work item SR1, see `docs/proposals/semantic-regression/`. Owner decision
    2026-09-17: tests run on the PC by recording model answers (short phone
    sessions, plus a local stand-in model) and replaying everything else.
