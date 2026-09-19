@@ -1,0 +1,71 @@
+{
+  "task_id": "FX1.1",
+  "plan_revision": "feature/small-fixes@setup",
+  "objective": "Make a capture made while the on-device model is busy wait briefly and try again, instead of failing.\n\nBACKGROUND (read the code):\n- `core-ai/.../GeminiNanoActivityInterpreter.kt` catches `GenAiException` and maps it to `InterpreterFailureKind.RETRYABLE` only when `retryDelay` is positive, otherwise `OTHER`. On the Pixel 10 Pro, AICore refuses back-to-back requests with `GenAiException` error code BUSY (`GenAiException.ErrorCode.BUSY`, value 9 in genai-common 1.0.0-beta4) and a ZERO retry delay, so a busy refusal currently becomes OTHER -> the orchestrator stores an INVALID interpretation (INTERPRETER_FAILED) and sends the capture to review, as if the model had answered badly.\n- `core-domain/.../services/CaptureInterpretationOrchestrator.kt` maps UNAVAILABLE/RETRYABLE to capture state FAILED_RETRYABLE with no interpretation stored.\n- `app-phone/.../pipeline/CapturePipeline.kt` `create(context, clock, interpreterDecorator)` is the single composition point (ADR-032); it builds GeminiNanoActivityInterpreter and hands `interpreterDecorator(interpreter)` to the orchestrator. The decorator is a timing-observation seam used by instrumentation tests; identity in production.\n- ADR-030 (docs/DECISIONS.md): the Gemini adapter makes exactly one generateContent call per interpret -- no retry, no repair prompt. That rule stays for the ADAPTER. The retry added here is a separate, bounded wrapper in the phone pipeline, and it retries only refusals where no inference ran (RETRYABLE); it never re-asks after an answer (MALFORMED/Success) -- that would be the repair loop ADR-030 forbids.\n- The semantic corpus recorder (app-phone androidTest SemanticCorpusRecorderTest) calls the interpreter directly with its own backoff; it is NOT changed by this task.\n\nDO:\n1. core-ai: in GeminiNanoActivityInterpreter, a `GenAiException` whose `errorCode == GenAiException.ErrorCode.BUSY` maps to RETRYABLE regardless of retryDelay. Keep the existing positive-retryDelay -> RETRYABLE rule; every other code with zero delay stays OTHER. Read only the error code and the delay -- never the message or cause. Update the KDoc bullet list on `interpret` and the comment in the catch block. Do NOT bump INTERPRETER_VERSION (a busy refusal produces no candidate, so no candidate for an unchanged capture can change). Add unit tests in GeminiNanoActivityInterpreterTest: BUSY with zero delay -> RETRYABLE; BUSY with positive delay -> RETRYABLE; a non-BUSY code with zero delay still -> OTHER (the existing test's ERROR_CODE constant must not be BUSY -- check it).\n2. app-phone: add `pipeline/BusyRetryInterpreter.kt` (internal class, implements `ActivityInterpreter`, wraps a delegate; `provenance` is the delegate's). On `InterpretationResult.Failure` with kind RETRYABLE it waits and calls the delegate again, up to a fixed schedule of waits `RETRY_WAITS = [2 s, 4 s]` (so at most 3 calls, at most ~6 s of waiting); a named internal constant, not a magic literal. Any other result (Success, MALFORMED, OTHER, UNAVAILABLE) is returned immediately with no retry. If every attempt is RETRYABLE, return the last Failure unchanged. Cancellation during the wait or the call propagates (use coroutine `delay`, do not catch CancellationException). No logging of anything. Make the wait injectable for tests (e.g. a `suspend (Duration) -> Unit` parameter defaulting to `delay`, or rely on kotlinx-coroutines-test virtual time) -- tests must not really sleep.\n3. Wire it in `CapturePipeline.create`: the orchestrator gets `interpreterDecorator(BusyRetryInterpreter(interpreter))`, so an instrumentation timing decorator measures the whole wait. Update the relevant KDoc in CapturePipeline briefly.\n4. Tests in app-phone/src/test/.../pipeline (JVM, no device): BusyRetryInterpreterTest with a scripted fake delegate (core-testing's FakeActivityInterpreter if it fits): RETRYABLE then Success -> Success after one wait of 2 s, delegate called twice; RETRYABLE x3 -> last Failure(RETRYABLE), waits exactly [2 s, 4 s], delegate called 3 times; MALFORMED / OTHER / UNAVAILABLE / Success -> returned after one call, no wait; provenance passes through; cancellation during the wait propagates and the delegate is not called again. Plus one test through the real orchestrator + InMemoryActivityRepository showing RETRYABLE-then-Success ends in a logged occurrence rather than FAILED_RETRYABLE (if CapturePipeline cannot be built on the JVM, compose BusyRetryInterpreter + CaptureInterpretationOrchestrator directly the same way create() does).\n5. docs/DECISIONS.md ADR-030: add a short dated amendment paragraph (2026-09-19): BUSY maps to RETRYABLE; the adapter still makes one call; the phone pipeline wraps it in BusyRetryInterpreter which repeats only RETRYABLE refusals, twice at most (2 s, 4 s), and never re-asks after an answer. Leave app-phone/src/androidTest alone even though SemanticCorpusRecorderTest's KDoc says BUSY maps to OTHER; the orchestrator updates that comment.\n\nPRIVACY (AGENTS.md #11): no logging, no exception messages carried anywhere, no new permission.\n\nDEVICE SAFETY: no device needed. Never run adb, installDebug or any connected* task. Set ANDROID_SERIAL=none-for-this-task in the environment of every Gradle command.",
+  "non_goals": [
+    "No retry inside GeminiNanoActivityInterpreter itself; it still makes exactly one generateContent call per interpret.",
+    "No retry after MALFORMED, OTHER, UNAVAILABLE or a Success; no repair prompt.",
+    "No change to CaptureInterpretationOrchestrator, the validator, Room, the UI, or core-domain's public types.",
+    "No mapping of other GenAiException codes (battery quota, background use, etc.) -- BUSY only.",
+    "No change to app-phone/src/androidTest, build files or the version catalog. If `delay` is not on app-phone's main classpath, report scope_change_requested rather than editing a build file.",
+    "No change to BACKLOG.md, PROGRESS.md, .sdlc, CLAUDE.md, AGENTS.md. Do not commit."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "core-ai",
+    "core-domain/src/main",
+    "core-testing/src/main",
+    "app-phone/src/main",
+    "app-phone/src/test",
+    "app-phone/src/androidTest/kotlin/com/mcfrenchpants/activityledger/semantic/SemanticCorpusRecorderTest.kt",
+    "app-phone/build.gradle.kts",
+    "docs/DECISIONS.md",
+    "docs/ARCHITECTURE.md",
+    "AGENTS.md",
+    "gradle",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/GeminiNanoActivityInterpreter.kt",
+    "core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai/GeminiNanoActivityInterpreterTest.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/pipeline",
+    "docs/DECISIONS.md"
+  ],
+  "forbidden_paths": [
+    "app-phone/src/androidTest",
+    "app-phone/build.gradle.kts",
+    "core-ai/build.gradle.kts",
+    "gradle/libs.versions.toml",
+    "core-domain",
+    "core-data",
+    "app-wear",
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".sdlc",
+    "agents",
+    ".claude",
+    "scripts",
+    "docs/sdlc"
+  ],
+  "acceptance_criteria": [
+    "GenAiException with error code BUSY maps to RETRYABLE whatever its retry delay; positive delay still maps to RETRYABLE; any other code with zero delay still maps to OTHER; covered by new core-ai unit tests.",
+    "GeminiNanoActivityInterpreter still calls generateContent exactly once per interpret; INTERPRETER_VERSION unchanged.",
+    "BusyRetryInterpreter retries only RETRYABLE failures, with waits exactly 2 s then 4 s (at most 3 delegate calls), returns every other result immediately, returns the last Failure when all attempts are RETRYABLE, passes provenance through, and propagates cancellation.",
+    "CapturePipeline.create wires interpreterDecorator(BusyRetryInterpreter(geminiInterpreter)) into the orchestrator.",
+    "JVM tests cover the behaviours in DO 4 without real sleeping and pass; a RETRYABLE-then-Success capture ends logged, not FAILED_RETRYABLE.",
+    "ADR-030 carries a dated amendment describing the BUSY mapping and the bounded pipeline retry.",
+    "`./gradlew :core-ai:testDebugUnitTest :app-phone:testDebugUnitTest :app-phone:assembleDebug` green (use the core-ai test task name that exists).",
+    "No logging, no new permission, only write_paths changed, no device contact."
+  ],
+  "verification_commands": [
+    "ANDROID_SERIAL=none-for-this-task ./gradlew :core-ai:testDebugUnitTest :app-phone:testDebugUnitTest :app-phone:assembleDebug",
+    "git status --porcelain",
+    "git diff --stat"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

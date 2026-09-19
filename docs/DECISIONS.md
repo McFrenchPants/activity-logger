@@ -390,7 +390,7 @@ This replaces the four suggested tiers previously sketched in AI_INTERPRETATION_
 
 ## ADR-028 — Relative time phrases resolve by a fixed deterministic rule table
 
-**Status:** Accepted (weekday and "N days/weeks ago" rules: owner decision 2026-09-17)
+**Status:** Accepted (weekday and "N days/weeks ago" rules: owner decision 2026-09-17; weekday + part-of-day rule added 2026-09-19, FX1.2)
 
 `TemporalResolver` (`core-domain`) resolves the model's verbatim `temporalExpression` against the capture instant, doing all calendar arithmetic in the capture's IANA zone. The model never produces a time. The expression is normalized (whitespace, case, edge punctuation) and one leading filler (`on`, `at`, `about`, `around`, `approximately`) is dropped. Rules are checked in order and the first whole-phrase match wins:
 
@@ -405,6 +405,7 @@ This replaces the four suggested tiers previously sketched in AI_INTERPRETATION_
 | "today" / "yesterday" | start of that local day | `DATE_ONLY` |
 | "(about) half an hour ago", "(about) N minutes/hours ago" | capture instant minus the duration | `APPROXIMATE` |
 | "(about) N days/weeks ago" | start of the local day N days (or 7·N days) before today | `DATE_ONLY` |
+| weekday + morning/afternoon/evening/night, optionally "last …" ("Saturday morning") | band anchor on the day the weekday rule below picks (night = 21:00, as "last night") | `APPROXIMATE` |
 | weekday name, optionally "last …" | start of the most recent previous such day (never today; same weekday as today means 7 days ago) | `DATE_ONLY` |
 | month name + day ("Sep 14", "14th of September") | start of the most recent such date not after today | `DATE_ONLY` |
 | clock time today ("3pm", "3:30 pm", "7 this evening") | that local time today | `EXACT` |
@@ -458,6 +459,8 @@ This constrains ARCHITECTURE.md §6 (capture orchestration) and §18 (background
 The Gemini Nano adapter makes exactly one `generateContent` call per `interpret`. There is no automatic retry, no second call, no "fix your JSON" repair prompt and no fallback. A response that is missing or does not decode into the schema's permitted values becomes interpreter failure `MALFORMED`, which the orchestrator records as an `INVALID` interpretation (`INTERPRETER_OUTPUT_MALFORMED`) and sends to review (ADR-027). A runtime error that ML Kit marks as worth retrying later becomes `RETRYABLE` (capture `FAILED_RETRYABLE`), but the adapter itself does not retry.
 
 **Reason:** An undecodable answer already has a correct, lossless destination: review. A repair loop asks the model to rewrite its own output until it looks acceptable, which is the trust-the-model failure mode ADR-010 exists to prevent, and it spends the user's battery and latency on every bad answer. Revisit only with measured evidence from the semantic regression corpus (Step 5) that malformed answers are frequent enough to matter.
+
+**Amendment (2026-09-19) — busy refusals are retried, briefly, outside the adapter:** On the Pixel 10 Pro, AICore refuses a back-to-back request with `GenAiException` error code `BUSY` and a *zero* retry delay, which the adapter used to report as `OTHER` — so a capture made while the model was still busy with the previous one was stored `INVALID` (`INTERPRETER_FAILED`) and sent to review as if the model had answered badly. Now `BUSY` maps to `RETRYABLE` whatever its retry delay (a positive delay still maps to `RETRYABLE`; any other code with zero delay stays `OTHER`; only the code and delay are read). The adapter still makes exactly one `generateContent` call per `interpret`. The phone pipeline (`CapturePipeline.create`) wraps it in `BusyRetryInterpreter`, which repeats only `RETRYABLE` refusals — where no inference ran — at most twice, waiting 2 s then 4 s; if all three attempts are refused the capture becomes `FAILED_RETRYABLE` as before. It never re-asks after an answer (`Success` or `MALFORMED`), nor after `OTHER` or `UNAVAILABLE`, so the no-repair rule above is unchanged. `INTERPRETER_VERSION` is not bumped: a busy refusal produces no candidate. The semantic corpus recorder keeps its own backoff and is unaffected.
 
 ---
 

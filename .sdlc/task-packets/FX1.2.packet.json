@@ -1,0 +1,65 @@
+{
+  "task_id": "FX1.2",
+  "plan_revision": "feature/small-fixes@1365c44",
+  "objective": "Teach the deterministic time resolver weekday + part-of-day phrases such as \"Saturday morning\", so \"Mowed Saturday morning.\" is dated instead of going to review.\n\nBACKGROUND (read the code):\n- `core-domain/.../temporal/TemporalResolver.kt` resolves the model's verbatim `temporalExpression` by an ordered table of whole-phrase regex rules (RULES), documented as ADR-028 in docs/DECISIONS.md. Relevant existing pieces: the `Band` enum (MORNING 05-12 anchor 09:00, AFTERNOON 12-17 anchor 15:00, EVENING 17-21 anchor 19:00, TONIGHT 17-24 anchor 21:00), `band(word)`, rule 3 \"yesterday (morning|afternoon|evening)\" -> band anchor on yesterday, APPROXIMATE; rule 6 \"last night\" -> yesterday 21:00; rule 10 weekday, optionally \"last <weekday>\" -> start of the most recent previous such day, never today (same weekday as today = 7 days ago), DATE_ONLY (that 'never today' rule is an owner decision and must not change). Normalization already lowercases, trims edge punctuation and drops one leading filler (on/at/about/around/approximately); a hedge keeps/softens precision.\n- Today \"Saturday morning\" matches no rule -> Unresolvable -> the capture goes to review.\n- The semantic corpus (`core-testing/src/main/resources/semantic-corpus/corpus.json`) case `time-mowed-saturday-morning` (captured 2026-09-15T20:00-04:00, America/Detroit, a Tuesday) expects resolvedLocalDate 2026-09-12, precision APPROXIMATE, and carries a `knownResolverGap` field. `CorpusTemporalTest` (core-testing tests) requires the set of cases that do not resolve as expected to equal EXACTLY the set marked `knownResolverGap`, so once the resolver is fixed that field must be removed or the test fails. docs/SEMANTIC_CORPUS.md explains this and currently names this case as the one known gap. corpus.json must stay LF-only (its exact bytes are hashed); edit it without changing line endings or any other bytes than removing that one field (and the comma before it).\n\nDO:\n1. Add one rule to RULES, placed next to the weekday rule (before it is fine; matching is whole-phrase): `(?:last )?<weekday> (morning|afternoon|evening|night)` -> the same date the weekday rule would pick (most recent previous such day, never today), at the part-of-day anchor: morning 09:00, afternoon 15:00, evening 19:00, night 21:00 (reuse Band; 'night' uses the TONIGHT band's 21:00 anchor, matching 'last night'). Precision APPROXIMATE. Factor the weekday date calculation into a small shared helper so the two rules cannot drift. Update the rule-number comments sensibly.\n2. Tests in TemporalResolverTest: each of morning/afternoon/evening/night for a weekday earlier in the week; 'last <weekday> <band>' gives the same answer; the same weekday as today gives 7 days ago (e.g. 'Tuesday morning' said on a Tuesday evening); a leading 'on' and a hedge ('about Saturday morning') still work and stay APPROXIMATE; the result is in the capture's zone (use a non-UTC zone such as America/Detroit and one DST-transition week if the existing tests have a pattern for it); existing weekday-only and 'yesterday morning' behaviour unchanged; a phrase like 'saturday brunch' is still Unresolvable.\n3. corpus.json: remove the `knownResolverGap` field from `time-mowed-saturday-morning` only (keep its note). Keep the file LF-only.\n4. docs/DECISIONS.md ADR-028: add the new row to the rule table (after the weekday row, or wherever the rule sits in order): \"weekday + morning/afternoon/evening/night, optionally 'last …'\" -> band anchor on the day the weekday rule picks (night = 21:00) -> APPROXIMATE, and mention it in the Status line as added 2026-09-19 (FX1.2).\n5. docs/SEMANTIC_CORPUS.md: update the passage (around the CorpusTemporalTest description, and anywhere else) that says 'Mowed Saturday morning' is the one known resolver gap -- there are now none; keep the explanation of how knownResolverGap works for future cases.\n\nPRIVACY (AGENTS.md #11): no logging.\n\nDEVICE SAFETY: no device needed. Never run adb, installDebug or any connected* task. Set ANDROID_SERIAL=none-for-this-task in the environment of every Gradle command.",
+  "non_goals": [
+    "No change to the existing weekday rule's 'never today' behaviour, the band boundaries or anchors, or any other rule's result.",
+    "No new phrases beyond weekday + morning/afternoon/evening/night (no 'Saturday at noon', 'yesterday night', 'this Saturday', dates with times).",
+    "No change to the prompt, the model interpreter, the validator, recordings, or baseline.json (the orchestrator owns the baseline).",
+    "No change to BACKLOG.md, PROGRESS.md, .sdlc, CLAUDE.md, AGENTS.md. Do not commit."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "core-domain",
+    "core-testing",
+    "docs/DECISIONS.md",
+    "docs/SEMANTIC_CORPUS.md",
+    "docs/TEST_STRATEGY.md",
+    "AGENTS.md",
+    ".gitattributes",
+    "gradle",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/TemporalResolver.kt",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/TemporalResolverTest.kt",
+    "core-testing/src/main/resources/semantic-corpus/corpus.json",
+    "docs/DECISIONS.md",
+    "docs/SEMANTIC_CORPUS.md"
+  ],
+  "forbidden_paths": [
+    "core-testing/src/test/resources/semantic-corpus/recordings",
+    "core-ai",
+    "core-data",
+    "app-phone",
+    "app-wear",
+    "gradle/libs.versions.toml",
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".sdlc",
+    "agents",
+    ".claude",
+    "scripts",
+    "docs/sdlc"
+  ],
+  "acceptance_criteria": [
+    "'Saturday morning' (and afternoon/evening/night, with optional 'last', leading filler and hedge) resolves to the part-of-day anchor on the day the weekday rule picks, APPROXIMATE, in the capture's zone; the weekday date logic is shared, not duplicated.",
+    "All existing TemporalResolver behaviour is unchanged; existing tests pass unmodified.",
+    "New TemporalResolverTest cases cover DO 2 and pass.",
+    "corpus.json differs from HEAD only by the removed knownResolverGap field (and its preceding comma) and stays LF-only; CorpusTemporalTest passes with no known gaps.",
+    "ADR-028's table and status line and SEMANTIC_CORPUS.md reflect the new rule and the cleared gap.",
+    "`./gradlew :core-domain:test :core-testing:test` green; report which replay report files (if any) the core-testing run rewrote and whether time-mowed-saturday-morning now replays CORRECT against device-latest.json.",
+    "Only write_paths changed (generated report files under build/ excepted), no logging, no device contact."
+  ],
+  "verification_commands": [
+    "ANDROID_SERIAL=none-for-this-task ./gradlew :core-domain:test :core-testing:test",
+    "git diff core-testing/src/main/resources/semantic-corpus/corpus.json",
+    "git status --porcelain",
+    "git diff --stat"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

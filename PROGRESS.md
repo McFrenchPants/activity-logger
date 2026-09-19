@@ -16,8 +16,31 @@ status; this file only tracks discrete task rows.
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
 | PV1 | Platform/API validation and version pinning (backlog item 1) | done | ADR-021..024. Desk research + read-only `adb` checks on the Pixel 10 Pro. Library-level Gemini Nano availability confirmed; a real inference call remains unproven until Step 4. Watch speech unverified (hardware not yet in hand) — backlog item 7. |
+| FX1.1 | AICore BUSY treated as "try again" + short wait-and-retry in the phone pipeline (backlog item 14b) | done | Verifier pass. Busy refusal now RETRYABLE; `BusyRetryInterpreter` waits 2 s then 4 s. ADR-030 amended. Not yet seen on a device. |
+| FX1.2 | Weekday + part-of-day dates ("Saturday morning") in `TemporalResolver` (backlog item 14c) | done | Spot-check. ADR-028 rule added; corpus gap cleared; baseline now 36 cases. Device recording flagged "different corpus" (hash changed) until the next Pixel re-record. |
 
 ## Session log
+
+### 2026-09-19 — FX1: two small fixes (backlog item 14)
+
+Nothing was in flight; owner picked item 14. Small tier (no design spec),
+sdlc-tracked as FX1 on `feature/small-fixes`, rows above.
+
+- FX1.1 (verifier pass): AICore `GenAiException` BUSY now maps to RETRYABLE in
+  `core-ai`; `CapturePipeline.create` wraps the Gemini interpreter in
+  `BusyRetryInterpreter` (RETRYABLE only, waits 2 s then 4 s, never re-asks
+  after an answer). ADR-030 amended. The recorder's KDoc updated to match.
+  Not yet exercised on a device: on a busy phone a capture can now take up to
+  ~6 s longer before its card appears.
+- FX1.2 (spot-check): `TemporalResolver` rule 10a, weekday + part-of-day
+  (ADR-028). Corpus `knownResolverGap` removed; `baseline.json` gains
+  `time-mowed-saturday-morning` (replays CORRECT from the real 2026-09-18
+  device answer: 36 correct, 5 safe, 7 unsafe of 48). Because corpus.json's
+  bytes changed, device.md flags the recording as made against a different
+  corpus until the next Pixel 10 Pro re-record; replay and gate still pass.
+
+Full `./gradlew test testDebugUnitTest assembleDebug` green. Not merged
+(lite mode: owner merges).
 
 ### 2026-09-15 — PV1: platform/API validation
 

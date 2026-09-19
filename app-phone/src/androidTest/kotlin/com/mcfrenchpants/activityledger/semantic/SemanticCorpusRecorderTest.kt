@@ -46,8 +46,9 @@ import java.time.Instant
  * - **One answer per case**, no repair: a failure is recorded as-is; it is data. The one
  *   exception is a *fast refusal* -- a failure that comes back in under [FAST_REFUSAL_MS], before
  *   any inference could have run. AICore does this (GenAiException BUSY, code 9, with no retry
- *   delay, which the interpreter maps to OTHER) once an app sends requests back to back: on the
- *   first Pixel 10 Pro run, 27 of 48 cases were refused this way after 20 answered normally. That
+ *   delay; the interpreter mapped it to OTHER until FX1.1 and to RETRYABLE since) once an app
+ *   sends requests back to back: on the first Pixel 10 Pro run, 27 of 48 cases were refused this
+ *   way after 20 answered normally. That
  *   is the phone throttling, not the model answering, so the call is repeated after a wait
  *   ([BUSY_BACKOFF_MS]); if every wait is used up, the last failure is recorded as-is.
  * - **No database**: the model is called directly; the deterministic rest of the pipeline is
@@ -190,7 +191,7 @@ class SemanticCorpusRecorderTest {
         /** A failure faster than this cannot have run inference (real answers take ~4-6 s). */
         const val FAST_REFUSAL_MS = 1_000L
 
-        /** The failure kinds a throttled call surfaces as (BUSY maps to OTHER or RETRYABLE). */
+        /** The failure kinds a throttled call surfaces as (BUSY is RETRYABLE; OTHER is kept, harmlessly). */
         val THROTTLE_KINDS = setOf(InterpreterFailureKind.OTHER, InterpreterFailureKind.RETRYABLE)
 
         /** Waits before each repeat of a fast-refused call; its size is the retry limit. */

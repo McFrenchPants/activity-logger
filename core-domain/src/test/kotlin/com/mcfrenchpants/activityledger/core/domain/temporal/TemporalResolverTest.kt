@@ -186,6 +186,71 @@ class TemporalResolverTest {
         assertEquals(resolve("Saturday"), resolve("SATURDAY"))
     }
 
+    // ---- Rule 10a: weekday part-of-day ----
+
+    @Test
+    fun rule10a_weekdayBandsFromTuesday() {
+        val approx = TimePrecision.APPROXIMATE
+        assertResolved(at("2026-09-12T09:00-04:00"), approx, "Saturday morning")
+        assertResolved(at("2026-09-12T15:00-04:00"), approx, "Saturday afternoon")
+        assertResolved(at("2026-09-12T19:00-04:00"), approx, "Saturday evening")
+        assertResolved(at("2026-09-12T21:00-04:00"), approx, "Saturday night")
+        assertResolved(at("2026-09-14T09:00-04:00"), approx, "Monday morning")
+    }
+
+    @Test
+    fun rule10a_lastFillerAndHedge() {
+        val expected = TemporalResolution.Resolved(at("2026-09-12T09:00-04:00"), TimePrecision.APPROXIMATE)
+        listOf(
+            "last Saturday morning", "on Saturday morning", "about Saturday morning",
+            "around last Saturday morning", "Saturday morning.", "SATURDAY MORNING",
+        ).forEach { assertEquals(expected, resolve(it), "expression: $it") }
+        assertEquals(resolve("Saturday night"), resolve("last Saturday night"))
+    }
+
+    @Test
+    fun rule10a_sameWeekdayAsTodayIsSevenDaysAgo() {
+        // Captured on a Tuesday evening: "Tuesday morning" is last week's, never today's.
+        assertResolved(at("2026-09-08T09:00-04:00"), TimePrecision.APPROXIMATE, "Tuesday morning")
+        assertResolved(at("2026-09-08T21:00-04:00"), TimePrecision.APPROXIMATE, "last Tuesday night")
+    }
+
+    @Test
+    fun rule10a_sameDayAsWeekdayRule() {
+        listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday").forEach { day ->
+            val dayOnly = resolve(day) as TemporalResolution.Resolved
+            val morning = resolve("$day morning") as TemporalResolution.Resolved
+            assertEquals(
+                dayOnly.occurredAt.atZone(detroit).toLocalDate(),
+                morning.occurredAt.atZone(detroit).toLocalDate(),
+                "day: $day",
+            )
+        }
+    }
+
+    @Test
+    fun rule10a_usesCaptureZoneAcrossDst() {
+        // Captured Tuesday 2026-11-03 in Detroit, after the 2026-11-01 fall-back: Saturday was EDT.
+        val capture = local("2026-11-03", "20:00")
+        assertResolved(at("2026-10-31T09:00-04:00"), TimePrecision.APPROXIMATE, "Saturday morning", capture)
+        assertResolved(at("2026-11-02T19:00-05:00"), TimePrecision.APPROXIMATE, "Monday evening", capture)
+        // Same instant-of-capture read in Tokyo is Wednesday morning local time there.
+        val tokyo = ZoneId.of("Asia/Tokyo")
+        assertResolved(
+            local("2026-11-02", "21:00", tokyo), TimePrecision.APPROXIMATE, "Monday night", capture, tokyo,
+        )
+    }
+
+    @Test
+    fun rule10a_existingBehaviourUnchangedAndOtherWordsUnresolvable() {
+        assertResolved(at("2026-09-12T00:00-04:00"), TimePrecision.DATE_ONLY, "Saturday")
+        assertResolved(at("2026-09-14T09:00-04:00"), TimePrecision.APPROXIMATE, "yesterday morning")
+        assertResolved(at("2026-09-14T21:00-04:00"), TimePrecision.APPROXIMATE, "last night")
+        assertUnresolvable("saturday brunch")
+        assertUnresolvable("saturday noon")
+        assertUnresolvable("saturday tonight")
+    }
+
     // ---- Rule 11: month-name dates ----
 
     @Test

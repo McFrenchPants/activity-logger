@@ -149,6 +149,54 @@ class GeminiNanoActivityInterpreterTest {
     }
 
     @Test
+    fun `busy with no retry delay is retryable`() {
+        val outcome = GenerationOutcome.Throws(
+            GenAiException("", null, GenAiException.ErrorCode.BUSY, Duration.ZERO),
+        )
+
+        assertEquals(
+            failure(InterpreterFailureKind.RETRYABLE),
+            resultOf(FakeInterpretationSession(outcome = outcome)),
+        )
+    }
+
+    @Test
+    fun `busy with a retry delay is retryable`() {
+        val outcome = GenerationOutcome.Throws(
+            GenAiException("", null, GenAiException.ErrorCode.BUSY, Duration.ofSeconds(5)),
+        )
+
+        assertEquals(
+            failure(InterpreterFailureKind.RETRYABLE),
+            resultOf(FakeInterpretationSession(outcome = outcome)),
+        )
+    }
+
+    @Test
+    fun `a non-busy code with no retry delay is other`() {
+        assertTrue(ERROR_CODE != GenAiException.ErrorCode.BUSY)
+        val outcome = GenerationOutcome.Throws(GenAiException("", null, ERROR_CODE, Duration.ZERO))
+
+        assertEquals(
+            failure(InterpreterFailureKind.OTHER),
+            resultOf(FakeInterpretationSession(outcome = outcome)),
+        )
+    }
+
+    @Test
+    fun `a busy refusal is still a single generation call`() {
+        val fake = FakeInterpretationSession(
+            outcome = GenerationOutcome.Throws(
+                GenAiException("", null, GenAiException.ErrorCode.BUSY, Duration.ZERO),
+            ),
+        )
+
+        resultOf(fake)
+
+        assertEquals(1, fake.generateContentCalls)
+    }
+
+    @Test
     fun `an arbitrary exception is other`() {
         val outcome = GenerationOutcome.Throws(RuntimeException())
 
@@ -366,7 +414,10 @@ class GeminiNanoActivityInterpreterTest {
         /** A status value this app does not recognise, which yields a failed capability check. */
         const val UNKNOWN_FEATURE_STATUS = 9_999
 
-        /** Any ML Kit error code; its meaning is never read. */
+        /**
+         * Any ML Kit error code other than BUSY (which is mapped specially); beyond that one
+         * comparison, its meaning is never read.
+         */
         const val ERROR_CODE = 13
 
         val INPUT = InterpretationInput(

@@ -162,6 +162,16 @@ class TemporalResolver {
             }
         }
 
+        /**
+         * The day a bare weekday names: the most recent such day strictly before today, so the
+         * same weekday as today means 7 days ago (never today). Shared by the weekday rules.
+         */
+        private fun previousWeekday(dayName: String, ctx: Context): LocalDate {
+            val target = WEEKDAYS.getValue(dayName)
+            val back = ((ctx.today.dayOfWeek.value - target.value + 7) % 7).let { if (it == 0) 7 else it }
+            return ctx.today.minusDays(back.toLong())
+        }
+
         private fun monthDate(monthToken: String, dayToken: String, ctx: Context): TemporalResolution {
             val month = MONTHS[monthToken] ?: return TemporalResolution.Unresolvable
             val day = dayToken.toInt()
@@ -238,11 +248,15 @@ class TemporalResolver {
                 val days = if (m.groupValues[2].startsWith("w")) n * 7 else n
                 resolved(ctx.startOf(ctx.today.minusDays(days)), TimePrecision.DATE_ONLY)
             },
-            // 10. Weekday: most recent such day strictly before today.
+            // 10a. Weekday part-of-day: the band anchor (night = 21:00, as "last night") on the
+            // day rule 10b picks.
+            PhraseRule(Regex("(?:last )?(${WEEKDAYS.keys.joinToString("|")}) (morning|afternoon|evening|night)")) { m, ctx ->
+                val date = previousWeekday(m.groupValues[1], ctx)
+                resolved(ctx.at(date, band(m.groupValues[2]).anchor), TimePrecision.APPROXIMATE)
+            },
+            // 10b. Weekday: most recent such day strictly before today.
             PhraseRule(Regex("(?:last )?(${WEEKDAYS.keys.joinToString("|")})")) { m, ctx ->
-                val target = WEEKDAYS.getValue(m.groupValues[1])
-                val back = ((ctx.today.dayOfWeek.value - target.value + 7) % 7).let { if (it == 0) 7 else it }
-                resolved(ctx.startOf(ctx.today.minusDays(back.toLong())), TimePrecision.DATE_ONLY)
+                resolved(ctx.startOf(previousWeekday(m.groupValues[1], ctx)), TimePrecision.DATE_ONLY)
             },
             // 11. Month-name dates.
             PhraseRule(Regex("($MONTH_ALT)\\.? $DAY")) { m, ctx ->
