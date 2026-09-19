@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-19T05:19:56.818Z",
+  "updated_at": "2026-09-19T05:20:44.184Z",
   "work_items": [
     {
       "id": "SS1",
@@ -636,8 +636,8 @@
         {
           "id": "UI1.4",
           "title": "History screen",
-          "status": "todo",
-          "lifecycle_state": "approved",
+          "status": "in-progress",
+          "lifecycle_state": "implementing",
           "dependencies": [
             "UI1.1",
             "UI1.3"
@@ -645,9 +645,9 @@
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/UI1.4.packet.json",
           "report_path": null,
           "notes": ""
         },
