@@ -15,7 +15,7 @@ tier: spec §6 (verifier for UI1.1 and UI1.3).
 |---|---|---|---|
 | UI1.1 | Ledger reads and hide for the screens | done | Verifier pass. `loadHistory` one SQL statement; `hideOccurrence` is a ledger transaction, no correction row |
 | UI1.2 | App shell, theme, time display | done | Spot-check. Robolectric UI tests at SDK 35 |
-| UI1.3 | Log screen: typed capture, result cards, picker | todo | Verifier. After UI1.1, UI1.2 |
+| UI1.3 | Log screen: typed capture, result cards, picker | in-progress | Verifier. After UI1.1, UI1.2 |
 | UI1.4 | History screen | todo | Spot-check. After UI1.1, UI1.3 |
 | UI1.5 | Device pass and documentation | todo | Needs Pixel 10 Pro. After UI1.1-UI1.4 |
 

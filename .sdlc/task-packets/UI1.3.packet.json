@@ -1,0 +1,75 @@
+{
+  "task_id": "UI1.3",
+  "plan_revision": "37bf678",
+  "objective": "Build the Log screen: typed capture through the real capture pipeline, the result cards (Saved with Undo + Change activity, Needs review with resolution, Not categorized), the shared activity picker, and the Recent list.\n\nBACKGROUND (what already exists -- read the code, do not re-create it):\n- `ActivityLedgerApplication` (app-phone) lazily owns the single `CapturePipeline` (`repository`, `capability`, `interpreter`, `clock`, `orchestrator`) plus one `ReviewResolutionService` and one `CorrectionService`.\n- core-domain: `ActivityRepository` (incl. `createRawCapture`, `getCapture`, `loadCatalog`, `getOccurrence`, `getActivity`, and the new `loadHistory(): List<HistoryEntry>` and `hideOccurrence(occurrenceId)`), `CaptureInterpretationOrchestrator.process(captureId): CaptureProcessingOutcome` (AutoAccepted(occurrenceId) / NeedsReview(reasons) / Rejected(reasons) / InterpreterUnavailable(kind) / AlreadyHasOccurrence), `ReviewResolutionService.resolve(captureId, ActivityTarget, ...)` -> Resolved / Refused(ServiceRefusal), `CorrectionService.correct(occurrenceId, CorrectionRequest(activity = ...))` -> Applied / NothingChanged / Refused, `CandidateSelector`, `ServiceRefusal` (incl. InvalidName, NameMatchesExistingActivity).\n- core-ai: `OnDeviceModelCapability.readiness(): ModelReadiness` (READY is the only runnable state). NEVER call `download()`.\n- app-phone UI shell from UI1.2: `ui.theme` (ActivityLedgerTheme, extendedColors review roles, evidenceTextStyle, LedgerShapes), `ui.components.StateTag` / `EvidenceText`, `ui.time.OccurrenceTimeFormatter`, `ui.navigation.LedgerNavigation` with a placeholder `ui.log.LogScreen` (replace it) and `ui.history.HistoryScreen` (leave it).\n- core-testing (already a testImplementation dependency of app-phone): `InMemoryActivityRepository`, `FakeActivityInterpreter`, `MutableClock`.\n- Specs: docs/UX_VISUAL_SPEC.md sections 3 D1, D3, D5, D7, 4.1, 4.2, 4.3, 5, 6 and docs/UX_SPEC.md 4, 10, 11, 13, 14 -- copy is VERBATIM from those. Owner decisions for this work: docs/proposals/typed-capture/DESIGN_SPEC.md section 9 (Undo + Change activity in the Saved card; typed entry only, no mic).\n\nDO:\n1. `ui.log.LogViewModel` (androidx ViewModel, constructor-injected with plain collaborators so JVM tests can build it without Android: repository, orchestrator, reviewResolutionService, correctionService, clock, a `suspend () -> Boolean` 'AI ready' check, and a zone provider). A small hand-written `ViewModelProvider.Factory` in ui.log builds it from `ActivityLedgerApplication` (no DI framework, ADR-032).\n   - Exposes a single immutable UI state (StateFlow): input text, whether a capture is running, the current result card (none / Saved / NeedsReview / NotCategorized), recent rows (first 3 of `loadHistory()`), whether the AI-not-ready row shows, and any refusal message.\n   - `submit()`: trim; blank -> no-op. Create the raw capture: source PHONE_TEXT, sourceSurface \"log_typed\", capturedAt = clock.instant(), zone from the provider, speech fields null, processingState CAPTURED. Clear the field. Then run `orchestrator.process(captureId)` in viewModelScope (so rotation does not cancel it). Map EXACTLY: AutoAccepted -> Saved(occurrenceId); AlreadyHasOccurrence -> Saved for the capture's existing occurrence; NeedsReview and Rejected -> NeedsReview(captureId); InterpreterUnavailable -> NotCategorized(captureId). Never inspect or second-guess the outcome's reasons beyond this mapping (ADR-010). Submitting a new capture dismisses the current card first. Disable submit while a capture is running.\n   - Foreground rule (ADR-029): the screen tells the ViewModel when it is started/stopped (lifecycle); submit is only allowed while started. A capture already in flight when the app goes to the background is NOT cancelled (the orchestrator records exactly one outcome) and its card shows when the user returns.\n   - Saved card data: activity display name, formatted time (OccurrenceTimeFormatter with the capture zone and clock now), raw words. Actions: `undo()` -> `repository.hideOccurrence`, card dismissed, recent reloaded; `changeActivity(target: ActivityTarget)` -> `correctionService.correct(occurrenceId, CorrectionRequest(activity = target))`; Applied -> card shows the new name and the window stays as is; NothingChanged -> no-op; Refused -> plain-words message (map each ServiceRefusal to a string resource; InvalidName and NameMatchesExistingActivity must tell the user what to do, e.g. that an activity with that name already exists).\n   - Undo window (D5): 8 s by default via `AccessibilityManager.getRecommendedTimeoutMillis(8000, FLAG_CONTENT_TEXT or FLAG_CONTENT_CONTROLS)` computed in the composable and passed to the ViewModel; the draining bar pauses while the card is being touched and while the activity picker is open; when it runs out, the Saved card is dismissed (the occurrence stays saved). Leaving the Log destination dismisses it. The timer must be testable on the JVM (drive it from an injectable time source / test dispatcher).\n   - NeedsReview card data: raw words; suggestions = the capture's `pendingMatchedActivityId` (from its HistoryEntry) if that activity is still in `loadCatalog()`, followed by the candidates of `CandidateSelector().select(catalog, rawText)` in the order returned, de-duplicated, capped at 3 in total (deterministic, no model call). Only offer suggestions when the catalog is non-empty. Actions: pick suggestion / `resolve(ActivityTarget)` via ReviewResolutionService -> on Resolved show the Saved card for the new occurrence (with the Undo/Change window); on Refused show the message and keep the card; `decideLater()` dismisses the card (capture stays in Needs review, reachable from History later).\n   - NotCategorized card: raw words and the two-step indicator; also offers 'Choose an activity' (same picker -> ReviewResolutionService) and 'Decide later'.\n   - AI-not-ready row: on start, call the ready check once per start (it is cheap and never downloads); show 'On-device AI isn't ready. Captures are still saved.' when false. Typed captures are still accepted in that state (they end NotCategorized).\n2. `ui.log.LogScreen` composable per UX_VISUAL_SPEC 4.1 adapted for typing: prompt 'Say what you just did.' as the field's label/placeholder, a text field + submit button (IME action Done also submits), the result card area, and 'Recent' with 3 rows + 'All history' (navigates to the History tab using the existing top-level navigation helper -- expose a callback parameter; wire it in LedgerNavigation). Rows per 4.2: interpreted rows name (titleMedium) -> time + StateTag when relevant -> EvidenceText; uninterpreted rows lead with StateTag and the words; trailing source icon is not needed yet (all captures are phone-typed) -- omit it. Result cards: Saved (primaryContainer, '✓ {name} — {time}', words, Undo + Change activity buttons, draining LinearProgressIndicator), Needs review (reviewContainer, 'Needs review', words, 'Your words are saved. Nothing was guessed.', 'Which activity was this?' with suggestion buttons, 'Choose another activity', 'Create new activity', 'Decide later'), Not categorized (dashed-outline card, 'Captured ✓ — Categorized: not yet', words, 'Saved your words, but couldn't categorize them yet.', 'They'll be categorized on this phone when on-device AI is available.' -- NOTE: automatic later categorization is not built yet, so use only the first sentence plus the actions; record this copy deviation in your report). Empty Recent: UX_SPEC 13 History-empty copy adapted to typing: 'No activities logged yet. Type what you just did.'\n3. `ui.components.ActivityPicker` -- shared modal bottom sheet: search field filtering the ACTIVE catalog (from `loadCatalog()`, case-insensitive contains on display name), list of activities, and a 'New activity' row that switches to a name field (prefilled with the search text) and returns `ActivityTarget.New(name)`. Returns the choice via callback; the caller applies it and shows any refusal. Reusable by History in UI1.4 (no Log-specific types in its API).\n4. Accessibility (UX_VISUAL_SPEC 5): result cards are polite live regions with a sentence content description (e.g. 'Saved. Mow lawn, this morning. Undo available.'); rows merge semantics into one sentence (name, time, 'Your words: ...'); 48dp minimum targets; no fixed heights; state never by colour alone.\n5. Strings in res/values/strings.xml (all user-visible copy; none hard-coded in composables).\n6. Tests (JVM; Robolectric only where Compose is needed):\n   - LogViewModelTest with InMemoryActivityRepository + FakeActivityInterpreter + the real CaptureInterpretationOrchestrator/ReviewResolutionService/CorrectionService + MutableClock + a test dispatcher: every outcome mapping (use the fake to produce auto-accept, needs-review, invalid/rejected, unavailable); raw capture stored with PHONE_TEXT / 'log_typed' / CAPTURED and the exact trimmed text; blank input ignored; submit blocked while stopped; in-flight capture survives stop and shows its card after start; undo hides (occurrence HIDDEN, raw capture unchanged, recent no longer shows it); change activity to existing and to new applies a correction and updates the card; refused change shows a message; resolve from Needs review to existing / new -> Saved card; refused resolve keeps the card; decide later dismisses and the capture stays NEEDS_REVIEW; suggestions order, de-dup and cap of 3; undo window expires after the given timeout and pauses while touched/picker open; AI-not-ready row shown when the check returns false.\n   - A Robolectric Compose test for LogScreen (driving a LogViewModel built on the in-memory fakes): the Saved card shows 'Undo' and 'Change activity'; the Needs-review card shows the reassurance copy and 'Decide later'; typing text and pressing submit produces a card.\n7. Keep `ui.history.HistoryScreen` a placeholder (UI1.4 builds it).\n\nPRIVACY (AGENTS.md #11): no logging of any kind; no raw text in exception messages; no new permission.\n\nDEVICE SAFETY: no device needed. Never run adb, installDebug or any connected* task. Set ANDROID_SERIAL=none-for-this-task in the environment of every Gradle command.",
+  "non_goals": [
+    "No voice/mic, no Ask, Settings, Activity detail, Edit interpretation or occurrence sheet.",
+    "No History screen content (UI1.4).",
+    "No model download, no automatic re-interpretation of uncategorized captures.",
+    "No change to core-* modules, CapturePipeline, app-wear, the version catalog or build files.",
+    "No change to BACKLOG.md, PROGRESS.md, docs/, .sdlc, CLAUDE.md, AGENTS.md. Do not commit."
+  ],
+  "dependencies": [
+    "UI1.1",
+    "UI1.2"
+  ],
+  "read_paths": [
+    "app-phone",
+    "core-domain/src/main",
+    "core-testing/src/main",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/OnDeviceModelCapability.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/ModelReadiness.kt",
+    "docs/UX_VISUAL_SPEC.md",
+    "docs/UX_SPEC.md",
+    "docs/design/visual-spec",
+    "docs/DECISIONS.md",
+    "docs/proposals/typed-capture/DESIGN_SPEC.md",
+    "AGENTS.md",
+    "gradle",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/log",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/components",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/navigation/LedgerNavigation.kt",
+    "app-phone/src/main/res/values/strings.xml",
+    "app-phone/src/main/res/drawable",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/log",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/components"
+  ],
+  "forbidden_paths": [
+    "app-phone/src/androidTest",
+    "app-phone/src/main/res/font",
+    "app-phone/licenses",
+    "app-phone/build.gradle.kts",
+    "gradle/libs.versions.toml",
+    "app-wear",
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    ".sdlc",
+    "agents",
+    ".claude",
+    "scripts",
+    "docs/sdlc"
+  ],
+  "acceptance_criteria": [
+    "Typed text is stored as an immutable raw capture (PHONE_TEXT, 'log_typed', CAPTURED, trimmed text) and processed only through CaptureInterpretationOrchestrator; the UI maps each CaptureProcessingOutcome to exactly one card as specified and never re-judges model output.",
+    "Submission is only possible while the Log screen is started; an in-flight capture is not cancelled by backgrounding or rotation and its card appears afterwards.",
+    "Saved card shows name, time (OccurrenceTimeFormatter), words, Undo and Change activity, with a draining 8 s window honouring accessibility recommended timeouts and pausing while touched or while the picker is open; Undo hides the occurrence via hideOccurrence; Change activity applies a user correction via CorrectionService; refusals shown in plain words.",
+    "Needs-review card offers up to 3 de-duplicated suggestions (pending matched activity first, then CandidateSelector order), Choose another activity, Create new activity and Decide later, resolving via ReviewResolutionService; Not-categorized card offers choosing an activity and Decide later.",
+    "ActivityPicker is a reusable bottom sheet (search, list of ACTIVE activities, New activity with a name) with no Log-specific types in its API.",
+    "Recent shows the 3 newest history rows per UX_VISUAL_SPEC 4.2 and 'All history' switches to the History tab; the AI-not-ready row shows when the model is not READY; the app never downloads the model.",
+    "All copy in strings.xml, verbatim from the specs except the documented Not-categorized follow-up sentence; accessibility per UX_VISUAL_SPEC 5 (live regions, merged row semantics, 48dp targets).",
+    "LogViewModelTest covers every behaviour listed in step 6 and passes; the Robolectric LogScreen test passes; `:app-phone:assembleDebug :app-phone:testDebugUnitTest` green.",
+    "No logging; no new permission; only write_paths changed; no device contact."
+  ],
+  "verification_commands": [
+    "ANDROID_SERIAL=none-for-this-task ./gradlew :app-phone:assembleDebug :app-phone:testDebugUnitTest",
+    "git status --porcelain",
+    "git diff --stat"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
