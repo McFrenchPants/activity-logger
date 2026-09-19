@@ -6,7 +6,7 @@ import androidx.room.Query
 import com.mcfrenchpants.activityledger.core.data.db.entity.ActivityOccurrenceEntity
 
 /**
- * Read-only access to occurrences. Occurrences are written ONLY by the two
+ * Read-only access to occurrences. Occurrences are written ONLY by the
  * transactional operations in [LedgerWriteDao] (surfaced through
  * core.data.ledger.ActivityLedgerWriter).
  */

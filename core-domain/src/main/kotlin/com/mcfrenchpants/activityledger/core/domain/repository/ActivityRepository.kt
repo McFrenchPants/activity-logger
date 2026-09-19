@@ -100,4 +100,29 @@ interface ActivityRepository {
 
     /** Returns the canonical activity with [id] (any status), or null if none exists. */
     suspend fun getActivity(id: String): ActivityView?
+
+    /**
+     * Returns the capture history: one [HistoryEntry] per raw capture that either has an
+     * occurrence with ACTIVE visibility or has no occurrence at all. A capture whose
+     * occurrence is HIDDEN is omitted.
+     *
+     * Ordered newest first by the occurrence's occurred_at (captures with an occurrence) or
+     * the capture's captured_at (captures without one); ties are broken by capture id,
+     * descending. An occurrence is shown with its current canonical activity, so one moved by
+     * a correction shows the corrected activity.
+     *
+     * Uses a bounded number of queries regardless of how many rows exist (never one per row).
+     */
+    suspend fun loadHistory(): List<HistoryEntry>
+
+    /**
+     * Hides an occurrence: sets its visibility ACTIVE -> HIDDEN and its updated_at from the
+     * implementation's own clock. Already HIDDEN: a no-op that writes nothing.
+     *
+     * Never touches raw captures, interpretations, corrections or activities. Hiding is not a
+     * correction: no correction is recorded.
+     *
+     * @throws IllegalArgumentException if the occurrence is unknown. Nothing is written.
+     */
+    suspend fun hideOccurrence(occurrenceId: String)
 }

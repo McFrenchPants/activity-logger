@@ -1,0 +1,79 @@
+{
+  "task_id": "UI1.2",
+  "plan_revision": "e268a4a",
+  "objective": "Replace the placeholder phone app with the real app shell: wiring, theme, shared components, the time formatter, and navigation between two (still placeholder) screens, Log and History.\n\nBACKGROUND: app-phone currently has a placeholder `MainActivity` that shows the app name, and `pipeline/CapturePipeline.kt`, the ONE place the capture pipeline is wired (read its KDoc: exactly one per process, no DI framework per ADR-032, no logging). The visual design is `docs/UX_VISUAL_SPEC.md` (read sections 3 D1, D3, 4.2, 4.3, 5, 6 fully); mockups in `docs/design/visual-spec/` (HTML, for reference only). Two OFL fonts are already in the repo: `app-phone/src/main/res/font/instrument_sans.ttf` (variable font, axes wdth and wght) and `app-phone/src/main/res/font/source_serif_4_italic.ttf` (variable font, axes opsz and wght). minSdk is 33, so variable-font `FontVariation` settings are available.\n\nDO:\n1. Version catalog (`gradle/libs.versions.toml`) -- add, with a one-line comment each in the file's style: navigation-compose 2.10.1 (`androidx.navigation:navigation-compose`), lifecycle-viewmodel-compose and lifecycle-runtime-compose 2.11.0 (one `lifecycle` version ref), and BOM-versioned compose entries `androidx.compose.ui:ui-test-junit4`, `androidx.compose.ui:ui-test-manifest`, `androidx.compose.material:material-icons-core` only if you actually need icons beyond what material3 provides (prefer drawing the few state icons as simple vector resources or ImageVector if material-icons-core is not needed). Versions above were checked on Google Maven on 2026-09-19 and require kotlin-stdlib 2.1.20 / kotlinx-serialization-core 1.7.3 -- compatible with the Kotlin 2.3.21 pin and serialization 1.11.0. Do not bump any existing version.\n2. `app-phone/build.gradle.kts`: apply the existing `kotlin-serialization` plugin alias (for type-safe navigation routes), add the new deps, plus test deps: robolectric (catalog), androidx-test-core, androidx-test-ext-junit, compose ui-test-junit4 (testImplementation) and ui-test-manifest (debugImplementation), with `testOptions.unitTests.isIncludeAndroidResources = true`. Mirror how core-data configures Robolectric (read core-data/build.gradle.kts and docs/proposals/room-schema/TOOLING_NOTES.md). If Robolectric 4.17 cannot run at targetSdk 36, pin tests with @Config(sdk = [...]) to the highest SDK it supports and say so in your report. Keep the existing header comment rules of this file (no literal versions, no ML Kit coordinates).\n3. `ActivityLedgerApplication` (Application subclass, package com.mcfrenchpants.activityledger): lazily creates the process's single `CapturePipeline` and, from its repository and clock, one `ReviewResolutionService` and one `CorrectionService` (core-domain services). Never closed (process lifetime) -- document why in KDoc. Register it in the manifest (`android:name`). Keep the manifest's INTERNET removal and its comment; update the manifest's 'scaffold placeholder' comment to describe the real app.\n4. Theme package `ui.theme`: `ActivityLedgerTheme` with the D3 colour tokens EXACTLY (light and dark tables), following the system dark setting, dynamic colour OFF; the custom review / reviewContainer / onReviewContainer roles exposed via an extended colour object (CompositionLocal); typography per the D3 type-scale table (Instrument Sans at weights 400/600 via FontVariation, sizes/line heights exactly) plus an `evidence` text style (Source Serif 4 Italic 400, line height ~1.4x) exposed alongside; shapes per D3 (cards 16dp, fields/lists 12dp, chips 8dp, buttons full pill); tabular figures for numerals (fontFeatureSettings \"tnum\").\n5. Components package `ui.components`: `StateTag(state)` for the D3 state vocabulary rows In progress, Needs review, Not categorized yet, Couldn't capture (icon shape + text label + colour; Not categorized uses a dashed outline) -- state must stay readable with colour removed; `EvidenceText(text)` rendering the user's words in curly quotes in the evidence style, never truncated without an expand affordance (for now: no truncation at all).\n6. `ui.time.OccurrenceTimeFormatter` -- pure Kotlin (no Android dependency so it is JVM-testable), input: occurredAt Instant, TimePrecision, ZoneId of the capture, 'now' Instant, Locale. Output exactly per UX_VISUAL_SPEC 4.3: EXACT and INFERRED_NOW -> `Today, 3:12 PM` when the local date equals today's local date in that zone, else `Sep 12, 9:40 AM`; APPROXIMATE -> `Today, afternoon` / `Aug 23, morning` (part of day from the local hour: morning 05:00-11:59, afternoon 12:00-16:59, evening 17:00-20:59, night otherwise -- read core-domain's TemporalResolver to see which representative hours it assigns to each part of day and make the mapping round-trip those exactly; if TemporalResolver uses different boundaries, use its boundaries and report it); DATE_ONLY -> `Sat, Sep 12` (never a clock time, never 'Today'). Only 'Today' is special-cased; no 'Yesterday'. A different year than now's year appends the year (`Sep 12, 2025, 9:40 AM` / `Sat, Sep 12, 2025`). Month/day names from the Locale via java.time formatters. JVM unit tests covering every row, the year rule, zone boundary (an instant that is 'today' in one zone and yesterday in another), and that APPROXIMATE/DATE_ONLY output never contains a digit-colon-digit clock time.\n7. `MainActivity` (edge-to-edge): `ActivityLedgerTheme` + a Compose Navigation `NavHost` with @Serializable type-safe routes for the two top-level destinations Log (start) and History, an M3 `NavigationBar` with labels always visible, each destination keeping its own back stack (standard saveState/restoreState pattern), and system Back from History returning to Log. The Ask destination is deliberately NOT present. Log and History screens are simple placeholders in `ui.log.LogScreen` / `ui.history.HistoryScreen` showing their title only (the next tasks replace them). Strings in `res/values/strings.xml` (nav labels 'Log', 'History').\n8. A Robolectric Compose test: app starts on Log, tapping History shows History, Back returns to Log; NavigationBar labels are visible. A JVM test that `ActivityLedgerTheme`'s light and dark schemes contain exactly the D3 hex values for primary, background, surface, onSurface, review roles and error (catches typos).\n\nPRIVACY: no logging anywhere. No new permission; INTERNET stays removed.\n\nDEVICE SAFETY: no device needed. Never run adb, installDebug or any connected* task. Set ANDROID_SERIAL=none-for-this-task in the environment of every Gradle command.",
+  "non_goals": [
+    "No real Log or History screen content, no ViewModels, no repository calls from UI (UI1.3/UI1.4).",
+    "No Ask, Settings, Activity detail or Edit screens.",
+    "No change to CapturePipeline's behaviour, core-* modules, or app-wear.",
+    "No version bump of any existing catalog entry.",
+    "No change to BACKLOG.md, PROGRESS.md, docs/, .sdlc, CLAUDE.md, AGENTS.md. Do not commit."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "app-phone",
+    "core-domain/src/main",
+    "core-data/build.gradle.kts",
+    "docs/UX_VISUAL_SPEC.md",
+    "docs/UX_SPEC.md",
+    "docs/design/visual-spec",
+    "docs/DECISIONS.md",
+    "docs/proposals/room-schema/TOOLING_NOTES.md",
+    "AGENTS.md",
+    "gradle",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "gradle/libs.versions.toml",
+    "app-phone/build.gradle.kts",
+    "app-phone/src/main/AndroidManifest.xml",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/MainActivity.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ActivityLedgerApplication.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui",
+    "app-phone/src/main/res/values",
+    "app-phone/src/main/res/values-night",
+    "app-phone/src/main/res/drawable",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/MainActivityNavigationTest.kt",
+    "app-phone/src/test/resources"
+  ],
+  "forbidden_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline",
+    "app-phone/src/androidTest",
+    "app-phone/src/main/res/font",
+    "app-phone/licenses",
+    "core-domain",
+    "core-data",
+    "core-ai",
+    "core-testing",
+    "core-speech",
+    "core-wear-protocol",
+    "app-wear",
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".sdlc",
+    "agents",
+    ".claude",
+    "scripts",
+    "docs"
+  ],
+  "acceptance_criteria": [
+    "Catalog has navigation-compose 2.10.1, lifecycle 2.11.0 (viewmodel-compose, runtime-compose) and BOM-versioned compose test entries; no existing version changed; app-phone build file uses only catalog references and no ML Kit coordinate.",
+    "ActivityLedgerApplication owns exactly one CapturePipeline plus one ReviewResolutionService and one CorrectionService, registered in the manifest; INTERNET removal kept.",
+    "Theme uses the D3 light/dark tokens exactly, dynamic colour off, review roles via an extended colour object, D3 type scale with the bundled fonts and an evidence style; a JVM test pins the key hex values.",
+    "StateTag renders icon + label + colour for the four row states (dashed outline for Not categorized); EvidenceText uses curly quotes and the evidence style.",
+    "OccurrenceTimeFormatter is pure Kotlin, matches the UX_VISUAL_SPEC 4.3 table, only 'Today' special-cased, year appended for other years, never a clock time for APPROXIMATE/DATE_ONLY, part-of-day consistent with TemporalResolver; JVM tests cover all of it.",
+    "MainActivity hosts a type-safe NavHost with Log (start) and History in a NavigationBar with visible labels, per-tab back stacks, Back from History to Log; no Ask tab; placeholder text gone; a Robolectric navigation test passes.",
+    "`:app-phone:assembleDebug` and `:app-phone:testDebugUnitTest` pass; no logging; only write_paths changed; no device contact."
+  ],
+  "verification_commands": [
+    "ANDROID_SERIAL=none-for-this-task ./gradlew :app-phone:assembleDebug :app-phone:testDebugUnitTest",
+    "git status --porcelain",
+    "git diff --stat"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

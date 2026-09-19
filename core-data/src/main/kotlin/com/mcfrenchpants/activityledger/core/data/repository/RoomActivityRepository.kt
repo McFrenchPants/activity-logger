@@ -2,6 +2,7 @@ package com.mcfrenchpants.activityledger.core.data.repository
 
 import android.database.sqlite.SQLiteConstraintException
 import com.mcfrenchpants.activityledger.core.data.db.ActivityLedgerDatabase
+import com.mcfrenchpants.activityledger.core.data.db.dao.HistoryRow
 import com.mcfrenchpants.activityledger.core.data.db.entity.ActivityOccurrenceEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.CanonicalActivityEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.RawCaptureEntity
@@ -23,6 +24,8 @@ import com.mcfrenchpants.activityledger.core.domain.repository.ActivityView
 import com.mcfrenchpants.activityledger.core.domain.repository.CatalogActivity
 import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionChanges
 import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionOutcome
+import com.mcfrenchpants.activityledger.core.domain.repository.HistoryEntry
+import com.mcfrenchpants.activityledger.core.domain.repository.HistoryOccurrence
 import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
 import com.mcfrenchpants.activityledger.core.domain.repository.OccurrenceView
 import com.mcfrenchpants.activityledger.core.domain.repository.StoredCapture
@@ -179,6 +182,14 @@ internal class RoomActivityRepository(
         database.canonicalActivityDao().getById(id)?.toView()
     }
 
+    override suspend fun loadHistory(): List<HistoryEntry> = io {
+        database.rawCaptureDao().loadHistory().map { it.toEntry() }
+    }
+
+    override suspend fun hideOccurrence(occurrenceId: String) {
+        io { writer.hideOccurrence(occurrenceId, clock.millis()) }
+    }
+
     // --- helpers -------------------------------------------------------------
 
     private suspend fun <T> io(block: () -> T): T = withContext(dispatcher) { block() }
@@ -233,6 +244,29 @@ internal class RoomActivityRepository(
         activityState = activityState,
         visibilityStatus = visibilityStatus,
     )
+
+    private fun HistoryRow.toEntry(): HistoryEntry {
+        val occurrence = occurrenceId?.let { id ->
+            HistoryOccurrence(
+                occurrenceId = id,
+                activityId = checkNotNull(activityId) { "Occurrence $id has no activity id" },
+                activityDisplayName = checkNotNull(activityDisplayName) { "Occurrence $id has no activity" },
+                occurredAt = Instant.ofEpochMilli(checkNotNull(occurredAt) { "Occurrence $id has no occurred_at" }),
+                timePrecision = checkNotNull(timePrecision) { "Occurrence $id has no time_precision" },
+                activityState = checkNotNull(activityState) { "Occurrence $id has no activity_state" },
+            )
+        }
+        return HistoryEntry(
+            captureId = captureId,
+            rawText = rawText,
+            source = source,
+            capturedAt = Instant.ofEpochMilli(capturedAt),
+            zoneId = ZoneId.of(capturedZoneId),
+            processingState = processingState,
+            occurrence = occurrence,
+            pendingMatchedActivityId = if (occurrence == null) pendingMatchedActivityId else null,
+        )
+    }
 
     private fun CanonicalActivityEntity.toView() = ActivityView(
         id = id,

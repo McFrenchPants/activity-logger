@@ -28,8 +28,8 @@ import com.mcfrenchpants.activityledger.core.domain.model.VisibilityStatus
  * insert, and the copies of the interpretation/activity/raw-capture writes the
  * operations need) is `protected abstract`, so nothing outside this class (or
  * Room's generated subclass) can call it. The only callable entry points are the
- * four `@Transaction` operations below (acceptInterpretation, applyCorrection,
- * applyCorrectionCreatingActivity, recordOutcome); Room runs each in ONE database
+ * five `@Transaction` operations below (acceptInterpretation, applyCorrection,
+ * applyCorrectionCreatingActivity, recordOutcome, hideOccurrence); Room runs each in ONE database
  * transaction, so any exception rolls back every write it made. Application code
  * reaches them through core.data.ledger.ActivityLedgerWriter, which supplies the
  * IdFactory.
@@ -86,6 +86,10 @@ internal abstract class LedgerWriteDao {
         effectiveInterpretationId: String,
         updatedAt: Long,
     ): Int
+
+    /** Touches only visibility_status and updated_at of one occurrence. */
+    @Query("UPDATE activity_occurrences SET visibility_status = :visibility, updated_at = :updatedAt WHERE id = :id")
+    protected abstract fun updateOccurrenceVisibility(id: String, visibility: VisibilityStatus, updatedAt: Long): Int
 
     // --- transactional operations -------------------------------------------
 
@@ -263,6 +267,24 @@ internal abstract class LedgerWriteDao {
         val interpretationId = idFactory.newId()
         insertInterpretation(interpretation.toEntity(interpretationId))
         return interpretationId
+    }
+
+    /**
+     * Hides an occurrence: visibility ACTIVE -> HIDDEN, updated_at = [now]. Returns true if
+     * the occurrence was hidden by this call, false if it was already HIDDEN (then nothing is
+     * written). Touches no other table and no other column; hiding is not a correction, so
+     * no corrections row is written.
+     *
+     * @throws IllegalArgumentException if the occurrence does not exist. Nothing is written.
+     */
+    @Transaction
+    open fun hideOccurrence(occurrenceId: String, now: Long): Boolean {
+        val current = requireNotNull(findOccurrence(occurrenceId)) { "Unknown occurrence $occurrenceId" }
+        if (current.visibilityStatus == VisibilityStatus.HIDDEN) return false
+        check(updateOccurrenceVisibility(occurrenceId, VisibilityStatus.HIDDEN, now) == 1) {
+            "Occurrence $occurrenceId was not updated"
+        }
+        return true
     }
 
     // --- shared logic (not callable from outside this class) ----------------
