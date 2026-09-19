@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Launcher icon artwork: a clock face with a green check mark. Redrawn as a vector from the
+    supplied PNG (docs/design/app-icon/app-icon-source.png), so it stays sharp at any size.
+
+    The 108dp canvas is Android's adaptive-icon canvas; only the middle ~66dp circle is
+    guaranteed to be visible after a launcher masks it, so the artwork (1254-unit source
+    coordinates, scaled by 0.075) is centred and kept to ~63dp across.
+
+    Also used as the monochrome (themed-icon) layer: Android tints it using only its shape,
+    so the colours below do not matter there.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.075"
+        android:scaleY="0.075"
+        android:translateX="7.01"
+        android:translateY="6.82">
+        <!-- Clock rim. -->
+        <path
+            android:pathData="M1015,628A388.5,388.5 0 1,1 238,628A388.5,388.5 0 1,1 1015,628Z"
+            android:strokeColor="#2C444C"
+            android:strokeWidth="64" />
+        <!-- The four hour ticks at 12, 3, 6 and 9. -->
+        <path
+            android:pathData="M627,344V393M627,867V919M330,632H382M872,632H924"
+            android:strokeColor="#2C444C"
+            android:strokeWidth="48"
+            android:strokeLineCap="round" />
+        <!-- Check mark. -->
+        <path
+            android:pathData="M508,618L610,717L840,490"
+            android:strokeColor="#41A783"
+            android:strokeWidth="80"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>
