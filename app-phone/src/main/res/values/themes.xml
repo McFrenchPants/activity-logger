@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Window-level theme only: it paints the window before Compose draws, so launch does not
+    flash the wrong colour. All real styling is ActivityLedgerTheme (ui/theme) in Compose.
+    Background is the D3 light "background" token.
+-->
+<resources>
+    <style name="Theme.ActivityLedger" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+</resources>

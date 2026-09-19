@@ -45,6 +45,9 @@ See ADR-019.
   - **Ask**
 - Each top-level destination keeps its own back stack. System Back from
   History or Ask returns to Log.
+- *Built so far (UI1, 2026-09-19):* Log and History only. Ask is left out of
+  the bar until it exists (build-guide Step 9) rather than shown disabled; the
+  Settings icon is also not built yet.
 - **Settings / diagnostics** opens from an icon button in the Log top bar.
 - Tapping an occurrence (History row, Recent row, Activity detail row) opens
   an **occurrence bottom sheet**: the user's words first, then activity,
@@ -211,6 +214,11 @@ AI isn't ready. Captures are still saved.") linking to Settings.
   stays saved).
 - Undo sets the occurrence's `visibilityStatus` to hidden. The RawCapture and
   Interpretation are kept (UX_SPEC §11).
+- The card also carries **Change activity** (owner decision 2026-09-19, core
+  of backlog 11): it opens the shared activity picker (with *New activity*)
+  and applies a user correction to the occurrence; the card then shows the
+  new name. Only offered while the card is visible.
+- Undo is a visibility change, not a correction (ADR-034).
 - After the window closes, the same effect is available as **Remove from
   history** in the occurrence sheet.
 - No undo on the watch in MVP.
@@ -360,4 +368,7 @@ grids, or "AI" sparkle iconography.
 
 - Watch Listening screen depends on on-device speech availability on the
   OnePlus Watch 3 (backlog item 1).
-- Verify contrast ratios with final Compose color values.
+- ~~Verify contrast ratios with final Compose color values.~~ Done
+  2026-09-19: every text/background pair used by Log and History (body,
+  secondary text, green actions, review colours, on both the page and the
+  review card) is at least 4.6:1 in light and 5.0:1 in dark.

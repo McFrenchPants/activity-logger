@@ -14,6 +14,8 @@ import com.mcfrenchpants.activityledger.core.domain.repository.ActivityView
 import com.mcfrenchpants.activityledger.core.domain.repository.CatalogActivity
 import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionChanges
 import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionOutcome
+import com.mcfrenchpants.activityledger.core.domain.repository.HistoryEntry
+import com.mcfrenchpants.activityledger.core.domain.repository.HistoryOccurrence
 import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
 import com.mcfrenchpants.activityledger.core.domain.repository.OccurrenceView
 import com.mcfrenchpants.activityledger.core.domain.repository.StoredCapture
@@ -48,8 +50,8 @@ data class RecordedCorrection(
  * Names are normalized with [NameNormalizer]. Not thread-safe.
  *
  * Besides the interface it offers test seeding ([seedActivity], [setVisibility]) and inspection
- * ([interpretationsFor], [corrections], [activities], [occurrences], [writeCount]). Seeding
- * helpers do not count as writes.
+ * ([interpretationsFor], [corrections], [activities], [occurrences], [occurrenceUpdatedAt],
+ * [writeCount]). Seeding helpers do not count as writes.
  */
 class InMemoryActivityRepository(private val clock: Clock) : ActivityRepository {
 
@@ -69,6 +71,7 @@ class InMemoryActivityRepository(private val clock: Clock) : ActivityRepository 
     private val interpretationRows = mutableListOf<Pair<String, InterpretationRecord>>()
     private val interpretationOwners = mutableMapOf<String, String>()
     private val occurrenceRows = linkedMapOf<String, OccurrenceView>()
+    private val occurrenceUpdatedAt = mutableMapOf<String, Instant>()
     private val correctionRows = mutableListOf<RecordedCorrection>()
 
     /** Number of successful mutating interface calls (a call that writes nothing does not count). */
@@ -83,6 +86,9 @@ class InMemoryActivityRepository(private val clock: Clock) : ActivityRepository 
 
     /** Every occurrence, in insertion order. */
     val occurrences: List<OccurrenceView> get() = occurrenceRows.values.toList()
+
+    /** The last time an interface write changed occurrence [occurrenceId], or null if unknown. */
+    fun occurrenceUpdatedAt(occurrenceId: String): Instant? = occurrenceUpdatedAt[occurrenceId]
 
     /** The interpretations stored for [captureId], in insertion order. */
     fun interpretationsFor(captureId: String): List<InterpretationRecord> =
@@ -201,6 +207,7 @@ class InMemoryActivityRepository(private val clock: Clock) : ActivityRepository 
             activityState = activityState,
             visibilityStatus = VisibilityStatus.ACTIVE,
         )
+        occurrenceUpdatedAt[occurrenceId] = now
         capture.state = ProcessingState.PERSISTED
         capture.updatedAt = now
         writeCount++
@@ -249,6 +256,7 @@ class InMemoryActivityRepository(private val clock: Clock) : ActivityRepository 
             timePrecision = newPrecision ?: current.timePrecision,
             activityState = newState ?: current.activityState,
         )
+        occurrenceUpdatedAt[occurrenceId] = now
         writeCount++
         return CorrectionOutcome.Applied(correctionId)
     }
@@ -257,7 +265,60 @@ class InMemoryActivityRepository(private val clock: Clock) : ActivityRepository 
 
     override suspend fun getActivity(id: String): ActivityView? = activityRows[id]?.toView()
 
+    override suspend fun loadHistory(): List<HistoryEntry> =
+        captures.entries
+            .mapNotNull { (captureId, row) ->
+                val occurrence = occurrenceForCapture(captureId)
+                if (occurrence != null && occurrence.visibilityStatus != VisibilityStatus.ACTIVE) return@mapNotNull null
+                HistoryEntry(
+                    captureId = captureId,
+                    rawText = row.capture.rawText,
+                    source = row.capture.source,
+                    capturedAt = row.capture.capturedAt,
+                    zoneId = row.capture.zoneId,
+                    processingState = row.state,
+                    occurrence = occurrence?.let {
+                        HistoryOccurrence(
+                            occurrenceId = it.id,
+                            activityId = it.canonicalActivityId,
+                            activityDisplayName = checkNotNull(activityRows[it.canonicalActivityId]) {
+                                "occurrence ${it.id} references unknown activity ${it.canonicalActivityId}"
+                            }.displayName,
+                            occurredAt = it.occurredAt,
+                            timePrecision = it.timePrecision,
+                            activityState = it.activityState,
+                        )
+                    },
+                    pendingMatchedActivityId = if (occurrence == null) latestInterpretationOf(captureId)?.matchedActivityId else null,
+                )
+            }
+            // Same order as the database: newest first by occurred_at (or captured_at without an
+            // occurrence), then capture id descending (plain string comparison, like SQLite TEXT).
+            .sortedWith(
+                compareByDescending<HistoryEntry> { it.occurrence?.occurredAt ?: it.capturedAt }
+                    .thenByDescending { it.captureId },
+            )
+
+    override suspend fun hideOccurrence(occurrenceId: String) {
+        val current = requireNotNull(occurrenceRows[occurrenceId]) { "unknown occurrence $occurrenceId" }
+        if (current.visibilityStatus == VisibilityStatus.HIDDEN) return
+        occurrenceRows[occurrenceId] = current.copy(visibilityStatus = VisibilityStatus.HIDDEN)
+        occurrenceUpdatedAt[occurrenceId] = clock.instant()
+        writeCount++
+    }
+
     // --- helpers -------------------------------------------------------------
+
+    /**
+     * The most recently created interpretation of [captureId]: greatest createdAt, with later
+     * insertion breaking ties (the database breaks them by its time-ordered id).
+     */
+    private fun latestInterpretationOf(captureId: String): InterpretationRecord? =
+        interpretationRows
+            .withIndex()
+            .filter { interpretationOwners[it.value.first] == captureId }
+            .maxWithOrNull(compareBy<IndexedValue<Pair<String, InterpretationRecord>>> { it.value.second.createdAt }.thenBy { it.index })
+            ?.value?.second
 
     private fun nextId(kind: String): String {
         val n = (counters[kind] ?: 0) + 1

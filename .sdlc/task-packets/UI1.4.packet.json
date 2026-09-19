@@ -1,0 +1,69 @@
+{
+  "task_id": "UI1.4",
+  "plan_revision": "e8c0b81",
+  "objective": "Build the History screen: every logged or pending capture, newest first, with filter chips, empty states, and resolving Needs-review / Not-categorized captures from their rows.\n\nBACKGROUND (read the code; reuse, do not duplicate):\n- `ActivityRepository.loadHistory(): List<HistoryEntry>` (core-domain RepositoryTypes.kt) returns captures that have an ACTIVE occurrence or no occurrence, newest first; `HistoryEntry.occurrence` is null for uncategorized captures, `processingState` tells NEEDS_REVIEW apart, `pendingMatchedActivityId` is the latest interpretation's match.\n- The Log screen (UI1.3) in app-phone `ui.log` already has: `LogViewModel` (with a private `suggestionsFor(captureId, rawText)` -- pending matched activity if still in the catalog, then `CandidateSelector` order, de-duplicated, max 3), a guarded `runAction` pattern for writes (catches storage failures, ignores a second tap while one is in flight), the Recent row composable in `LogScreen.kt` with merged one-sentence semantics, result cards in `ResultCards.kt`, refusal-message mapping in `RefusalMessages.kt`, and `LogViewModelFactory` built from `ActivityLedgerApplication`. Shared UI: `ui.components.ActivityPicker` (bottom sheet; `(activities, onChoose: (ActivityTarget) -> Unit, onDismiss, startWithNewActivity)`), `StateTag`, `EvidenceText`, `ui.time.OccurrenceTimeFormatter`, `ui.theme`.\n- Test fixtures: `app-phone/src/test/.../ui/log/LogTestFixtures.kt` (RecordingRepository with failure injection) and core-testing's `InMemoryActivityRepository`, `FakeActivityInterpreter`, `MutableClock`.\n- Specs: docs/UX_VISUAL_SPEC.md 3 D1 (History tab), D7 (review without an inbox: filter chips All / Needs review / Not categorized; no badges, no counts, no 'clear all'), 4.2 (rows), 4.3 (time), 5 (accessibility), 6 (copy); docs/UX_SPEC.md 6 (history), 13 (empty states), 15 (exclusions).\n\nDO:\n1. Refactor for reuse (behaviour-preserving; all existing Log tests must still pass unchanged or with only import/package updates):\n   - Move the history row composable (and its row UI model + `HistoryEntry` -> row mapping) out of `LogScreen.kt`/`LogViewModel.kt` into `ui.components` (e.g. `HistoryRow.kt`) so Log's Recent and the History screen render identical rows.\n   - Move suggestion building out of LogViewModel into a small shared, pure-Kotlin helper in a new package `ui.review` (e.g. `ReviewSuggestions.suggest(repository, captureId, rawText)`), same rules; LogViewModel calls it. Move the ServiceRefusal -> message mapping to `ui.review` too if History needs it (it does).\n2. `ui.history.HistoryViewModel` (constructor-injected like LogViewModel; hand-written factory from ActivityLedgerApplication): state = selected filter (ALL default / NEEDS_REVIEW / NOT_CATEGORIZED), rows, loaded flag, the capture currently being resolved (with its suggestions) or null, picker state, actionInFlight, message. Loads on start and after every write. Filters: NEEDS_REVIEW = no occurrence and processingState NEEDS_REVIEW; NOT_CATEGORIZED = no occurrence and any other state; ALL = everything loadHistory returns. Same guarded-write pattern as LogViewModel (storage failures -> plain-words message, second tap ignored). No undo window here (D5: Remove from history lives in the occurrence sheet, which is out of scope).\n3. Resolving from History: tapping a Needs-review or Not-categorized row opens a resolution bottom sheet showing the words (EvidenceText), 'Your words are saved. Nothing was guessed.' (Needs review only), 'Which activity was this?' with up to 3 suggestion buttons, 'Choose another activity' (opens ActivityPicker), 'Create new activity' (ActivityPicker in new-activity mode), and 'Decide later' (closes). Choosing calls `ReviewResolutionService.resolve`; Resolved -> sheet closes, list reloads (the row becomes an interpreted row); Refused -> message in the sheet. Tapping an interpreted row does nothing yet (the occurrence sheet is a later slice) -- do not make it look clickable.\n4. `ui.history.HistoryScreen` replacing the placeholder: title 'History', M3 FilterChips 'All' / 'Needs review' / 'Not categorized' (single-select, no counts), a LazyColumn of shared rows, newest first. Empty states: nothing logged at all -> 'No activities logged yet. Type what you just did.' (same string as Log's empty Recent -- reuse it); a filter with no matches -> 'Nothing needs review.' / 'Nothing is waiting to be categorized.' (new copy, calm, no 'all caught up' / goal language per UX_SPEC 15). History is reached from the NavigationBar and from Log's 'All history' (already wired).\n5. Accessibility: chips have selected state semantics; tappable rows are announced as buttons with an action label ('Choose an activity'); rows keep the merged one-sentence description; 48dp targets.\n6. Strings in strings.xml only.\n7. Tests: HistoryViewModelTest (in-memory repository + real services + MutableClock + test dispatcher): ordering preserved from loadHistory; each filter's contents (mix of interpreted, NEEDS_REVIEW, FAILED_RETRYABLE, CAPTURED); hidden occurrences absent; opening a row computes suggestions (pending first, de-dup, max 3); resolve to existing and to new -> row becomes interpreted and leaves the Needs-review filter; refused resolve (e.g. new name matching an existing activity) shows a message and keeps the sheet; storage failure on resolve and on load shows a message without crashing; second resolve while in flight ignored; decide later closes without writing. A Robolectric HistoryScreen test: empty state text; chips switch the list; tapping a Needs-review row opens the sheet with 'Decide later'. Existing Log and navigation tests must still pass. Update `MainActivityNavigationTest` only if the History title text it asserts changed.\n\nPRIVACY (AGENTS.md #11): no logging; no raw text in exception messages; no new permission.\n\nDEVICE SAFETY: no device needed. Never run adb, installDebug or any connected* task. Set ANDROID_SERIAL=none-for-this-task in the environment of every Gradle command.",
+  "non_goals": [
+    "No occurrence sheet, Remove from history, Edit interpretation, Activity detail, Ask or Settings.",
+    "No search in History, no counts or badges, no 'clear all'.",
+    "No change to Log behaviour beyond the behaviour-preserving extraction in step 1.",
+    "No change to core-* modules, CapturePipeline, app-wear, build files or the version catalog.",
+    "No change to BACKLOG.md, PROGRESS.md, docs/, .sdlc, CLAUDE.md, AGENTS.md. Do not commit."
+  ],
+  "dependencies": ["UI1.1", "UI1.3"],
+  "read_paths": [
+    "app-phone",
+    "core-domain/src/main",
+    "core-testing/src/main",
+    "docs/UX_VISUAL_SPEC.md",
+    "docs/UX_SPEC.md",
+    "docs/design/visual-spec",
+    "docs/DECISIONS.md",
+    "docs/proposals/typed-capture/DESIGN_SPEC.md",
+    "AGENTS.md",
+    "gradle",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/review",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/log",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/components",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/navigation/LedgerNavigation.kt",
+    "app-phone/src/main/res/values/strings.xml",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/MainActivityNavigationTest.kt"
+  ],
+  "forbidden_paths": [
+    "app-phone/src/androidTest",
+    "app-phone/src/main/res/font",
+    "app-phone/licenses",
+    "app-phone/build.gradle.kts",
+    "gradle/libs.versions.toml",
+    "app-wear",
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    ".sdlc",
+    "agents",
+    ".claude",
+    "scripts",
+    "docs/sdlc"
+  ],
+  "acceptance_criteria": [
+    "History row rendering, the HistoryEntry->row mapping, suggestion building and refusal messages are shared between Log and History (no duplicated logic); Log behaviour unchanged and its tests pass.",
+    "HistoryScreen shows loadHistory() rows newest first with single-select filter chips All / Needs review / Not categorized (filters as specified), no counts or badges, and the specified empty states.",
+    "Tapping a Needs-review or Not-categorized row opens a resolution sheet (words, suggestions max 3, Choose another activity, Create new activity, Decide later) that resolves only via ReviewResolutionService; interpreted rows are not clickable.",
+    "Writes are guarded: storage failures show plain-words messages without crashing, and a second action while one is in flight is ignored.",
+    "Accessibility per UX_VISUAL_SPEC 5 (chip selected state, row button semantics with action label, merged one-sentence rows, 48dp targets); all copy in strings.xml.",
+    "HistoryViewModelTest and the Robolectric HistoryScreen test cover the behaviours in step 7 and pass; `:app-phone:assembleDebug :app-phone:testDebugUnitTest` green.",
+    "No logging; no new permission; only write_paths changed; no device contact."
+  ],
+  "verification_commands": [
+    "ANDROID_SERIAL=none-for-this-task ./gradlew :app-phone:assembleDebug :app-phone:testDebugUnitTest",
+    "git status --porcelain",
+    "git diff --stat"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

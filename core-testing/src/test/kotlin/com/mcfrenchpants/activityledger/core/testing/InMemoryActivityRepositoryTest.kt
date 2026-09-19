@@ -14,7 +14,10 @@ import com.mcfrenchpants.activityledger.core.domain.model.VisibilityStatus
 import com.mcfrenchpants.activityledger.core.domain.repository.ActivityTarget
 import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionChanges
 import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionOutcome
+import com.mcfrenchpants.activityledger.core.domain.repository.HistoryEntry
+import com.mcfrenchpants.activityledger.core.domain.repository.HistoryOccurrence
 import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import kotlin.test.Test
@@ -32,11 +35,18 @@ class InMemoryActivityRepositoryTest {
     private val clock = MutableClock(now, ZoneId.of("UTC"))
     private val repo = InMemoryActivityRepository(clock)
 
-    private fun capture(text: String = "synthetic words", state: ProcessingState = ProcessingState.CAPTURED) =
-        NewRawCapture(CaptureSource.PHONE_TEXT, null, captured, ZoneId.of("America/Detroit"), text, null, null, state)
+    private fun capture(
+        text: String = "synthetic words",
+        state: ProcessingState = ProcessingState.CAPTURED,
+        at: Instant = captured,
+    ) = NewRawCapture(CaptureSource.PHONE_TEXT, null, at, ZoneId.of("America/Detroit"), text, null, null, state)
 
-    private fun record(matched: String? = null, status: ValidationStatus = ValidationStatus.VALID) = InterpretationRecord(
-        createdAt = now,
+    private fun record(
+        matched: String? = null,
+        status: ValidationStatus = ValidationStatus.VALID,
+        createdAt: Instant = now,
+    ) = InterpretationRecord(
+        createdAt = createdAt,
         interpreterVersion = "test",
         promptVersion = "test",
         schemaVersion = 1,
@@ -286,5 +296,124 @@ class InMemoryActivityRepositoryTest {
         assertFailsWith<IllegalArgumentException> { repo.seedActivity("Again", id = "act-mow-lawn") }
         assertFailsWith<IllegalArgumentException> { repo.seedActivity("Blank", id = " ") }
         assertEquals(2, repo.activities.size)
+    }
+
+    // --- loadHistory / hideOccurrence ------------------------------------------
+
+    private suspend fun occurrence(activity: String, capturedAt: Instant, occurredAt: Instant): Pair<String, String> {
+        val captureId = repo.createRawCapture(capture(at = capturedAt))
+        return captureId to repo.acceptInterpretation(
+            captureId, record(activity), ActivityTarget.Existing(activity), occurredAt, TimePrecision.EXACT, ActivityState.COMPLETED,
+        )
+    }
+
+    @Test
+    fun `history is newest first with capture-id tie-break and omits HIDDEN occurrences`() = runSuspend {
+        val walk = repo.seedActivity("Walk dog")
+        val (c1, o1) = occurrence(walk, captured.plusSeconds(100), captured.plusSeconds(50))
+        val c2 = repo.createRawCapture(capture(state = ProcessingState.CAPTURED, at = captured.plusSeconds(50))) // ties c1
+        val c3 = repo.createRawCapture(capture(at = captured.plusSeconds(80)))
+        repo.recordOutcome(c3, null, ProcessingState.NEEDS_REVIEW)
+        val c4 = repo.createRawCapture(capture(at = captured.plusSeconds(60)))
+        repo.recordOutcome(c4, null, ProcessingState.FAILED_RETRYABLE)
+        val c5 = repo.createRawCapture(capture(at = captured.plusSeconds(200)))
+        repo.recordOutcome(c5, null, ProcessingState.FAILED_FINAL)
+        val (c6, o6) = occurrence(walk, captured, captured.plusSeconds(300))
+        repo.setVisibility(o6, VisibilityStatus.HIDDEN)
+
+        val history = repo.loadHistory()
+
+        assertEquals(listOf(c5, c3, c4, c2, c1), history.map { it.captureId })
+        assertTrue(history.none { it.captureId == c6 })
+        assertEquals(
+            listOf(
+                ProcessingState.FAILED_FINAL, ProcessingState.NEEDS_REVIEW, ProcessingState.FAILED_RETRYABLE,
+                ProcessingState.CAPTURED, ProcessingState.PERSISTED,
+            ),
+            history.map { it.processingState },
+        )
+        assertEquals(
+            HistoryEntry(
+                captureId = c1,
+                rawText = "synthetic words",
+                source = CaptureSource.PHONE_TEXT,
+                capturedAt = captured.plusSeconds(100),
+                zoneId = ZoneId.of("America/Detroit"),
+                processingState = ProcessingState.PERSISTED,
+                occurrence = HistoryOccurrence(o1, walk, "Walk dog", captured.plusSeconds(50), TimePrecision.EXACT, ActivityState.COMPLETED),
+                pendingMatchedActivityId = null,
+            ),
+            history.last(),
+        )
+        assertNull(history.first().occurrence)
+    }
+
+    @Test
+    fun `pending matched activity id comes from the latest interpretation`() = runSuspend {
+        val walk = repo.seedActivity("Walk dog")
+        val mow = repo.seedActivity("Mow lawn")
+        val twoInterpretations = repo.createRawCapture(capture(at = captured.plusSeconds(3)))
+        repo.recordOutcome(twoInterpretations, record(mow, createdAt = now.plusSeconds(2)), ProcessingState.NEEDS_REVIEW)
+        repo.recordOutcome(twoInterpretations, record(walk, createdAt = now.plusSeconds(1)), ProcessingState.NEEDS_REVIEW)
+        val sameTime = repo.createRawCapture(capture(at = captured.plusSeconds(2)))
+        repo.recordOutcome(sameTime, record(mow), ProcessingState.NEEDS_REVIEW)
+        repo.recordOutcome(sameTime, record(walk), ProcessingState.NEEDS_REVIEW)
+        val none = repo.createRawCapture(capture(at = captured.plusSeconds(1)))
+        val (accepted, _) = occurrence(mow, captured, captured)
+
+        val byCapture = repo.loadHistory().associate { it.captureId to it.pendingMatchedActivityId }
+
+        assertEquals(mapOf(twoInterpretations to mow, sameTime to walk, none to null, accepted to null), byCapture)
+    }
+
+    @Test
+    fun `history shows the corrected activity`() = runSuspend {
+        val walk = repo.seedActivity("Walk dog")
+        val mow = repo.seedActivity("Mow lawn")
+        val (_, occurrenceId) = occurrence(walk, captured, captured)
+        repo.applyCorrection(occurrenceId, CorrectionChanges(ActivityTarget.Existing(mow)), CorrectionSource.USER, null, now)
+        val shown = assertNotNull(repo.loadHistory().single().occurrence)
+        assertEquals(mow, shown.activityId)
+        assertEquals("Mow lawn", shown.activityDisplayName)
+    }
+
+    @Test
+    fun `hideOccurrence hides once, is idempotent, and records no correction`() = runSuspend {
+        val walk = repo.seedActivity("Walk dog")
+        val (captureId, occurrenceId) = occurrence(walk, captured, captured)
+        val interpretationsBefore = repo.interpretationsFor(captureId)
+        val captureBefore = repo.getCapture(captureId)
+        val activitiesBefore = repo.activities
+        val w = repo.writeCount
+        clock.advance(Duration.ofSeconds(5))
+
+        repo.hideOccurrence(occurrenceId)
+
+        assertEquals(VisibilityStatus.HIDDEN, repo.getOccurrence(occurrenceId)?.visibilityStatus)
+        assertEquals(clock.instant(), repo.occurrenceUpdatedAt(occurrenceId))
+        assertEquals(emptyList(), repo.loadHistory())
+        assertEquals(w + 1, repo.writeCount)
+        val hiddenAt = clock.instant()
+        clock.advance(Duration.ofSeconds(5))
+
+        repo.hideOccurrence(occurrenceId)
+
+        assertEquals(w + 1, repo.writeCount)
+        assertEquals(hiddenAt, repo.occurrenceUpdatedAt(occurrenceId))
+        assertTrue(repo.corrections.isEmpty())
+        assertEquals(interpretationsBefore, repo.interpretationsFor(captureId))
+        assertEquals(captureBefore, repo.getCapture(captureId))
+        assertEquals(activitiesBefore, repo.activities)
+    }
+
+    @Test
+    fun `hideOccurrence of an unknown id throws and writes nothing`() {
+        val walk = repo.seedActivity("Walk dog")
+        val (_, occurrenceId) = runSuspend { occurrence(walk, captured, captured) }
+        val before = repo.occurrences
+        val w = repo.writeCount
+        assertNoWrite(w) { repo.hideOccurrence("nope") }
+        assertEquals(before, repo.occurrences)
+        assertEquals(VisibilityStatus.ACTIVE, runSuspend { repo.getOccurrence(occurrenceId) }?.visibilityStatus)
     }
 }

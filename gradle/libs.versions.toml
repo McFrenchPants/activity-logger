@@ -24,6 +24,11 @@ room = "2.8.5"
 composeBom = "2026.09.00"
 wearComposeMaterial3 = "1.6.2"
 activityCompose = "1.13.0"
+# Type-safe Compose Navigation for the phone app. 2.10.1 needs kotlin-stdlib 2.1.20 and
+# kotlinx-serialization-core 1.7.3 (checked on Google Maven 2026-09-19): fine under the Kotlin 2.3.x pin.
+navigationCompose = "2.10.1"
+# lifecycle-viewmodel-compose and lifecycle-runtime-compose ship as one release train; one ref for both.
+lifecycle = "2.11.0"
 mlkitGenaiPrompt = "1.0.0-beta4"
 mlkitGenaiSchemaCompiler = "1.0.0-alpha1"
 # Already resolved transitively via room-ktx; declared explicitly for core-data. Do not upgrade independently of Room.
@@ -48,6 +53,12 @@ androidxTestExtJunit = "1.3.0"
 # On-device (instrumented) test runner for app-phone's vertical-slice test. Kept in step with
 # androidxTestCore above: androidx.test:core and androidx.test:runner ship as one release train.
 androidxTestRunner = "1.7.0"
+# kotlinx-coroutines-test for app-phone's JVM ViewModel tests (Dispatchers.setMain, virtual time).
+# 1.9.0 is exactly what app-phone's debugUnitTestRuntimeClasspath already resolves (the Compose
+# ui-test artifacts bring it in transitively); declaring it at that version puts it on the test
+# compile classpath without changing any resolved version. Kept apart from kotlinxCoroutines above
+# (1.8.1, which the same classpath upgrades to 1.9.0) so no existing module's version moves.
+kotlinxCoroutinesTest = "1.9.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
@@ -56,6 +67,14 @@ androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = 
 # Versioned by androidx-compose-bom (no version.ref): declare with platform(libs.androidx.compose.bom).
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
+# Host-side Compose UI tests (Robolectric). Versioned by the BOM.
+androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+# Declares the test activity ui-test-junit4 needs; debug builds only. Versioned by the BOM.
+androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
@@ -64,6 +83,7 @@ androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "
 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-core-genai = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesGenai" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 
 junit4 = { module = "junit:junit", version.ref = "junit4" }

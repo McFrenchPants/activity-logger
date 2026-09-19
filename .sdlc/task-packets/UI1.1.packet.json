@@ -1,0 +1,72 @@
+{
+  "task_id": "UI1.1",
+  "plan_revision": "e268a4a",
+  "objective": "Add the two ledger operations the first phone screens need: a history read and an occurrence hide (for Undo).\n\nBACKGROUND: `ActivityRepository` (core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/ActivityRepository.kt, types in RepositoryTypes.kt) is the domain's persistence contract. It is implemented by `RoomActivityRepository` (core-data) and by `InMemoryActivityRepository` (core-testing, used by JVM tests). core-domain is pure Kotlin with NO coroutines dependency and must stay that way: new functions are `suspend`, not Flow. Room writes all go through `LedgerWriteDao` / `ActivityLedgerWriter` (the read DAOs are read-only; `DaoWriteSurfaceGuardTest` enforces this). Read the KDoc error contract at the top of ActivityRepository and follow it.\n\nDO:\n1. core-domain: add to `ActivityRepository`, with KDoc in the file's style:\n   a. `suspend fun loadHistory(): List<HistoryEntry>` -- one entry per raw capture that EITHER has an occurrence whose visibility is ACTIVE, OR has no occurrence at all. A capture whose occurrence is HIDDEN is omitted. Ordered newest first by the occurrence's occurred_at (captures with an occurrence) or the capture's captured_at (captures without one), ties broken by capture id descending. Must use a bounded number of queries regardless of row count (no query per row).\n   b. `suspend fun hideOccurrence(occurrenceId: String)` -- sets that occurrence's visibility ACTIVE -> HIDDEN and its updated_at from the repository's own clock. Already HIDDEN: no-op, writes nothing. Unknown id: IllegalArgumentException, nothing written. Never touches raw captures, interpretations, corrections or activities. Hiding is NOT a correction (DATA_MODEL: corrections have no visibility columns): no correction row.\n2. core-domain RepositoryTypes.kt: add `HistoryEntry` (data class): captureId, rawText, source (CaptureSource), capturedAt (Instant), zoneId (ZoneId), processingState (ProcessingState), occurrence (`HistoryOccurrence?`), pendingMatchedActivityId (String? -- only for a capture with no occurrence: the matched_activity_id of its most recently created interpretation, or null). `HistoryOccurrence`: occurrenceId, activityId, activityDisplayName, occurredAt, timePrecision, activityState. The activity shown is the occurrence's CURRENT canonical activity (so an occurrence moved by a correction shows the corrected activity's name).\n3. core-data: implement both in RoomActivityRepository. Reads via new @Query methods on the existing read DAOs (or a dedicated read-only query DAO/POJO if cleaner). The hide write goes in LedgerWriteDao as a @Transaction operation surfaced through ActivityLedgerWriter like the existing writes, not as a free @Update on a read DAO. Keep DaoWriteSurfaceGuardTest passing -- if that guard enumerates allowed write methods, extend its allow-list for the new method and explain in your report.\n4. NO schema change: no new entity, column or index, the exported schema JSON under core-data/schemas must be unchanged, SchemaVersionConsistencyTest green. If you conclude a query really needs an index, STOP and report status scope_change_requested instead.\n5. core-testing: implement both in InMemoryActivityRepository with identical behaviour (ordering, omission, pendingMatchedActivityId, hide semantics and errors).\n6. Tests:\n   - core-data RoomActivityRepositoryTest (or a new test file beside it): ordering across mixed occurrence/no-occurrence captures; tie-break; HIDDEN omitted; no-occurrence captures in NEEDS_REVIEW, FAILED_RETRYABLE, FAILED_FINAL and CAPTURED appear with their state; pendingMatchedActivityId = latest interpretation's matched id (two interpretations, latest wins; null when none); corrected occurrence shows the new activity name; hide ACTIVE->HIDDEN then omitted from history; hide twice is a no-op (updated_at unchanged the second time); unknown id throws and writes nothing; hide leaves raw_captures, interpretations and corrections row counts/content unchanged.\n   - core-testing InMemoryActivityRepositoryTest: the same behaviours (mirrored, can be fewer cases but must cover ordering, omission, pending id, hide idempotence, unknown id).\n7. Any other class implementing ActivityRepository (grep; none expected beyond the two) must compile.\n\nPRIVACY (AGENTS.md #11): no logging; exception messages carry ids and enum names only, never raw text or activity names.\n\nDEVICE SAFETY: this task needs no device. Never run adb or any connected* Gradle task. Set ANDROID_SERIAL=none-for-this-task in the environment of every Gradle command you run.",
+  "non_goals": [
+    "No UI and no app-phone change.",
+    "No schema change, migration, new entity, column or index.",
+    "No Flow / coroutines dependency in core-domain.",
+    "No change to existing repository functions' behaviour.",
+    "No change to BACKLOG.md, PROGRESS.md, docs/, .sdlc, CLAUDE.md, AGENTS.md. Do not commit."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "core-domain",
+    "core-data",
+    "core-testing",
+    "docs/DATA_MODEL.md",
+    "docs/ARCHITECTURE.md",
+    "docs/DECISIONS.md",
+    "AGENTS.md",
+    "gradle",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/ActivityRepository.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/RepositoryTypes.kt",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data",
+    "core-data/src/test/kotlin/com/mcfrenchpants/activityledger/core/data",
+    "core-testing/src/main/kotlin/com/mcfrenchpants/activityledger/core/testing/InMemoryActivityRepository.kt",
+    "core-testing/src/test/kotlin/com/mcfrenchpants/activityledger/core/testing/InMemoryActivityRepositoryTest.kt"
+  ],
+  "forbidden_paths": [
+    "core-data/schemas",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/entity",
+    "core-testing/src/main/resources",
+    "core-testing/src/test/resources",
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".sdlc",
+    "agents",
+    ".claude",
+    "scripts",
+    "docs",
+    "core-ai",
+    "app-phone",
+    "app-wear",
+    "gradle",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "acceptance_criteria": [
+    "ActivityRepository has loadHistory() and hideOccurrence(occurrenceId) as suspend functions with KDoc; HistoryEntry and HistoryOccurrence types exist in RepositoryTypes.kt; core-domain gains no dependency.",
+    "RoomActivityRepository and InMemoryActivityRepository implement both with the same behaviour: ACTIVE-occurrence and no-occurrence captures only, HIDDEN omitted, newest first with capture-id tie-break, pendingMatchedActivityId from the latest interpretation, current (corrected) activity name.",
+    "loadHistory uses a bounded number of queries independent of row count.",
+    "hideOccurrence: ACTIVE->HIDDEN with updated_at; already HIDDEN is a no-op; unknown id throws IllegalArgumentException and writes nothing; no raw capture, interpretation, correction or activity row touched; no correction row created.",
+    "The hide write lives in LedgerWriteDao/ActivityLedgerWriter as a transaction; read DAOs stay read-only and DaoWriteSurfaceGuardTest passes.",
+    "No schema change: core-data/schemas unchanged, SchemaVersionConsistencyTest and migration tests green.",
+    "New tests cover every behaviour listed in the objective's step 6, and all module tests pass.",
+    "No logging; exception messages contain ids/enum names only.",
+    "Only write_paths changed; no device contact."
+  ],
+  "verification_commands": [
+    "ANDROID_SERIAL=none-for-this-task ./gradlew :core-domain:test :core-testing:test :core-data:testDebugUnitTest",
+    "git status --porcelain",
+    "git diff --stat"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

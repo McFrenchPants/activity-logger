@@ -81,4 +81,14 @@ internal class ActivityLedgerWriter(
         processingState: ProcessingState,
         now: Long,
     ): String? = database.ledgerWriteDao().recordOutcome(idFactory, rawCaptureId, interpretation, processingState, now)
+
+    /**
+     * In one transaction: sets the occurrence's visibility ACTIVE -> HIDDEN with
+     * updated_at = [now]. Returns true if it was hidden by this call, false if it was
+     * already HIDDEN (nothing written). Never writes a corrections row.
+     *
+     * @throws IllegalArgumentException for an unknown occurrence; nothing is written.
+     */
+    fun hideOccurrence(occurrenceId: String, now: Long): Boolean =
+        database.ledgerWriteDao().hideOccurrence(occurrenceId, now)
 }

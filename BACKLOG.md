@@ -142,7 +142,11 @@ Status vocabulary:
    REQUIREMENTS TST-001..004 and AGENTS.md §6. Build guide: "do not move on
    until core synonym and near-neighbor cases are measurable."
 
-10. **Typed capture and history screens on the phone** — `idea`
+10. **Typed capture and history screens on the phone** — `done` (UI1, on
+    `feature/typed-capture`, awaiting merge; device pass 2026-09-19)
+    Work item UI1, see `docs/proposals/typed-capture/` (branch
+    `feature/typed-capture`). Owner chose it 2026-09-18; scope and the Saved
+    card's *Change activity* button (core of item 11) signed off 2026-09-19.
     Added 2026-09-17. The earliest usable slice of build-guide Step 7: a
     Log screen with a text field, the History list, and the Needs-review
     list, per `docs/UX_VISUAL_SPEC.md`. First point at which the app can be
@@ -164,6 +168,11 @@ Status vocabulary:
     Needs-review list; how it interacts with raw captures being immutable
     (a correction is a new interpretation, not an edit); dependency on item
     10 (no phone capture screen exists yet).
+    **2026-09-19:** the core of this shipped in item 10 -- the Saved card
+    now has *Change activity* next to Undo for its 8 s window (a user
+    correction, never an edit of the raw capture). Still open here: whether
+    to wait ~3 s before saving (countdown) instead of saving immediately, and
+    the watch flow.
 
 12. **Corpus expectations: which near matches are acceptable** — `done` (SR1.8)
     Added 2026-09-18. The owner judged some "unsafe" device answers as

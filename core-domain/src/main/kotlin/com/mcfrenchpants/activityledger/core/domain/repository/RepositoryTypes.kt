@@ -112,3 +112,40 @@ sealed interface CorrectionOutcome {
      */
     data object NothingChanged : CorrectionOutcome
 }
+
+/**
+ * One row of the capture history ([ActivityRepository.loadHistory]): a raw capture plus,
+ * if it produced one, its visible occurrence.
+ *
+ * @property zoneId The IANA zone recorded at capture time.
+ * @property occurrence The capture's occurrence (always ACTIVE visibility), or null if the
+ *   capture has not produced one.
+ * @property pendingMatchedActivityId Only for a capture without an occurrence: the matched
+ *   activity id of its most recently created interpretation, or null (no interpretation, or
+ *   the latest one matched none). Always null when [occurrence] is non-null.
+ */
+data class HistoryEntry(
+    val captureId: String,
+    val rawText: String,
+    val source: CaptureSource,
+    val capturedAt: Instant,
+    val zoneId: ZoneId,
+    val processingState: ProcessingState,
+    val occurrence: HistoryOccurrence?,
+    val pendingMatchedActivityId: String?,
+)
+
+/**
+ * The occurrence part of a [HistoryEntry].
+ *
+ * @property activityId The occurrence's CURRENT canonical activity (after any correction).
+ * @property activityDisplayName That activity's display name.
+ */
+data class HistoryOccurrence(
+    val occurrenceId: String,
+    val activityId: String,
+    val activityDisplayName: String,
+    val occurredAt: Instant,
+    val timePrecision: TimePrecision,
+    val activityState: ActivityState,
+)

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-19T03:54:29.838Z",
+  "updated_at": "2026-09-19T05:29:12.174Z",
   "work_items": [
     {
       "id": "SS1",
@@ -577,6 +577,99 @@
           "task_packet_path": ".sdlc/task-packets/SR1.8.packet.json",
           "report_path": null,
           "notes": "Done, verifier pass. allowedActivityIds field + scorer + integrity rules; three cases changed per owner review 2026-09-18. Device re-scored CORRECT 35 / SAFE_MISS 6 / UNSAFE_MISS 7; baseline.json 35 ids. corpus matches NO until next device run (expectations-only change)."
+        }
+      ]
+    },
+    {
+      "id": "UI1",
+      "title": "Typed capture and history screens (backlog item 10)",
+      "lifecycle_state": "verifying",
+      "tasks": [
+        {
+          "id": "UI1.1",
+          "title": "Ledger reads and hide for the screens",
+          "status": "done",
+          "lifecycle_state": "verifying",
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/UI1.1.packet.json",
+          "report_path": null,
+          "notes": "Verifier pass. loadHistory is one SQL statement on RawCaptureDao; hideOccurrence is a LedgerWriteDao transaction."
+        },
+        {
+          "id": "UI1.2",
+          "title": "App shell, theme, time display",
+          "status": "done",
+          "lifecycle_state": "verifying",
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/UI1.2.packet.json",
+          "report_path": null,
+          "notes": "Spot-check. Robolectric at SDK 35 (same as core-data). Theme, StateTag, EvidenceText, OccurrenceTimeFormatter, NavHost with Log/History."
+        },
+        {
+          "id": "UI1.3",
+          "title": "Log screen: typed capture, result cards, picker",
+          "status": "done",
+          "lifecycle_state": "verifying",
+          "dependencies": [
+            "UI1.1",
+            "UI1.2"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/UI1.3.packet.json",
+          "report_path": null,
+          "notes": "Verifier pass; follow-up fixed its non-blocking findings (storage errors, double taps, fallback test). Copy deviation: Not-categorized follow-up sentence omitted."
+        },
+        {
+          "id": "UI1.4",
+          "title": "History screen",
+          "status": "done",
+          "lifecycle_state": "verifying",
+          "dependencies": [
+            "UI1.1",
+            "UI1.3"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/UI1.4.packet.json",
+          "report_path": null,
+          "notes": "Spot-check. Shared HistoryRow, ui.review (suggestions, refusal messages). 90 host tests."
+        },
+        {
+          "id": "UI1.5",
+          "title": "Device pass and documentation",
+          "status": "done",
+          "lifecycle_state": "verifying",
+          "dependencies": [
+            "UI1.1",
+            "UI1.2",
+            "UI1.3",
+            "UI1.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": "Orchestrator device pass on Pixel 10 Pro with owner OK (light/dark, 200% text; settings restored). Fixed: keyboard now closes on submit. Docs: PROJECT_STATUS, UX_VISUAL_SPEC D1/D5/open items, BACKLOG 10/11, ADR-034."
         }
       ]
     }
