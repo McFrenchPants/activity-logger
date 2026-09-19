@@ -16,6 +16,8 @@ status; this file only tracks discrete task rows.
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
 | PV1 | Platform/API validation and version pinning (backlog item 1) | done | ADR-021..024. Desk research + read-only `adb` checks on the Pixel 10 Pro. Library-level Gemini Nano availability confirmed; a real inference call remains unproven until Step 4. Watch speech unverified (hardware not yet in hand) — backlog item 7. |
+| FX1.1 | AICore BUSY treated as "try again" + short wait-and-retry in the phone pipeline (backlog item 14b) | todo | Branch `feature/small-fixes`. Verifier (AI path). Amends ADR-030. |
+| FX1.2 | Weekday + part-of-day dates ("Saturday morning") in `TemporalResolver` (backlog item 14c) | todo | Branch `feature/small-fixes`. Spot-check. Clears the corpus's one known resolver gap; extends ADR-028. |
 
 ## Session log
 

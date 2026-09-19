@@ -191,7 +191,8 @@ Status vocabulary:
     short Pixel 10 Pro sessions to re-record. Overlaps item 11, which attacks
     the same problem from the UI side.
 
-14. **Two small fixes the corpus turned up** — `idea`
+14. **Two small fixes the corpus turned up** — `in progress` (FX1, branch
+    `feature/small-fixes`; tracked in root `PROGRESS.md`)
     Added 2026-09-18 from SR1 follow-ups (b) and (c). (b) The production
     interpreter treats AICore's "busy" refusal (GenAiException BUSY,
     statusCode 9) as a permanent failure (OTHER) instead of retryable, so a
