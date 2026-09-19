@@ -3,14 +3,10 @@ package com.mcfrenchpants.activityledger.ui.log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mcfrenchpants.activityledger.R
-import com.mcfrenchpants.activityledger.core.domain.candidates.CandidateSelector
-import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
 import com.mcfrenchpants.activityledger.core.domain.model.CaptureSource
 import com.mcfrenchpants.activityledger.core.domain.model.ProcessingState
-import com.mcfrenchpants.activityledger.core.domain.model.TimePrecision
 import com.mcfrenchpants.activityledger.core.domain.repository.ActivityRepository
 import com.mcfrenchpants.activityledger.core.domain.repository.ActivityTarget
-import com.mcfrenchpants.activityledger.core.domain.repository.HistoryEntry
 import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
 import com.mcfrenchpants.activityledger.core.domain.services.CaptureInterpretationOrchestrator
 import com.mcfrenchpants.activityledger.core.domain.services.CaptureProcessingOutcome
@@ -20,7 +16,12 @@ import com.mcfrenchpants.activityledger.core.domain.services.CorrectionService
 import com.mcfrenchpants.activityledger.core.domain.services.ResolutionResult
 import com.mcfrenchpants.activityledger.core.domain.services.ReviewResolutionService
 import com.mcfrenchpants.activityledger.core.domain.services.ServiceRefusal
-import com.mcfrenchpants.activityledger.ui.components.RowState
+import com.mcfrenchpants.activityledger.ui.components.toHistoryRow
+import com.mcfrenchpants.activityledger.ui.review.PickerState
+import com.mcfrenchpants.activityledger.ui.review.ReviewSuggestions
+import com.mcfrenchpants.activityledger.ui.review.UserMessage
+import com.mcfrenchpants.activityledger.ui.review.refusalMessage
+import com.mcfrenchpants.activityledger.ui.review.refusalMessageFor
 import com.mcfrenchpants.activityledger.ui.time.OccurrenceTimeFormatter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -43,9 +44,8 @@ const val DEFAULT_UNDO_TIMEOUT_MILLIS: Long = 8_000L
 /** How often the undo window's draining bar is advanced. */
 const val UNDO_TICK_MILLIS: Long = 100L
 
-/** Most rows shown under "Recent", and most suggestions on the Needs-review card. */
+/** Most rows shown under "Recent". */
 private const val RECENT_ROWS = 3
-private const val MAX_SUGGESTIONS = 3
 
 /**
  * State holder of the Log screen: typed capture through the real capture pipeline, the result
@@ -377,9 +377,8 @@ class LogViewModel(
     }
 
     private suspend fun showRefusal(refusal: ServiceRefusal) {
-        val existingName = (refusal as? ServiceRefusal.NameMatchesExistingActivity)
-            ?.let { repository.getActivity(it.activityId)?.displayName }
-        _state.update { it.copy(message = refusalMessage(refusal, existingName)) }
+        val message = refusalMessageFor(repository, refusal)
+        _state.update { it.copy(message = message) }
     }
 
     private suspend fun savedCard(occurrenceId: String): ResultCard.Saved? {
@@ -397,22 +396,9 @@ class LogViewModel(
         )
     }
 
-    /**
-     * Deterministic suggestions (no model call): the capture's pending matched activity if it is
-     * still in the ACTIVE catalog, then [CandidateSelector]'s candidates in order; de-duplicated,
-     * at most [MAX_SUGGESTIONS]. None when the catalog is empty.
-     */
-    private suspend fun suggestionsFor(captureId: String, rawText: String): List<Suggestion> {
-        val catalog = repository.loadCatalog()
-        if (catalog.isEmpty()) return emptyList()
-        val byId = catalog.associateBy { it.id }
-        val pending = repository.loadHistory().firstOrNull { it.captureId == captureId }?.pendingMatchedActivityId
-        val ids = buildList {
-            if (pending != null && pending in byId) add(pending)
-            CandidateSelector().select(catalog, rawText).candidates.forEach { add(it.id) }
-        }
-        return ids.distinct().take(MAX_SUGGESTIONS).map { Suggestion(it, byId.getValue(it).displayName) }
-    }
+    /** Suggestions per [ReviewSuggestions] (shared with History). */
+    private suspend fun suggestionsFor(captureId: String, rawText: String) =
+        ReviewSuggestions.suggest(repository, captureId, rawText)
 
     private suspend fun reloadRecent() {
         val history = try {
@@ -423,35 +409,7 @@ class LogViewModel(
             return
         }
         val now = clock.instant()
-        val rows = history.take(RECENT_ROWS).map { it.toRow(now) }
+        val rows = history.take(RECENT_ROWS).map { it.toHistoryRow(now, locale()) }
         _state.update { it.copy(recent = rows, recentLoaded = true) }
-    }
-
-    private fun HistoryEntry.toRow(now: java.time.Instant): RecentRow {
-        val occurrence = occurrence
-        return if (occurrence != null) {
-            RecentRow(
-                captureId = captureId,
-                activityName = occurrence.activityDisplayName,
-                time = OccurrenceTimeFormatter.format(
-                    occurrence.occurredAt, occurrence.timePrecision, zoneId, now, locale(),
-                ),
-                state = if (occurrence.activityState == ActivityState.IN_PROGRESS) RowState.IN_PROGRESS else null,
-                rawText = rawText,
-            )
-        } else {
-            RecentRow(
-                captureId = captureId,
-                activityName = null,
-                // The capture moment is the only time known for words not yet logged.
-                time = OccurrenceTimeFormatter.format(capturedAt, TimePrecision.EXACT, zoneId, now, locale()),
-                state = if (processingState == ProcessingState.NEEDS_REVIEW) {
-                    RowState.NEEDS_REVIEW
-                } else {
-                    RowState.NOT_CATEGORIZED
-                },
-                rawText = rawText,
-            )
-        }
     }
 }

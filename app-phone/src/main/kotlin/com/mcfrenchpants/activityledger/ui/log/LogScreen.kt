@@ -25,13 +25,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -45,9 +43,8 @@ import com.mcfrenchpants.activityledger.ActivityLedgerApplication
 import com.mcfrenchpants.activityledger.R
 import com.mcfrenchpants.activityledger.core.domain.repository.ActivityTarget
 import com.mcfrenchpants.activityledger.ui.components.ActivityPicker
-import com.mcfrenchpants.activityledger.ui.components.EvidenceText
-import com.mcfrenchpants.activityledger.ui.components.StateTag
-import com.mcfrenchpants.activityledger.ui.components.labelRes
+import com.mcfrenchpants.activityledger.ui.components.HistoryRow
+import com.mcfrenchpants.activityledger.ui.review.resolve
 import com.mcfrenchpants.activityledger.ui.theme.LedgerShapes
 
 /** Test tag of the Log screen's root. */
@@ -252,49 +249,9 @@ private fun RecentSection(state: LogUiState, onOpenHistory: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        state.recent.forEach { row -> RecentRowItem(row) }
+        state.recent.forEach { row -> HistoryRow(row) }
         TextButton(onClick = onOpenHistory, modifier = Modifier.heightIn(min = 48.dp)) {
             Text(stringResource(R.string.log_all_history))
         }
     }
 }
-
-/**
- * One Recent row per UX_VISUAL_SPEC 4.2, read by screen readers as one sentence (name or state,
- * time, "Your words: ..."). No source icon yet: every capture here is typed on the phone.
- */
-@Composable
-private fun RecentRowItem(row: RecentRow) {
-    val words = stringResource(R.string.log_row_your_words, row.rawText)
-    val stateLabel = row.state?.let { stringResource(it.labelRes()) }
-    val sentence = if (row.activityName != null) {
-        val time = if (stateLabel != null) "${row.time}, $stateLabel" else row.time
-        stringResource(R.string.log_row_interpreted_a11y, row.activityName, time, words)
-    } else {
-        stringResource(R.string.log_row_uninterpreted_a11y, stateLabel.orEmpty(), row.time, words)
-    }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 72.dp)
-            .clearAndSetSemantics { contentDescription = sentence }
-            .padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        if (row.activityName != null) {
-            Text(row.activityName, style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(row.time, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                row.state?.let { StateTag(it) }
-            }
-            EvidenceText(row.rawText)
-        } else {
-            row.state?.let { StateTag(it) }
-            EvidenceText(row.rawText)
-            Text(row.time, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
-private fun UserMessage.resolve(): String = stringResource(text, *args.toTypedArray())

@@ -20,6 +20,7 @@ import com.mcfrenchpants.activityledger.core.testing.InMemoryActivityRepository
 import com.mcfrenchpants.activityledger.core.testing.MutableClock
 import com.mcfrenchpants.activityledger.core.testing.runSuspend
 import com.mcfrenchpants.activityledger.ui.components.RowState
+import com.mcfrenchpants.activityledger.ui.review.UserMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher

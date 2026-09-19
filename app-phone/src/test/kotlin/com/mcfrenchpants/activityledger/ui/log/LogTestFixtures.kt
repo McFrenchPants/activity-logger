@@ -18,6 +18,7 @@ import com.mcfrenchpants.activityledger.core.domain.repository.ActivityTarget
 import com.mcfrenchpants.activityledger.core.domain.repository.CatalogActivity
 import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionChanges
 import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionOutcome
+import com.mcfrenchpants.activityledger.core.domain.repository.HistoryEntry
 import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
 import kotlinx.coroutines.CompletableDeferred
 import java.time.Instant
@@ -59,7 +60,7 @@ internal object Results {
 }
 
 /** Repository calls [RecordingRepository] can be told to fail, simulating a storage error. */
-internal enum class FailPoint { HIDE, CORRECT, ACCEPT, CATALOG }
+internal enum class FailPoint { HIDE, CORRECT, ACCEPT, CATALOG, HISTORY }
 
 /**
  * Records every raw capture as given, can run a hook right after one is stored, and throws a
@@ -112,6 +113,11 @@ internal class RecordingRepository(private val inner: ActivityRepository) : Acti
     override suspend fun loadCatalog(): List<CatalogActivity> {
         maybeFail(FailPoint.CATALOG)
         return inner.loadCatalog()
+    }
+
+    override suspend fun loadHistory(): List<HistoryEntry> {
+        maybeFail(FailPoint.HISTORY)
+        return inner.loadHistory()
     }
 }
 

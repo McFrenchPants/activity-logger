@@ -1,8 +1,9 @@
 package com.mcfrenchpants.activityledger.ui.log
 
-import androidx.annotation.StringRes
-import com.mcfrenchpants.activityledger.core.domain.repository.CatalogActivity
-import com.mcfrenchpants.activityledger.ui.components.RowState
+import com.mcfrenchpants.activityledger.ui.components.HistoryRowModel
+import com.mcfrenchpants.activityledger.ui.review.PickerState
+import com.mcfrenchpants.activityledger.ui.review.Suggestion
+import com.mcfrenchpants.activityledger.ui.review.UserMessage
 
 /**
  * Everything the Log screen shows, as one immutable value (see [LogViewModel.state]).
@@ -27,7 +28,7 @@ data class LogUiState(
     val isCapturing: Boolean = false,
     val card: ResultCard? = null,
     val picker: PickerState? = null,
-    val recent: List<RecentRow> = emptyList(),
+    val recent: List<HistoryRowModel> = emptyList(),
     val recentLoaded: Boolean = false,
     val showAiNotReady: Boolean = false,
     val message: UserMessage? = null,
@@ -71,36 +72,3 @@ sealed interface ResultCard {
         override val rawText: String,
     ) : ResultCard
 }
-
-/** An existing activity offered on the Needs-review card. */
-data class Suggestion(val activityId: String, val displayName: String)
-
-/**
- * The open activity picker.
- *
- * @property activities The ACTIVE catalog to choose from.
- * @property startWithNewActivity Open directly on the new-activity name field.
- */
-data class PickerState(
-    val activities: List<CatalogActivity>,
-    val startWithNewActivity: Boolean,
-)
-
-/**
- * One Recent row (UX_VISUAL_SPEC 4.2).
- *
- * @property activityName The current activity's name, or null for an uninterpreted capture.
- * @property time The occurrence time (or, for an uninterpreted capture, the capture time),
- *   already formatted.
- * @property state The row's state tag, or null when none applies.
- */
-data class RecentRow(
-    val captureId: String,
-    val activityName: String?,
-    val time: String,
-    val state: RowState?,
-    val rawText: String,
-)
-
-/** A user-visible message: a string resource and its format arguments. */
-data class UserMessage(@param:StringRes val text: Int, val args: List<Any> = emptyList())

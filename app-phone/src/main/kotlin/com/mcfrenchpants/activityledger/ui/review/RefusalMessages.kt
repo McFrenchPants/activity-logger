@@ -1,12 +1,15 @@
-package com.mcfrenchpants.activityledger.ui.log
+package com.mcfrenchpants.activityledger.ui.review
 
 import com.mcfrenchpants.activityledger.R
 import com.mcfrenchpants.activityledger.core.domain.naming.NewActivityNameCheck
+import com.mcfrenchpants.activityledger.core.domain.repository.ActivityRepository
 import com.mcfrenchpants.activityledger.core.domain.services.ServiceRefusal
 
 /**
  * The plain-words message for a refused correction or resolution. Every refusal tells the user
  * what happened and, where there is something to do, what to do instead.
+ *
+ * Shared by every screen that corrects or resolves (Log, History).
  *
  * @param existingActivityName For [ServiceRefusal.NameMatchesExistingActivity]: the display
  *   name of the activity the typed name matches, if it could be read.
@@ -38,3 +41,13 @@ internal fun refusalMessage(refusal: ServiceRefusal, existingActivityName: Strin
             NewActivityNameCheck.Reason.CONTAINS_FILLER_WORD -> UserMessage(R.string.refusal_name_filler_word)
         }
     }
+
+/**
+ * [refusalMessage] for [refusal], first reading the matching activity's display name from
+ * [repository] when the refusal is a name clash (so the message can name it).
+ */
+internal suspend fun refusalMessageFor(repository: ActivityRepository, refusal: ServiceRefusal): UserMessage {
+    val existingName = (refusal as? ServiceRefusal.NameMatchesExistingActivity)
+        ?.let { repository.getActivity(it.activityId)?.displayName }
+    return refusalMessage(refusal, existingName)
+}

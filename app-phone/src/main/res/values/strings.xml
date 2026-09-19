@@ -49,6 +49,16 @@
     <string name="log_not_categorized_a11y">Captured, not categorized yet. Saved your words, but couldn\'t categorize them yet.</string>
     <string name="log_choose_an_activity">Choose an activity</string>
 
+    <!-- History screen (UX_VISUAL_SPEC D1, D7, 4.2; UX_SPEC 6, 13, 15). The "nothing logged"
+         empty state reuses log_recent_empty; the resolution sheet reuses the Needs-review copy. -->
+    <string name="history_filter_all">All</string>
+    <string name="history_filter_needs_review">Needs review</string>
+    <string name="history_filter_not_categorized">Not categorized</string>
+    <string name="history_empty_needs_review">Nothing needs review.</string>
+    <string name="history_empty_not_categorized">Nothing is waiting to be categorized.</string>
+    <string name="history_not_loaded">Couldn\'t load your history. Try again.</string>
+    <string name="history_row_action">Choose an activity</string>
+
     <!-- Shared activity picker. -->
     <string name="picker_title">Choose an activity</string>
     <string name="picker_search">Search activities</string>

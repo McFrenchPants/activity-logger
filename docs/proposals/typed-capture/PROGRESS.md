@@ -16,10 +16,25 @@ tier: spec §6 (verifier for UI1.1 and UI1.3).
 | UI1.1 | Ledger reads and hide for the screens | done | Verifier pass. `loadHistory` one SQL statement; `hideOccurrence` is a ledger transaction, no correction row |
 | UI1.2 | App shell, theme, time display | done | Spot-check. Robolectric UI tests at SDK 35 |
 | UI1.3 | Log screen: typed capture, result cards, picker | done | Verifier pass + follow-up fixes. 74 app-phone host tests |
-| UI1.4 | History screen | in-progress | Spot-check. After UI1.1, UI1.3 |
+| UI1.4 | History screen | done | Spot-check. 90 app-phone host tests |
 | UI1.5 | Device pass and documentation | todo | Needs Pixel 10 Pro. After UI1.1-UI1.4 |
 
 ## Session log
+
+### 2026-09-19 — UI1.4 done; run stops before the device pass
+
+Implementer (packet `.sdlc/task-packets/UI1.4.packet.json`), orchestrator
+spot-check (diff skimmed, build + 90 host tests re-run). History screen with
+single-select chips All / Needs review / Not categorized (no counts), shared
+`ui.components.HistoryRow`, resolution bottom sheet (suggestions, picker, Decide
+later) through ReviewResolutionService; `ui.review` now holds suggestions,
+refusal messages, UserMessage and PickerState for both screens. History reloads
+on every start. New copy: 'Nothing needs review.', 'Nothing is waiting to be
+categorized.', "Couldn't load your history. Try again." Known quirks for the
+device pass: picker replaces the sheet while open; a refusal arriving after
+Decide later shows above the list; no source-device icon on rows yet.
+
+Next: UI1.5 needs the Pixel 10 Pro (owner hardware) -- stopped here.
 
 ### 2026-09-19 — UI1.3 done
 
