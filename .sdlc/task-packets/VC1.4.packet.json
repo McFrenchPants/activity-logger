@@ -1,0 +1,74 @@
+{
+  "task_id": "VC1.4",
+  "plan_revision": "0a1b697",
+  "objective": "Wire VC1.2's SpeechTranscriber to VC1.3's Log screen UI, so spoken words become real captures through the existing pipeline. Replace the stub bodies of LogViewModel's startListening/stopListening/retryListening/onPartialTranscript/showRecognitionFailure (and dismissRecognitionFailure) with a real listening session, and add a `transcriber: SpeechTranscriber` collaborator to LogViewModel's constructor (a plain interface, so the view model's tests stay on the JVM with a fake -- follow the module's existing no-DI-framework convention, ADR-032). Behaviour required. (1) startListening collects transcriber.listen() in viewModelScope, but ONLY while state.isStarted (ADR-029) and not while isCapturing; it sets isListening, clears any current card, and does not clear the user's typed text. (2) Each SpeechEvent.PartialTranscript updates state.partialTranscript for display. Partials are NEVER persisted, NEVER sent to the orchestrator, and are cleared when the session ends, whatever the outcome. (3) On SpeechEvent.FinalTranscript, end the listening state, then create EXACTLY ONE raw capture via repository.createRawCapture with source = CaptureSource.PHONE_VOICE, a new voice sourceSurface constant declared beside the existing LOG_TYPED_SOURCE_SURFACE, capturedAt = clock.instant(), zoneId = zone(), rawText = the final transcript, speechConfidence = the event's confidence converted to Double? (null stays null -- never substitute a number), speechAlternativesJson = the event's alternatives serialised to a JSON array string, or null when the list is empty, and processingState = ProcessingState.CAPTURED. Then run the EXISTING orchestrator.process(captureId) path and the EXISTING cardFor mapping unchanged, so a voice capture and a typed capture of the same words produce the same card. Reuse the typed path's error handling: a createRawCapture failure must not lose the user's words, and a process() failure yields the NotCategorized card exactly as it does today. (4) On SpeechEvent.Failed, end the listening state and persist NOTHING AT ALL. SpeechFailure.NOTHING_HEARD and ENGINE_ERROR show the RecognitionFailed card; PERMISSION_MISSING and NO_ON_DEVICE_ENGINE show a plain-words message (new string resources) and no card, because a failure card offering 'Try again' would be a dead end there; RECOGNIZER_BUSY shows a plain-words 'try again in a moment' message; CANCELLED shows nothing at all. (5) stopListening cancels the collection; because Kotlin cancellation emits no event, stopListening must itself return the UI to the idle typing state rather than waiting for one. A session must also be cancelled when the screen stops (onStop) and when the user leaves the Log destination (onLeftLog), and no session may outlive the view model. (6) Wire the real PlatformSpeechTranscriber into LogViewModelFactory, constructed from the application context. Add the core-speech project dependency to app-phone/build.gradle.kts only if it is not already declared. Tests (JVM, with a fake transcriber emitting scripted SpeechEvents): exactly one raw capture per completed session, with PHONE_VOICE, the voice surface, and confidence/alternatives populated; null confidence stays null; empty alternatives yield null JSON; a NOTHING_HEARD session writes nothing and shows the failure card; a PERMISSION_MISSING session writes nothing and shows a message with no card; a cancelled session writes nothing and shows nothing; partials never reach the repository or the orchestrator; a voice capture and a typed capture of identical words produce an identical card; and no raw capture is ever updated after creation.",
+  "non_goals": [
+    "Do not change CaptureInterpretationOrchestrator, InterpretationValidator, TemporalResolver, CandidateSelector, the interpretation prompt, or anything in core-domain, core-ai or core-data. A voice capture must reach the model on exactly the path a typed one does.",
+    "Do not modify core-speech. Its interface is fixed by VC1.2; if it genuinely cannot express something this task needs, report scope_change_requested rather than editing it.",
+    "Do not alter the Room schema or add a migration. speechConfidence and speechAlternativesJson already exist on NewRawCapture and have simply been unused.",
+    "Do not add a second capture path, a voice-specific orchestrator, or any branch in cardFor that depends on whether the capture was spoken or typed.",
+    "Do not ever update, rewrite or delete a raw capture after creating it (ADR-007, AGENTS.md #4). Voice captures are created once and thereafter only read.",
+    "Do not change the layout, the microphone control, the listening visuals or the failure card built by VC1.3 beyond what wiring real events requires.",
+    "Do not add continuous, background or hotword listening, and do not start a session anywhere except an explicit user action on a started screen.",
+    "Do not write audio to disk or hold audio anywhere.",
+    "Do not modify any file under docs/, BACKLOG.md, PROGRESS.md or .sdlc/.",
+    "Do not touch app-wear or either PlatformSpeechRecognizerProbeTest."
+  ],
+  "dependencies": ["VC1.2", "VC1.3"],
+  "read_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/**",
+    "app-phone/src/main/res/**",
+    "app-phone/build.gradle.kts",
+    "core-speech/src/main/kotlin/com/mcfrenchpants/activityledger/core/speech/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/**",
+    "gradle/libs.versions.toml",
+    "AGENTS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/DECISIONS.md",
+    "docs/DATA_MODEL.md"
+  ],
+  "write_paths": [
+    "app-phone/build.gradle.kts",
+    "app-phone/src/main/res/values/strings.xml",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/log/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/log/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-wear/**",
+    "core-ai/**",
+    "core-data/**",
+    "core-domain/**",
+    "core-speech/**",
+    "core-testing/**",
+    "core-wear-protocol/**",
+    "gradle/libs.versions.toml",
+    "app-phone/src/androidTest/**"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew :app-phone:testDebugUnitTest :core-speech:test` passes, and `./gradlew test assembleDebug` passes for the whole project.",
+    "Exactly one raw capture is created per completed recognition, with CaptureSource.PHONE_VOICE and a voice sourceSurface constant declared beside LOG_TYPED_SOURCE_SURFACE -- asserted by a test.",
+    "speechConfidence carries the recognizer's confidence and stays null when the recognizer reported none (no substituted number); speechAlternativesJson holds a JSON array of the alternatives, or null when there were none -- each asserted by a test.",
+    "No raw capture is ever updated, rewritten or deleted after creation anywhere in this change (ADR-007, AGENTS.md #4) -- there is no repository call that would do so, and a test asserts the repository sees exactly one create and no update for a voice session.",
+    "A NOTHING_HEARD session, an ENGINE_ERROR session, a PERMISSION_MISSING session, a NO_ON_DEVICE_ENGINE session, a RECOGNIZER_BUSY session and a cancelled session each persist NOTHING -- asserted by tests.",
+    "Partial transcripts never reach the repository or the orchestrator and are cleared when the session ends, whatever the outcome -- asserted by a test.",
+    "A voice capture and a typed capture of identical words produce an identical card, reached through the same orchestrator.process call and the same cardFor mapping, with no voice-specific branch -- asserted by a test.",
+    "Listening cannot start while the screen is stopped (ADR-029) or while a capture is being processed, and any running session is cancelled on onStop and onLeftLog -- asserted by tests.",
+    "stopListening returns the UI to the idle typing state without waiting for an event, since Kotlin cancellation emits none.",
+    "LogViewModelFactory constructs the real PlatformSpeechTranscriber; LogViewModel takes the SpeechTranscriber interface so its tests run on the JVM with a fake.",
+    "No new user-facing string is a Kotlin literal; all are string resources.",
+    "No log call anywhere contains a transcript, a partial, a confidence value tied to text, or any other user content (AGENTS.md #11)."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:testDebugUnitTest :core-speech:test",
+    "./gradlew test",
+    "./gradlew assembleDebug"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
