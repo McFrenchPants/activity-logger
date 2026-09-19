@@ -24,6 +24,13 @@ tier: spec §6 (verifier for SR1.2-SR1.4).
 
 ## Session log
 
+### 2026-09-18 — merged to main
+
+Owner asked the orchestrator to merge (lite mode normally leaves it to them).
+`feature/semantic-regression` merged `--no-ff` into `main` locally, not pushed.
+SR1 and its tasks set to lifecycle_state `released`; PROJECT_STATUS and
+backlog item 9 updated. Follow-ups filed as BACKLOG items 13 and 14.
+
 ### 2026-09-18 — SR1.8 done: owner-accepted near matches
 
 Owner reviewed the 10 unsafe device matches: wash→Wax car, lint trap→Clean
