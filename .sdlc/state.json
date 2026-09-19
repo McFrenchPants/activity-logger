@@ -564,8 +564,8 @@
         {
           "id": "SR1.8",
           "title": "Owner-accepted near matches in the corpus",
-          "status": "in-progress",
-          "lifecycle_state": "implementing",
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [
             "SR1.7"
           ],
@@ -576,7 +576,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/SR1.8.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done, verifier pass. allowedActivityIds field + scorer + integrity rules; three cases changed per owner review 2026-09-18. Device re-scored CORRECT 35 / SAFE_MISS 6 / UNSAFE_MISS 7; baseline.json 35 ids. corpus matches NO until next device run (expectations-only change)."
         }
       ]
     }

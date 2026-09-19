@@ -110,7 +110,9 @@ class CorpusIntegrityTest {
         corpus.cases.filter { it.expected.outcome == ExpectedOutcome.AUTO_ACCEPT }.forEach { c ->
             val e = c.expected
             val loggable = setOf(ActivityResolution.EXISTING_ACTIVITY, ActivityResolution.NEW_ACTIVITY)
-            if (!loggable.containsAll(e.acceptableResolutions)) add("${c.id}: AUTO_ACCEPT allows an unloggable resolution")
+            // The preferred resolution must be loggable. An AMBIGUOUS/UNRESOLVED alternative is allowed:
+            // the pipeline sends it to review, which the scorer counts as a SAFE_MISS, never as CORRECT.
+            if (e.resolution !in loggable) add("${c.id}: AUTO_ACCEPT prefers an unloggable resolution")
             // A missing state is a rejecting reason (ADR-027), so it can never be auto-accepted.
             if (null in e.allowedStates) add("${c.id}: AUTO_ACCEPT allows a missing state")
             if (c.category == CorpusCategory.AMBIGUITY) add("${c.id}: AMBIGUITY case expects AUTO_ACCEPT")
@@ -122,7 +124,40 @@ class CorpusIntegrityTest {
         corpus.cases.filter { it.category == CorpusCategory.AMBIGUITY }.forEach { c ->
             if (c.expected.outcome != ExpectedOutcome.NEEDS_REVIEW) add("${c.id}: AMBIGUITY must expect NEEDS_REVIEW")
             if (c.expected.activityId != null) add("${c.id}: AMBIGUITY must not expect an activity")
+            if (c.expected.allowedActivityIds.isNotEmpty()) add("${c.id}: AMBIGUITY must not allow any activity")
         }
+    }
+
+    @Test
+    fun `allowed activity ids are consistent`() = check {
+        corpus.cases.forEach { c ->
+            val e = c.expected
+            if (e.allowedActivityIds.isEmpty()) return@forEach
+            val ids = corpus.catalogs[c.catalog]?.activities?.map { it.id }?.toSet().orEmpty()
+            e.allowedActivityIds.filterNot { it in ids }.forEach { add("${c.id}: allowedActivityIds $it not in ${c.catalog}") }
+            e.allowedActivityIds.filter { it in e.mustNotMatch }.forEach { add("${c.id}: allowedActivityIds $it is also in mustNotMatch") }
+            if (e.activityId != null && e.activityId in e.allowedActivityIds) add("${c.id}: allowedActivityIds repeats activityId")
+            if (e.allowedActivityIds.size != e.allowedActivityIds.toSet().size) add("${c.id}: allowedActivityIds has duplicates")
+            if (ActivityResolution.EXISTING_ACTIVITY !in e.acceptableResolutions) {
+                add("${c.id}: allowedActivityIds without EXISTING_ACTIVITY among the acceptable resolutions")
+            }
+            if (e.outcome != ExpectedOutcome.AUTO_ACCEPT) add("${c.id}: allowedActivityIds requires outcome AUTO_ACCEPT")
+        }
+    }
+
+    @Test
+    fun `category and outcome counts are pinned`() {
+        val byCategory = corpus.cases.groupingBy { it.category }.eachCount()
+        assertEquals(
+            mapOf(
+                CorpusCategory.SYNONYM to 18, CorpusCategory.NEAR_NEIGHBOUR to 8, CorpusCategory.NEW_ACTIVITY to 4,
+                CorpusCategory.TEMPORAL to 11, CorpusCategory.AMBIGUITY to 4, CorpusCategory.STATE to 3,
+            ),
+            byCategory,
+        )
+        assertEquals(48, corpus.cases.size)
+        assertEquals(44, corpus.cases.count { it.expected.outcome == ExpectedOutcome.AUTO_ACCEPT })
+        assertEquals(4, corpus.cases.count { it.expected.outcome == ExpectedOutcome.NEEDS_REVIEW })
     }
 
     @Test

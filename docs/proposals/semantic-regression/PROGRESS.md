@@ -20,9 +20,31 @@ tier: spec §6 (verifier for SR1.2-SR1.4).
 | SR1.5 | Install stand-in, first stand-in recording | done | Model on `C:\Dev\ai\models`. 20 correct / 20 safe miss / 8 unsafe miss. Not official |
 | SR1.6 | Documentation | done | Spot-check. `docs/SEMANTIC_CORPUS.md` + ADR-033 |
 | SR1.7 | First device recording and baseline | done | Pixel 10 Pro. CORRECT 32 / SAFE 6 / UNSAFE 10; baseline = 32 ids. Recorder retries AICore BUSY (verifier pass). See `RESULTS.md` |
-| SR1.8 | Owner-accepted near matches in the corpus | in-progress | Verifier. Owner accepts 3 device matches (wash→wax car; lint trap, generic dryer→dryer vent) |
+| SR1.8 | Owner-accepted near matches in the corpus | done | Verifier pass. New `allowedActivityIds`; device re-scored 35/6/7; baseline 35 ids |
 
 ## Session log
+
+### 2026-09-18 — SR1.8 done: owner-accepted near matches
+
+Owner reviewed the 10 unsafe device matches: wash→Wax car, lint trap→Clean
+dryer vent and "Cleaned the dryer"→Clean dryer vent are acceptable; "Did the
+furnace thing"→furnace filter and the edging/raking/water-heater/smoke-detector
+matches stay wrong. (Orchestrator had misreported "Raked the leaves" as going
+to Blow leaves; it went to Mow lawn -- RESULTS.md corrected.)
+
+Implementer (packet `.sdlc/task-packets/SR1.8.packet.json`), verifier pass.
+Added required `expected.allowedActivityIds` (+ `acceptableActivityIds`);
+scorer accepts matches to any acceptable id; integrity rules for the field;
+pinned category/outcome counts (SYNONYM 18, AMBIGUITY 4; 44 auto / 4 review);
+3 synthetic scorer tests. Implementer relaxed one integrity rule (only the
+preferred resolution of an AUTO_ACCEPT case must be loggable, so review can be
+an allowed alternative) and rewrote two CorpusPresenceTest assertions that
+encoded the overruled expectations; verifier judged both necessary. Re-scored
+device: CORRECT 35 / SAFE_MISS 6 / UNSAFE_MISS 7; baseline extended to 35 ids;
+gate passes. Report says `corpus matches: NO` until the next device run.
+
+Owner also proposed a ~3 s countdown before an AI match is saved, with a
+button to pick another activity or "New activity" (BACKLOG item 11, `idea`).
 
 ### 2026-09-18 — SR1.7 done: first device recording and baseline
 

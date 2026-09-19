@@ -164,9 +164,10 @@ Status vocabulary:
     (a correction is a new interpretation, not an edit); dependency on item
     10 (no phone capture screen exists yet).
 
-12. **Corpus expectations: which near matches are acceptable** — `idea`
+12. **Corpus expectations: which near matches are acceptable** — `done` (SR1.8)
     Added 2026-09-18. The owner judged some "unsafe" device answers as
     acceptable (e.g. "Washed the car" filed under Wax car). Corpus cases
     whose product-correct answer is really "either" should list the existing
     activity as an allowed answer, so the score measures real mistakes.
-    Owner to confirm which cases.
+    Owner confirmed 2026-09-18: wash→Wax car, lint trap→Clean dryer vent,
+    "Cleaned the dryer"→Clean dryer vent.

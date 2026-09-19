@@ -72,7 +72,16 @@ class CorpusPresenceTest {
                 corpus.catalogFor(it).any { a -> a.id == neighbourId }
         }
         assertTrue(newNeighbour("act-blow-leaves"), "raked-leaves vs Blow leaves case missing")
-        assertTrue(newNeighbour("act-wax-car"), "washed-car vs Wax car case missing")
+        // Owner ruling 2026-09-18: washing the car may be logged as Wax car, or as a new activity.
+        assertTrue(
+            cases.any {
+                it.category == CorpusCategory.NEAR_NEIGHBOUR &&
+                    it.expected.resolution == ActivityResolution.NEW_ACTIVITY &&
+                    "act-wax-car" in it.expected.allowedActivityIds &&
+                    corpus.catalogFor(it).any { a -> a.id == "act-wax-car" }
+            },
+            "washed-car vs Wax car case missing",
+        )
 
         assertTrue(
             cases.any { c ->
@@ -96,13 +105,15 @@ class CorpusPresenceTest {
             cases.any { it.expected.newActivityName == "Flush water heater" && corpus.catalogFor(it).isNotEmpty() },
             "new activity against a non-empty catalog missing",
         )
+        // Owner ruling 2026-09-18: generic dryer phrasing may match Clean dryer vent; asking the user
+        // (review) is still acceptable.
         assertTrue(
             cases.any { c ->
-                "dryer" in c.rawText.key() && "vent" !in c.rawText.key() &&
-                    c.expected.outcome == ExpectedOutcome.NEEDS_REVIEW &&
-                    "act-clean-dryer-vent" in c.expected.mustNotMatch
+                "dryer" in c.rawText.key() && "vent" !in c.rawText.key() && "lint" !in c.rawText.key() &&
+                    c.expected.activityId == "act-clean-dryer-vent" &&
+                    ActivityResolution.AMBIGUOUS in c.expected.acceptableResolutions
             },
-            "generic dryer case that must not auto-accept Clean dryer vent missing",
+            "generic dryer case (Clean dryer vent, or review) missing",
         )
         assertTrue(
             cases.any { it.expected.allowedStates == listOf(ActivityState.IN_PROGRESS) },

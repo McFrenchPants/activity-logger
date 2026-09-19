@@ -33,7 +33,7 @@ As of 2026-09-18 all three exist: the first device recording (Pixel 10 Pro), its
 
 ## 3. What is in the corpus
 
-48 cases: SYNONYM 17, NEAR_NEIGHBOUR 8, NEW_ACTIVITY 4, TEMPORAL 11, AMBIGUITY 5, STATE 3. 43 expect auto-accept, 5 expect review. Three catalog fixtures: `household` (ten activities, including the seed-corpus targets and their near-neighbours), `household-no-edge`, and `empty`. Every case uses the same capture context, `2026-09-15T20:00:00-04:00` in `America/Detroit`, so time words resolve identically everywhere.
+48 cases: SYNONYM 18, NEAR_NEIGHBOUR 8, NEW_ACTIVITY 4, TEMPORAL 11, AMBIGUITY 4, STATE 3. 44 expect auto-accept, 4 expect review (`CorpusIntegrityTest` pins these counts). Three catalog fixtures: `household` (ten activities, including the seed-corpus targets and their near-neighbours), `household-no-edge`, and `empty`. Every case uses the same capture context, `2026-09-15T20:00:00-04:00` in `America/Detroit`, so time words resolve identically everywhere.
 
 The categories (`CorpusCategory`):
 
@@ -57,6 +57,7 @@ Every field without a default is required, including nullable ones: write `"acti
 | `capturedAt`, `zoneId` | ISO offset date-time of the capture and its IANA zone. |
 | `expected.resolution`, `allowedResolutions` | Preferred activity resolution and any other equally correct ones. |
 | `expected.activityId` | Catalog id to match (existing-activity cases only). |
+| `expected.allowedActivityIds` | Other existing catalog ids the owner has ruled equally acceptable matches; usually `[]`. An auto-accepted match to `activityId` or any of these scores `CORRECT`. Never repeats `activityId` or a `mustNotMatch` id; non-empty only where `EXISTING_ACTIVITY` is an acceptable resolution and the outcome is `AUTO_ACCEPT`, and always empty for `AMBIGUITY` cases. On a new-activity case it does not make creating the new activity a duplicate. |
 | `expected.newActivityName`, `allowedNewNames` | Preferred and acceptable new names (new-activity cases only), compared after `NameNormalizer.normalize`. |
 | `expected.allowedStates` | Every acceptable state; a `null` entry means an empty state is acceptable (only where the outcome is review anyway). |
 | `expected.temporalExpression`, `allowedTemporalExpressions` | The time words the model should copy, and acceptable alternatives (a `null` entry means leaving it empty is also correct). |
@@ -95,7 +96,7 @@ Reports are written before the gate is evaluated, so they exist even when it fai
 
 Follow [AGENTS.md](../AGENTS.md) §6 -- every user-visible semantic bug becomes a corpus case:
 
-1. **Add a failing case** to `corpus.json`. Write the product-correct expectation, fill every required field, and give it a new kebab-case id. If the real resolver cannot produce the expected date, add `knownResolverGap` (otherwise `CorpusTemporalTest` fails). `CorpusIntegrityTest` checks structure: unique kebab-case ids, parseable capture context, catalog references and ids that exist, consistent resolution fields, auto-accept expectations that are actually auto-acceptable, fixtures within the candidate selector's bound, and a total of 40-60 cases.
+1. **Add a failing case** to `corpus.json`. Write the product-correct expectation, fill every required field, and give it a new kebab-case id. If the real resolver cannot produce the expected date, add `knownResolverGap` (otherwise `CorpusTemporalTest` fails). `CorpusIntegrityTest` checks structure: unique kebab-case ids, parseable capture context, catalog references and ids that exist, consistent resolution fields, consistent `allowedActivityIds`, auto-accept expectations that are actually auto-acceptable, fixtures within the candidate selector's bound, and a total of 40-60 cases.
 2. **Reproduce** it: run `./gradlew :core-testing:test`, then re-record (stand-in to iterate, §7; phone for the official answer, §8) and confirm the case shows up as a miss in the report.
 3. **Implement the fix** (prompt, selector, resolver or validation policy).
 4. **Verify**: re-record, replay, and check the case is `CORRECT` and no baseline case regressed.
@@ -110,6 +111,8 @@ What replay does with an older recording (verified against `SemanticReplay` and 
 - **Refused** (`StaleRecordingException`, the test fails, "re-record") if a recorded case id is no longer in the corpus, or if a case's candidate shortlist (the offered activity ids or the shortlist's context hash) differs from what the recording saw -- for example because its sentence or its catalog fixture changed.
 - **Replayed, but flagged** otherwise: the report shows `corpus matches | NO - recorded against a different corpus`. Old answers are scored against the current expectations; cases added since the recording are simply absent from it and not scored.
 - **Gate failure** if the device recording was made against a different corpus and lacks any baseline case.
+
+An expectations-only change (no change to a case's sentence, catalog fixture or capture context) keeps each case's shortlist, so an existing recording still replays and is re-scored against the new expectations; its report shows `corpus matches: NO` until it is re-recorded.
 
 So a hash mismatch alone does not stop a replay. Treat any report whose `corpus matches` is not `yes` as not a measurement of the current corpus, and re-record after every corpus change before drawing conclusions.
 

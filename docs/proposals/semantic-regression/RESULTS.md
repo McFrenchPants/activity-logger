@@ -6,6 +6,18 @@ SHA-256 `63c9ff80…abafb` (matches current). Recording:
 `core-testing/src/test/resources/semantic-corpus/recordings/device-latest.json`.
 Baseline: `recordings/baseline.json` (the 32 CORRECT case ids of this run).
 
+## Update after the owner's review (SR1.8)
+
+The owner judged three of the ten unsafe matches acceptable: "Washed the car"
+→ Wax car, "Emptied the dryer lint trap" → Clean dryer vent, "Cleaned the
+dryer" → Clean dryer vent. The corpus now accepts those (new
+`allowedActivityIds` field; the generic-dryer case moved from AMBIGUITY to
+SYNONYM). Re-scoring the same recording: **CORRECT 35, SAFE_MISS 6,
+UNSAFE_MISS 7**; `baseline.json` now lists 35 ids. The report shows
+`corpus matches: NO` until the next device run (only expectations changed, so
+the recorded answers still apply). "Did the furnace thing" → Replace furnace
+filter stays wrong. The numbers and lists below are the original scoring.
+
 ## Numbers
 
 | | CORRECT | SAFE_MISS | UNSAFE_MISS | Failures |

@@ -74,6 +74,10 @@ data class CatalogFixture(
  * @property allowedResolutions Other resolutions that are equally correct (e.g. UNRESOLVED
  *   for an AMBIGUOUS case). Never includes [resolution].
  * @property activityId Catalog id to match; set only for EXISTING_ACTIVITY.
+ * @property allowedActivityIds Other existing catalog ids that are equally acceptable matches
+ *   (the owner has ruled that logging under them is correct). Never includes [activityId] or a
+ *   [mustNotMatch] id; non-empty only where EXISTING_ACTIVITY is acceptable and the outcome is
+ *   AUTO_ACCEPT.
  * @property newActivityName Preferred new-activity name; set only for NEW_ACTIVITY.
  * @property allowedNewNames Other acceptable new names. Names are compared after
  *   `NameNormalizer.normalize`.
@@ -96,6 +100,7 @@ data class ExpectedInterpretation(
     val resolution: ActivityResolution,
     val allowedResolutions: List<ActivityResolution>,
     val activityId: String?,
+    val allowedActivityIds: List<String>,
     val newActivityName: String?,
     val allowedNewNames: List<String>,
     val allowedStates: List<ActivityState?>,
@@ -108,6 +113,9 @@ data class ExpectedInterpretation(
 ) {
     /** [resolution] plus [allowedResolutions]. */
     val acceptableResolutions: Set<ActivityResolution> get() = setOf(resolution) + allowedResolutions
+
+    /** [activityId] (if set) plus [allowedActivityIds]: every catalog id that is a correct match. */
+    val acceptableActivityIds: Set<String> get() = setOfNotNull(activityId) + allowedActivityIds
 
     /** [newActivityName] plus [allowedNewNames], as written; empty unless NEW_ACTIVITY. */
     val acceptableNewNames: List<String> get() = listOfNotNull(newActivityName) + allowedNewNames

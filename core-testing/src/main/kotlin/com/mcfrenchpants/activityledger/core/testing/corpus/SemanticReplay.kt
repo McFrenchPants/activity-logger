@@ -61,7 +61,7 @@ enum class UnsafeCheck {
     /** An existing activity was expected, but a new (duplicate) activity was created. */
     DUPLICATE_NEW_ACTIVITY,
 
-    /** A new activity was expected, but an existing one was matched. */
+    /** A new activity was expected, but an existing one (not in `allowedActivityIds`) was matched. */
     MATCHED_EXISTING_WHEN_NEW_EXPECTED,
 
     /** A new activity was expected and created, but its name is not an acceptable one. */
@@ -225,9 +225,11 @@ class SemanticReplay(private val corpus: SemanticCorpus) {
                 if (activityId in expected.mustNotMatch) unsafe += UnsafeCheck.MUST_NOT_MATCH
                 if (expected.outcome == ExpectedOutcome.AUTO_ACCEPT) {
                     if (activityId in catalogIds) {
+                        // Any acceptable catalog id (activityId or an owner-accepted alternative) is correct.
                         when {
+                            activityId in expected.acceptableActivityIds -> Unit
                             expected.activityId == null -> unsafe += UnsafeCheck.MATCHED_EXISTING_WHEN_NEW_EXPECTED
-                            activityId != expected.activityId -> unsafe += UnsafeCheck.WRONG_EXISTING_ACTIVITY
+                            else -> unsafe += UnsafeCheck.WRONG_EXISTING_ACTIVITY
                         }
                     } else {
                         val created = checkNotNull(runSuspend { repository.getActivity(activityId) }) {

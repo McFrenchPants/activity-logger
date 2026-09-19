@@ -143,6 +143,39 @@ class SemanticReplayScorerTest {
         assertEquals(false, s.resolutionAcceptable)
     }
 
+    /** An auto-accept case that lists owner-accepted alternative catalog ids. */
+    private val allowedAltCase: CorpusCase get() = autoCases.first { it.expected.allowedActivityIds.isNotEmpty() }
+
+    @Test
+    fun `auto accepting an allowed alternative activity is correct`() {
+        val case = allowedAltCase
+        val allowed = case.expected.allowedActivityIds.first()
+        val s = score(case, ideal(case, resolution = ActivityResolution.EXISTING_ACTIVITY, matched = allowed, name = null))
+        assertEquals(ReplayClass.CORRECT, s.replayClass, "${case.id}: ${s.unsafeChecks}")
+        assertEquals(ReplayOutcome.AUTO_ACCEPTED, s.outcome)
+        assertEquals(emptyList(), s.unsafeChecks)
+    }
+
+    @Test
+    fun `auto accepting a catalog activity outside the allowed ones is unsafe`() {
+        val case = allowedAltCase
+        val other = CorpusInterpretationInput.forCase(corpus, case).selection.candidates.map { it.id }.first {
+            it !in case.expected.acceptableActivityIds && it !in case.expected.mustNotMatch
+        }
+        val s = score(case, ideal(case, resolution = ActivityResolution.EXISTING_ACTIVITY, matched = other, name = null))
+        assertEquals(ReplayClass.UNSAFE_MISS, s.replayClass, case.id)
+        assertEquals(listOf(UnsafeCheck.MATCHED_EXISTING_WHEN_NEW_EXPECTED), s.unsafeChecks, case.id)
+    }
+
+    @Test
+    fun `creating a new activity is still correct when alternatives are allowed`() {
+        val case = allowedAltCase
+        assertEquals(ActivityResolution.NEW_ACTIVITY, case.expected.resolution, case.id)
+        val s = score(case, ideal(case))
+        assertEquals(ReplayClass.CORRECT, s.replayClass, "${case.id}: ${s.unsafeChecks}")
+        assertFalse(UnsafeCheck.DUPLICATE_NEW_ACTIVITY in s.unsafeChecks)
+    }
+
     @Test
     fun `wrong date is unsafe`() {
         val case = autoCases.first { c ->

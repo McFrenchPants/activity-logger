@@ -1,0 +1,68 @@
+{
+  "task_id": "SR1.8",
+  "plan_revision": "5d71fe3",
+  "objective": "Let a semantic-corpus case accept specific existing activities as correct alternatives, and apply the owner's review of the first device run (2026-09-18).\n\nBACKGROUND: The corpus (`core-testing/src/main/resources/semantic-corpus/corpus.json`, 48 cases) is replayed by `SemanticReplay` (core-testing/src/main/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/SemanticReplay.kt). When a recorded answer is auto-accepted to an existing catalog activity, the scorer currently flags `MATCHED_EXISTING_WHEN_NEW_EXPECTED` if `expected.activityId == null`, or `WRONG_EXISTING_ACTIVITY` if it differs from `expected.activityId`. The owner reviewed the device results and ruled three matches acceptable: 'Washed the car.' -> act-wax-car, 'Emptied the dryer lint trap.' -> act-clean-dryer-vent, 'Cleaned the dryer.' -> act-clean-dryer-vent. The corpus rule stands that expectations are the correct PRODUCT behaviour; the owner is the authority on that.\n\nDO:\n1. `CorpusModel.kt` `ExpectedInterpretation`: add a REQUIRED (no default, like every other field there) property `allowedActivityIds: List<String>` = other existing catalog ids that are equally acceptable matches. KDoc it in the same style. Add a convenience `acceptableActivityIds: Set<String>` = `setOfNotNull(activityId) + allowedActivityIds`.\n2. `corpus.json`: add `\"allowedActivityIds\": []` to every case's `expected` (place it right after `activityId`). Keep the file LF-only and in its existing formatting style. Then change exactly three cases:\n   a. `car-washed-the-car`: allowedResolutions [\"EXISTING_ACTIVITY\"], allowedActivityIds [\"act-wax-car\"], remove act-wax-car from mustNotMatch, update the note: owner 2026-09-18 accepts Wax car as a match (washing and waxing the car logged as one activity); a new 'Wash car' activity is also correct.\n   b. `dryer-emptied-the-lint-trap`: allowedResolutions [\"EXISTING_ACTIVITY\"], allowedActivityIds [\"act-clean-dryer-vent\"], remove act-clean-dryer-vent from mustNotMatch, update note likewise (owner accepts Clean dryer vent; a new lint-trap activity is also correct).\n   c. `dryer-generic-cleaned-the-dryer` (keep the id): owner accepts Clean dryer vent for this generic sentence, so it is no longer an AMBIGUITY case. Make it category SYNONYM, resolution EXISTING_ACTIVITY, activityId \"act-clean-dryer-vent\", allowedResolutions [\"AMBIGUOUS\", \"UNRESOLVED\"] (asking the user is still acceptable -- that scores as a safe miss), allowedActivityIds [], mustNotMatch [], allowedStates [\"COMPLETED\"], outcome AUTO_ACCEPT, other fields consistent with the integrity rules; update the note.\n   Do not change any other case. `ambiguous-did-the-furnace-thing` and the edging/raking/water-heater/smoke-detector cases stay exactly as they are.\n3. `SemanticReplay.kt` scorer: for an auto-accepted occurrence whose activity is in the catalog, it is acceptable iff it is in `expected.acceptableActivityIds`; otherwise keep the existing flags (`MATCHED_EXISTING_WHEN_NEW_EXPECTED` when `expected.activityId == null`, else `WRONG_EXISTING_ACTIVITY`). A newly created activity keeps its current name checks (`DUPLICATE_NEW_ACTIVITY` only when `expected.activityId != null`, i.e. do not flag a new activity as duplicate merely because allowedActivityIds is non-empty; `WRONG_NEW_NAME` unchanged). mustNotMatch, state, date and precision checks unchanged. No domain rule re-implemented; the real orchestrator still decides the outcome.\n4. `CorpusIntegrityTest.kt`: add checks: every allowedActivityIds entry exists in the case's catalog; none is in mustNotMatch; none equals activityId; no duplicates; non-empty allowedActivityIds requires EXISTING_ACTIVITY in the acceptable resolutions and outcome AUTO_ACCEPT; AMBIGUITY cases must have empty allowedActivityIds. Keep all existing checks passing (update any pinned category counts to the new ones: SYNONYM 18, AMBIGUITY 4; total stays 48).\n5. `SemanticReplayScorerTest.kt`: add synthetic-recording tests: (i) a case with allowedActivityIds auto-accepted to the allowed id scores CORRECT; (ii) same case auto-accepted to a different catalog activity scores UNSAFE_MISS with MATCHED_EXISTING_WHEN_NEW_EXPECTED; (iii) same case creating a new activity with an acceptable name scores CORRECT (not DUPLICATE_NEW_ACTIVITY). Follow the existing test file's patterns and any synthetic corpus/recording helpers it already uses. If the existing tests build ExpectedInterpretation directly, add the new argument there.\n6. Anywhere else `ExpectedInterpretation(` is constructed in core-testing (main or test), add the new argument.\n7. `docs/SEMANTIC_CORPUS.md`: add `expected.allowedActivityIds` to the case-fields table (section 4-ish, next to activityId), update the category counts in section 3 (SYNONYM 18, AMBIGUITY 4; expectations: 44 auto-accept, 4 review -- verify by counting), and add one sentence under 'The corpus hash and stale recordings' noting that an expectations-only change (no sentence, catalog or context change) keeps each case's shortlist, so an existing recording still replays and is re-scored; it is reported as `corpus matches: NO` until re-recorded. Verify that last claim against SemanticReplay's refusal logic before writing it; if it is not true, say so in your report instead of writing it.\n\nNOTE: changing corpus.json changes the corpus SHA-256. The committed device recording `core-testing/src/test/resources/semantic-corpus/recordings/device-latest.json` and `baseline.json` must NOT be edited by you (the orchestrator updates baseline.json afterwards). After your change, `./gradlew :core-testing:test` must still pass, including SemanticRegressionGateTest with the existing baseline (all 32 baseline cases must still replay CORRECT; the three changed cases are not in the baseline). Report the new device totals from `core-testing/build/reports/semantic-corpus/device.md` (expected: CORRECT 35, SAFE_MISS 6, UNSAFE_MISS 7) -- report what you actually see.\n\nPRIVACY (AGENTS.md #11): no corpus text or model output printed to the console by tests beyond what already exists.\n\nDEVICE SAFETY: a phone is attached over USB. This task needs no device: never run adb, any connected* Gradle task, or scripts/semantic/*.sh. Set ANDROID_SERIAL=none-for-this-task in the environment of every Gradle command you run.",
+  "non_goals": [
+    "No production code change (core-domain, core-data, core-ai/src/main, app-phone/src/main).",
+    "No change to any corpus case other than the three named, beyond adding the empty allowedActivityIds field.",
+    "Do not edit recordings (device-latest.json, standin-latest.json, baseline.json) or their README.",
+    "No change to BACKLOG.md, PROGRESS.md, docs/proposals, .sdlc, CLAUDE.md, AGENTS.md.",
+    "Never run adb, a connected* task, or scripts/semantic/*.sh. Do not commit."
+  ],
+  "dependencies": ["SR1.7"],
+  "read_paths": [
+    "core-testing",
+    "core-domain/src/main",
+    "docs/SEMANTIC_CORPUS.md",
+    "docs/TEST_STRATEGY.md",
+    "AGENTS.md",
+    "gradle",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "core-testing/src/main/resources/semantic-corpus/corpus.json",
+    "core-testing/src/main/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/CorpusModel.kt",
+    "core-testing/src/main/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/SemanticReplay.kt",
+    "core-testing/src/test/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus",
+    "docs/SEMANTIC_CORPUS.md"
+  ],
+  "forbidden_paths": [
+    "core-testing/src/test/resources/semantic-corpus/recordings",
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".sdlc",
+    "agents",
+    ".claude",
+    "scripts",
+    "docs/proposals",
+    "docs/sdlc",
+    "core-ai",
+    "core-domain",
+    "core-data",
+    "app-phone",
+    "app-wear",
+    "gradle",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "acceptance_criteria": [
+    "ExpectedInterpretation has a required allowedActivityIds list; every case in corpus.json has it; corpus.json stays LF-only.",
+    "Exactly three cases changed in substance (car-washed-the-car, dryer-emptied-the-lint-trap, dryer-generic-cleaned-the-dryer) as specified; all others differ only by the added empty field.",
+    "Scorer treats an auto-accepted match to any acceptableActivityIds entry as correct and keeps all other unsafe checks unchanged; no domain rule re-implemented.",
+    "CorpusIntegrityTest enforces the new allowedActivityIds rules and passes.",
+    "SemanticReplayScorerTest has the three new synthetic tests and they pass.",
+    "docs/SEMANTIC_CORPUS.md documents the field, the updated counts, and (if verified true) that an expectations-only change keeps recordings replayable.",
+    "`./gradlew :core-testing:test` passes, SemanticRegressionGateTest not skipped for the device recording, and the reported device totals are stated.",
+    "Only write_paths changed; recordings untouched; no device contact."
+  ],
+  "verification_commands": [
+    "ANDROID_SERIAL=none-for-this-task ./gradlew :core-testing:test",
+    "git status --porcelain",
+    "git diff --stat"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

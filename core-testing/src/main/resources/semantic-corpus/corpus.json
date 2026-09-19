@@ -136,6 +136,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -162,6 +163,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -189,6 +191,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -215,6 +218,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -244,6 +248,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -271,6 +276,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -298,6 +304,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-edge-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -325,6 +332,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-edge-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -351,6 +359,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-edge-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -377,6 +386,7 @@
         "resolution": "NEW_ACTIVITY",
         "allowedResolutions": [],
         "activityId": null,
+        "allowedActivityIds": [],
         "newActivityName": "Edge lawn",
         "allowedNewNames": [
           "Edge the lawn"
@@ -406,6 +416,7 @@
         "resolution": "NEW_ACTIVITY",
         "allowedResolutions": [],
         "activityId": null,
+        "allowedActivityIds": [],
         "newActivityName": "Edge lawn",
         "allowedNewNames": [
           "Edge the lawn"
@@ -435,6 +446,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-replace-furnace-filter",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -461,6 +473,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-replace-furnace-filter",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -487,6 +500,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-replace-furnace-filter",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -513,6 +527,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-replace-furnace-filter",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -540,6 +555,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-clean-gutters",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -564,6 +580,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-clean-gutters",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -591,6 +608,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-clean-gutters",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -615,6 +633,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-clean-dryer-vent",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -639,6 +658,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-clean-dryer-vent",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -655,33 +675,32 @@
     },
     {
       "id": "dryer-generic-cleaned-the-dryer",
-      "category": "AMBIGUITY",
+      "category": "SYNONYM",
       "catalog": "household",
       "rawText": "Cleaned the dryer.",
       "capturedAt": "2026-09-15T20:00:00-04:00",
       "zoneId": "America/Detroit",
       "expected": {
-        "resolution": "AMBIGUOUS",
+        "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [
+          "AMBIGUOUS",
           "UNRESOLVED"
         ],
-        "activityId": null,
+        "activityId": "act-clean-dryer-vent",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
-          "COMPLETED",
-          null
+          "COMPLETED"
         ],
         "temporalExpression": null,
         "allowedTemporalExpressions": [],
         "resolvedLocalDate": null,
         "precision": null,
-        "mustNotMatch": [
-          "act-clean-dryer-vent"
-        ],
-        "outcome": "NEEDS_REVIEW"
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
       },
-      "note": "Generic dryer phrasing: could be the vent, the lint trap, the drum or the outside. Must not auto-accept Clean dryer vent."
+      "note": "Generic dryer phrasing. The owner (2026-09-18) accepts Clean dryer vent as the match for this sentence. Asking the user (AMBIGUOUS or UNRESOLVED, i.e. review) is still acceptable and scores as a safe miss."
     },
     {
       "id": "dryer-emptied-the-lint-trap",
@@ -692,8 +711,13 @@
       "zoneId": "America/Detroit",
       "expected": {
         "resolution": "NEW_ACTIVITY",
-        "allowedResolutions": [],
+        "allowedResolutions": [
+          "EXISTING_ACTIVITY"
+        ],
         "activityId": null,
+        "allowedActivityIds": [
+          "act-clean-dryer-vent"
+        ],
         "newActivityName": "Empty dryer lint trap",
         "allowedNewNames": [
           "Empty lint trap",
@@ -707,12 +731,10 @@
         "allowedTemporalExpressions": [],
         "resolvedLocalDate": null,
         "precision": null,
-        "mustNotMatch": [
-          "act-clean-dryer-vent"
-        ],
+        "mustNotMatch": [],
         "outcome": "AUTO_ACCEPT"
       },
-      "note": "The lint trap is a routine per-load chore; the vent is a yearly duct cleaning. Related, not equivalent."
+      "note": "The owner (2026-09-18) accepts Clean dryer vent as a match (lint trap and vent logged as one activity). A new lint-trap activity is also correct."
     },
     {
       "id": "leaves-raked-the-leaves",
@@ -725,6 +747,7 @@
         "resolution": "NEW_ACTIVITY",
         "allowedResolutions": [],
         "activityId": null,
+        "allowedActivityIds": [],
         "newActivityName": "Rake leaves",
         "allowedNewNames": [
           "Rake the leaves"
@@ -754,6 +777,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-blow-leaves",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -777,8 +801,13 @@
       "zoneId": "America/Detroit",
       "expected": {
         "resolution": "NEW_ACTIVITY",
-        "allowedResolutions": [],
+        "allowedResolutions": [
+          "EXISTING_ACTIVITY"
+        ],
         "activityId": null,
+        "allowedActivityIds": [
+          "act-wax-car"
+        ],
         "newActivityName": "Wash car",
         "allowedNewNames": [
           "Wash the car"
@@ -790,12 +819,10 @@
         "allowedTemporalExpressions": [],
         "resolvedLocalDate": null,
         "precision": null,
-        "mustNotMatch": [
-          "act-wax-car"
-        ],
+        "mustNotMatch": [],
         "outcome": "AUTO_ACCEPT"
       },
-      "note": "Washing is not waxing; Wax car is present, Wash car is not, so this is a new activity."
+      "note": "The owner (2026-09-18) accepts Wax car as a match (washing and waxing the car logged as one activity). A new 'Wash car' activity is also correct."
     },
     {
       "id": "car-waxed-the-car",
@@ -808,6 +835,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-wax-car",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -833,6 +861,7 @@
         "resolution": "NEW_ACTIVITY",
         "allowedResolutions": [],
         "activityId": null,
+        "allowedActivityIds": [],
         "newActivityName": "Flush water heater",
         "allowedNewNames": [
           "Flush the water heater",
@@ -861,6 +890,7 @@
         "resolution": "NEW_ACTIVITY",
         "allowedResolutions": [],
         "activityId": null,
+        "allowedActivityIds": [],
         "newActivityName": "Replace smoke detector batteries",
         "allowedNewNames": [
           "Change smoke detector batteries",
@@ -888,6 +918,7 @@
         "resolution": "NEW_ACTIVITY",
         "allowedResolutions": [],
         "activityId": null,
+        "allowedActivityIds": [],
         "newActivityName": "Replace furnace filter",
         "allowedNewNames": [
           "Change furnace filter",
@@ -917,6 +948,7 @@
         "resolution": "NEW_ACTIVITY",
         "allowedResolutions": [],
         "activityId": null,
+        "allowedActivityIds": [],
         "newActivityName": "Mow lawn",
         "allowedNewNames": [
           "Mow the lawn"
@@ -943,6 +975,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -969,6 +1002,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -995,6 +1029,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1022,6 +1057,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1051,6 +1087,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1080,6 +1117,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1108,6 +1146,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-replace-furnace-filter",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1135,6 +1174,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-clean-gutters",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1159,6 +1199,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-take-out-trash",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1183,6 +1224,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-water-garden",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1210,6 +1252,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1240,6 +1283,7 @@
           "UNRESOLVED"
         ],
         "activityId": null,
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1272,6 +1316,7 @@
           "UNRESOLVED"
         ],
         "activityId": null,
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1302,6 +1347,7 @@
           "UNRESOLVED"
         ],
         "activityId": null,
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1333,6 +1379,7 @@
           "UNRESOLVED"
         ],
         "activityId": null,
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1370,6 +1417,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1398,6 +1446,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-clean-gutters",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
@@ -1425,6 +1474,7 @@
         "resolution": "EXISTING_ACTIVITY",
         "allowedResolutions": [],
         "activityId": "act-edge-lawn",
+        "allowedActivityIds": [],
         "newActivityName": null,
         "allowedNewNames": [],
         "allowedStates": [
