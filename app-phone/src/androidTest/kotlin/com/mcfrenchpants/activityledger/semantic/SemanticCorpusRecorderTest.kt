@@ -12,11 +12,14 @@ import com.mcfrenchpants.activityledger.MainActivity
 import com.mcfrenchpants.activityledger.core.ai.GeminiNanoActivityInterpreter
 import com.mcfrenchpants.activityledger.core.ai.ModelReadiness
 import com.mcfrenchpants.activityledger.core.ai.OnDeviceModelCapability
+import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpretationResult
+import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterFailureKind
 import com.mcfrenchpants.activityledger.core.testing.corpus.CorpusInterpretationInput
 import com.mcfrenchpants.activityledger.core.testing.corpus.RecordingEntry
 import com.mcfrenchpants.activityledger.core.testing.corpus.RecordingSource
 import com.mcfrenchpants.activityledger.core.testing.corpus.SemanticCorpus
 import com.mcfrenchpants.activityledger.core.testing.corpus.SemanticRecording
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -40,7 +43,13 @@ import java.time.Instant
  * - **Never downloads the model** (ADR-031): not READY means skip, naming the state.
  * - **Foreground held** (ADR-029): Google refuses on-device GenAI calls unless the app is the top
  *   foreground app, so [MainActivity] is RESUMED around the whole loop.
- * - **One call per case**, no retries, no repair: a failure is recorded as-is; it is data.
+ * - **One answer per case**, no repair: a failure is recorded as-is; it is data. The one
+ *   exception is a *fast refusal* -- a failure that comes back in under [FAST_REFUSAL_MS], before
+ *   any inference could have run. AICore does this (GenAiException BUSY, code 9, with no retry
+ *   delay, which the interpreter maps to OTHER) once an app sends requests back to back: on the
+ *   first Pixel 10 Pro run, 27 of 48 cases were refused this way after 20 answered normally. That
+ *   is the phone throttling, not the model answering, so the call is repeated after a wait
+ *   ([BUSY_BACKOFF_MS]); if every wait is used up, the last failure is recorded as-is.
  * - **No database**: the model is called directly; the deterministic rest of the pipeline is
  *   replayed on the JVM from the recording.
  * - **Logs numbers and the file path only** (AGENTS.md #11): never corpus text, prompt or model
@@ -83,6 +92,7 @@ class SemanticCorpusRecorderTest {
         val recordedAt = Instant.now()
         val entries = ArrayList<RecordingEntry>(corpus.cases.size)
         val latencies = ArrayList<Long>(corpus.cases.size)
+        var busyRetries = 0
 
         // One launch around the whole loop: the app must stay the top foreground app (ADR-029).
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -93,10 +103,21 @@ class SemanticCorpusRecorderTest {
 
             for (case in corpus.cases) {
                 val caseInput = CorpusInterpretationInput.forCase(corpus, case)
-                val startedAt = System.nanoTime()
-                // Exactly one call: no retries, no repair.
-                val result = interpreter.interpret(caseInput.input)
-                val latencyMs = (System.nanoTime() - startedAt) / 1_000_000
+                var attempt = 0
+                var result: InterpretationResult
+                var latencyMs: Long
+                while (true) {
+                    val startedAt = System.nanoTime()
+                    result = interpreter.interpret(caseInput.input)
+                    latencyMs = (System.nanoTime() - startedAt) / 1_000_000
+                    val fastRefusal = result is InterpretationResult.Failure &&
+                        result.kind in THROTTLE_KINDS && latencyMs < FAST_REFUSAL_MS
+                    if (!fastRefusal || attempt >= BUSY_BACKOFF_MS.size) break
+                    // Throttled, not answered: wait and ask again (see the class comment).
+                    delay(BUSY_BACKOFF_MS[attempt])
+                    attempt++
+                    busyRetries++
+                }
                 latencies += latencyMs
                 entries += RecordingEntry.of(case.id, caseInput.selection, result, latencyMs)
             }
@@ -112,7 +133,7 @@ class SemanticCorpusRecorderTest {
             schemaVersion = provenance.schemaVersion,
             corpusSha256 = corpus.sha256,
             recordedAt = recordedAt.toString(),
-            notes = null,
+            notes = "busy retries: $busyRetries",
             entries = entries,
         )
 
@@ -127,7 +148,7 @@ class SemanticCorpusRecorderTest {
         // Numbers and the file path only (AGENTS.md #11).
         Log.i(
             TAG,
-            "cases=${entries.size} failures=$failures totalMs=$total medianMs=${median(latencies)} " +
+            "cases=${entries.size} failures=$failures busyRetries=$busyRetries totalMs=$total medianMs=${median(latencies)} " +
                 "file=${outputFile.absolutePath}",
         )
 
@@ -165,5 +186,14 @@ class SemanticCorpusRecorderTest {
         const val MODEL_LABEL = "gemini-nano (AICore)"
         const val OUTPUT_SUBDIR = "semantic-corpus"
         const val OUTPUT_FILE = "device-recording.json"
+
+        /** A failure faster than this cannot have run inference (real answers take ~4-6 s). */
+        const val FAST_REFUSAL_MS = 1_000L
+
+        /** The failure kinds a throttled call surfaces as (BUSY maps to OTHER or RETRYABLE). */
+        val THROTTLE_KINDS = setOf(InterpreterFailureKind.OTHER, InterpreterFailureKind.RETRYABLE)
+
+        /** Waits before each repeat of a fast-refused call; its size is the retry limit. */
+        val BUSY_BACKOFF_MS = longArrayOf(5_000, 10_000, 20_000, 30_000, 60_000, 60_000)
     }
 }

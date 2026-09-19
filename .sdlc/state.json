@@ -324,7 +324,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/DS1.6.packet.json",
           "report_path": null,
-          "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE Â§5/Â§6/Â§15/Â§16, AI_INTERPRETATION_SPEC Â§10/Â§11/Â§17, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
+          "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE \u00c2\u00a75/\u00c2\u00a76/\u00c2\u00a715/\u00c2\u00a716, AI_INTERPRETATION_SPEC \u00c2\u00a710/\u00c2\u00a711/\u00c2\u00a717, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
         }
       ]
     },
@@ -440,7 +440,7 @@
     {
       "id": "SR1",
       "title": "Semantic regression corpus (backlog item 9)",
-      "lifecycle_state": "implementing",
+      "lifecycle_state": "verifying",
       "tasks": [
         {
           "id": "SR1.1",
@@ -546,8 +546,8 @@
         {
           "id": "SR1.7",
           "title": "First device recording and baseline",
-          "status": "todo",
-          "lifecycle_state": "approved",
+          "status": "in-progress",
+          "lifecycle_state": "implementing",
           "dependencies": [
             "SR1.3",
             "SR1.6"
@@ -555,11 +555,11 @@
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 2
           },
           "task_packet_path": null,
           "report_path": null,
-          "notes": ""
+          "notes": "Done 2026-09-18, orchestrator run on Pixel 10 Pro (USB). First attempt discarded: AICore BUSY (code 9, zero retry delay -> OTHER) after 20 back-to-back calls. Recorder now retries fast refusals (<1 s, OTHER/RETRYABLE) with backoff; verifier pass. Second run: 48/48 answered, 17 busy retries; CORRECT 32, SAFE_MISS 6, UNSAFE_MISS 10 (all HIGH confidence). baseline.json = the 32 correct ids. See docs/proposals/semantic-regression/RESULTS.md."
         }
       ]
     }
