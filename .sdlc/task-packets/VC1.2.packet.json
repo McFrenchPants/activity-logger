@@ -1,0 +1,67 @@
+{
+  "task_id": "VC1.2",
+  "plan_revision": "22ca222",
+  "objective": "Replace core-speech's ScaffoldPlaceholder with the real speech module: a SpeechTranscriber abstraction and one Android implementation over the platform on-device recognizer (ADR-024). Deliver four things. (1) A `SpeechTranscriber` interface whose signatures name NO Android type, exposing a listening session as a cold kotlinx.coroutines Flow of listening events. (2) A closed set of event/result types in the same Android-free package: a partial-transcript event (display only), a final-result event carrying the transcript text plus an optional confidence Float and the recognizer's alternative transcripts as a List<String>, and a failure event carrying a typed `SpeechFailure` kind ONLY -- never a message, never any text. The failure kinds must at minimum distinguish: microphone permission missing, no on-device engine on this device, nothing heard / no match, engine busy, a generic engine error, and cancelled. (3) `PlatformSpeechTranscriber`, an Android implementation using SpeechRecognizer.createOnDeviceSpeechRecognizer(context). Implement it with callbackFlow: create the recognizer, set a RecognitionListener, startListening with an ACTION_RECOGNIZE_SPEECH intent using LANGUAGE_MODEL_FREE_FORM, EXTRA_PREFER_OFFLINE true and partial results enabled; emit partials as they arrive; emit exactly one terminal event (final result OR failure) and then complete the Flow; and in awaitClose ALWAYS cancel() then destroy() the recognizer. The platform SpeechRecognizer must only ever be created and called on the main thread, so the implementation must hop to the main looper for create/start/cancel/destroy (e.g. via Dispatchers.Main.immediate or an injected main-thread executor) rather than assuming the collector's thread. Map SpeechRecognizer.ERROR_* codes onto the failure kinds: ERROR_INSUFFICIENT_PERMISSIONS -> permission missing; ERROR_NO_MATCH and ERROR_SPEECH_TIMEOUT -> nothing heard; ERROR_RECOGNIZER_BUSY -> busy; ERROR_CANNOT_CHECK_SUPPORT/ERROR_LANGUAGE_* and an UnsupportedOperationException from the factory -> no on-device engine; anything else -> generic engine error. An UnsupportedOperationException from createOnDeviceSpeechRecognizer is a REAL case that must be caught and mapped, not allowed to propagate -- a probe on a OnePlus Watch 3 (Wear OS 5) proved the factory throws there even though the device has a registered recognition service. (4) A `SpeechCapability` check reporting whether on-device recognition is available on this device and the recognizer's language tag if it can be determined cheaply; it must start no recognizer, capture no audio and trigger no download. Write JVM unit tests under core-speech/src/test for everything that does not need a device: the full ERROR_* -> SpeechFailure mapping, the case where a session emits partials and then ends with no final result (must terminate as a nothing-heard failure and must NEVER promote a partial to a final result), and the extraction of transcript / confidence / alternatives from a Bundle-shaped input placed behind a small pure seam so it is testable off-device. Add kotlinx-coroutines-core to core-speech using the existing version-catalog alias (libs.kotlinx.coroutines.core) and kotlinx-coroutines-test for tests via its existing alias; do not edit gradle/libs.versions.toml and do not write any literal version, SDK level or JDK level into the build file. Delete ScaffoldPlaceholder.kt and its test -- the module has real contents now and the placeholder's own KDoc says the transcriber shape belongs to this step.",
+  "non_goals": [
+    "Do not add a com.google.mlkit dependency or name any ML Kit artifact -- ADR-023 confines every ML Kit artifact to core-ai, and this module's own build file names itself as the place someone would wrongly reach for it. ML Kit's genai-speech-recognition was explicitly rejected by ADR-024.",
+    "Do not touch app-phone or app-wear. The mic button, the listening UI, the RECORD_AUDIO permission declaration and the wiring into the capture pipeline are VC1.3 and VC1.4.",
+    "Do not create, read or write any RawCapture, and do not reference core-data or any repository type. This module produces text; it never persists anything.",
+    "Do not add any INTERNET permission or any manifest network capability (ADR-025).",
+    "Do not write audio to disk, buffer audio beyond the recognizer's own session, or expose raw audio bytes in any API.",
+    "Do not implement continuous, background or hotword listening. One explicit session at a time.",
+    "Do not modify any file under docs/, BACKLOG.md, PROGRESS.md or .sdlc/.",
+    "Do not remove or modify either PlatformSpeechRecognizerProbeTest (app-wear or app-phone) -- they are VC1.1's measurement and live outside this module."
+  ],
+  "dependencies": ["VC1.1"],
+  "read_paths": [
+    "core-speech/**",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/**",
+    "gradle/libs.versions.toml",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "AGENTS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/DECISIONS.md",
+    "app-wear/src/androidTest/**",
+    "app-phone/src/androidTest/**"
+  ],
+  "write_paths": [
+    "core-speech/build.gradle.kts",
+    "core-speech/src/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-phone/**",
+    "app-wear/**",
+    "core-ai/**",
+    "core-data/**",
+    "core-domain/**",
+    "core-testing/**",
+    "core-wear-protocol/**",
+    "gradle/libs.versions.toml"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew :core-speech:test :core-speech:assembleDebug` succeeds and the new JVM tests pass.",
+    "The SpeechTranscriber interface and every type in its signatures (events, result, SpeechFailure) name no Android type; only PlatformSpeechTranscriber and the capability check touch the Android SDK.",
+    "SpeechFailure carries a kind only -- no message, no transcript, no partial text, no exception detail reachable from it (AGENTS.md #11).",
+    "A unit test covers the full SpeechRecognizer.ERROR_* to SpeechFailure mapping, including ERROR_INSUFFICIENT_PERMISSIONS, ERROR_NO_MATCH, ERROR_SPEECH_TIMEOUT, ERROR_RECOGNIZER_BUSY, and a default case.",
+    "An UnsupportedOperationException thrown by createOnDeviceSpeechRecognizer is caught and mapped to the no-on-device-engine failure kind rather than propagating.",
+    "A unit test proves a session that produced partials but no final result terminates as a nothing-heard failure, and that no partial transcript is ever emitted as a final result.",
+    "The recognizer is cancelled and destroyed on every exit path including Flow cancellation, via awaitClose, and every recognizer call happens on the main thread.",
+    "Exactly one terminal event (final result or failure) is emitted per session, after which the Flow completes.",
+    "core-speech/build.gradle.kts declares no com.google.mlkit coordinate and no literal version, SDK level or JDK level; gradle/libs.versions.toml is unchanged.",
+    "No android.util.Log, println, or any other logging call anywhere in the module contains a transcript, a partial, or any user content (AGENTS.md #11).",
+    "ScaffoldPlaceholder.kt and ScaffoldPlaceholderTest.kt no longer exist, and `./gradlew test` still passes for the whole project."
+  ],
+  "verification_commands": [
+    "./gradlew :core-speech:test :core-speech:assembleDebug",
+    "./gradlew test",
+    "./gradlew assembleDebug"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
