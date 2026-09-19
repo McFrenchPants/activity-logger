@@ -256,6 +256,15 @@ short (4 s) and long (10 s) durations.
 
 - Prompt: "Say what you just did." Capture button with "Tap to speak"; quiet
   secondary *Type instead* (see §6).
+
+  > **Amended 2026-09-19 (owner decision, VC1).** This voice-first hero layout
+  > was **not** built. The owner chose, after using the typed screen on the
+  > phone, to keep the **text field as the primary control with a microphone
+  > icon button beside it**, rather than a large capture button with typing as
+  > a secondary path. The listening state, the result cards and the
+  > recognition-failure card below are all as specified; only the resting
+  > layout differs. The mockups still show the original arrangement — treat
+  > this note, not the mockup, as current for the Log screen's input row.
 - Listening: "Listening…" live region, live transcript in evidence style,
   stop button with rings, "Tap to stop"; recent list dimmed and hidden from
   accessibility.
@@ -366,8 +375,20 @@ grids, or "AI" sparkle iconography.
 
 ## 9. Open items
 
-- Watch Listening screen depends on on-device speech availability on the
-  OnePlus Watch 3 (backlog item 1).
+- ~~Watch Listening screen depends on on-device speech availability on the
+  OnePlus Watch 3 (backlog item 1).~~ **Answered 2026-09-19, and the answer is
+  no** (ADR-035): the OnePlus Watch 3 reports no on-device recognition and
+  `createOnDeviceSpeechRecognizer()` throws there. The watch Listening screen
+  (§3 D2) **cannot be built as designed**, and the ordinary network-capable
+  recognizer is not an acceptable substitute (ADR-005, AGENTS.md §11). ADR-035
+  lists the options; choosing one is a product decision for the Wear work item.
+- **Phone voice capture is built** (VC1, 2026-09-19): microphone control,
+  listening state with a live partial transcript, and the recognition-failure
+  card of §4.1/§6. Outstanding from that work, for a real-device pass: whether
+  the "Listening…" announcement is genuinely useful to a screen reader as
+  partials change, whether the Recent list's dimming reads correctly, the
+  failure card's contrast in both themes, and where focus lands after
+  *Type instead*. Each is reasoned and coded but not verified by a test.
 - ~~Verify contrast ratios with final Compose color values.~~ Done
   2026-09-19: every text/background pair used by Log and History (body,
   secondary text, green actions, review colours, on both the page and the

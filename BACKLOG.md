@@ -99,9 +99,17 @@ Status vocabulary:
    would need the platform path regardless. Once Step 6 provides a real capture
    pipeline, measure both against the semantic seed corpus and decide whether
    the quality gain justifies a second transcription implementation on the
-   phone. Blocked until Step 6. Source: ADR-024.
+   phone. ~~Blocked until Step 6.~~ Source: ADR-024.
+   **2026-09-19: unblocked.** Step 6 shipped (item 15), so a real capture
+   pipeline now exists and both paths can be measured against the corpus.
+   Note ADR-035 removes one of the original arguments *against* ML Kit: the
+   watch cannot use the platform on-device recognizer at all, so "the watch
+   needs the platform path anyway" is no longer true. It does not become an
+   argument *for* ML Kit either -- Advanced mode is Pixel 10/11 only, so it
+   cannot serve the watch. Still `idea`; worth doing only if phone
+   transcription quality turns out to be a real source of wrong entries.
 
-7. **Verify on-device speech on the OnePlus Watch 3** — `idea`
+7. **Verify on-device speech on the OnePlus Watch 3** — `done` (speech half; Data Layer half is now item 16)
    The designed watch Listening screen assumes in-app on-device recognition
    works on Wear OS 5. That is expected but unverified — the watch had not
    arrived when item 1 ran. When it does: enable Developer options, pair over
@@ -109,7 +117,18 @@ Status vocabulary:
    trivial Data Layer round-trip already noted in item 1. Do this before Step 8
    depends on either. If on-device recognition turns out to be unavailable
    there, ADR-024 and the Wear Listening screen (ADR-020, UX_VISUAL_SPEC §3 D2)
-   both need revisiting. Blocked on hardware.
+   both need revisiting. ~~Blocked on hardware.~~
+
+   **Answered 2026-09-19 (VC1.1), and the answer is no.** The watch was paired
+   and probed on hardware: `isOnDeviceRecognitionAvailable` is **false** and
+   `createOnDeviceSpeechRecognizer()` throws `UnsupportedOperationException`,
+   even though a Wear build of the Google TTS recognizer is installed and is
+   the default recognition service. So the second half of this item landed
+   exactly as it feared: ADR-024 does not hold for the watch, and the designed
+   Wear Listening screen cannot be built on it. Recorded as **ADR-035**, which
+   lists four options and picks none -- that choice belongs to the Wear work
+   item. The Data Layer round-trip named in this item is still unverified and
+   moves to item 16.
 
 8. **Domain services** — `done`
    Completed and merged to `main` 2026-09-17 (work item DS1, see
@@ -200,3 +219,40 @@ Status vocabulary:
     (c) `TemporalResolver` has no weekday + part-of-day rule, so "Mowed
     Saturday morning." is unresolvable. Both JVM-testable; (c) moves one
     corpus case from miss to correct.
+
+15. **Phone voice capture** — `done` (VC1, 2026-09-19; on branch
+    `feature/voice-capture`, not yet merged)
+    Added 2026-09-19 when the owner asked for voice logging before starting the
+    watch app, having just paired the OnePlus Watch 3. Build-guide Step 6, the
+    one step typed capture (item 10) deliberately skipped ahead of. Work item
+    VC1, see `docs/proposals/voice-capture/`. Delivered: the real `core-speech`
+    module (`SpeechTranscriber` plus a platform on-device adapter per ADR-024),
+    a microphone control beside the Log screen's text field with the listening
+    state and the recognition-failure card, the `RECORD_AUDIO` permission flow
+    with no dead ends, and spoken words going through the *same* capture
+    pipeline typed words already use. Owner decision 2026-09-19: text field
+    stays primary with the mic beside it, rather than the voice-first layout
+    the approved mockups show (UX_VISUAL_SPEC §4.1 amended).
+    **Still outstanding: the real-device pass (VC1.5).** Both test devices went
+    offline before it could run, so voice capture has never been exercised
+    against a real recognizer — only against a scripted fake in tests.
+
+16. **Wear Data Layer round-trip** — `idea`
+    Added 2026-09-19, split out of item 7. That item bundled two unrelated
+    checks; its speech half is now answered (ADR-035) but the Data Layer half
+    never ran. Before the watch app depends on it: a trivial phone-to-watch and
+    watch-to-phone round-trip over the Wear Data Layer on the paired OnePlus
+    Watch 3, confirming pairing, the shared `applicationId`, and that a message
+    and a `DataItem` both arrive. Small, and it de-risks the whole Wear
+    milestone. Both apps are already installed on their devices.
+
+17. **Decide how the watch captures, now that it cannot listen on-device** —
+    `needs research`
+    Added 2026-09-19 from ADR-035. The watch app's entire designed entry point
+    is voice, and the OnePlus Watch 3 cannot transcribe on-device. ADR-035 lists
+    four options: Wear's own system dictation screen (needs measuring — if it
+    can transcribe over the network it is disqualified by ADR-005), recording on
+    the watch and transcribing on the phone, a tap-a-recent-activity capture
+    with no voice at all, or different watch hardware. This blocks the Wear
+    milestone (build-guide Step 8) and is a genuine product decision, not a
+    technical one — it changes what the watch is for.

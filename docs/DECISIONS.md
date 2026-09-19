@@ -312,6 +312,17 @@ The alternative considered was `com.google.mlkit:genai-speech-recognition:1.0.0-
 
 On the primary test device the on-device recognizer role is held by `com.google.android.tts` (verified 2026-09-15), so no additional recognizer install is required.
 
+**Amendment (2026-09-19, VC1.1 — measured on hardware).** The 2026-09-15 evidence above was a read-only property inspection: it established that a recognizer package exists and is the registered default, which is a *different question* from whether `createOnDeviceSpeechRecognizer()` works. Instrumented probes then measured the real answer on both devices:
+
+| Device | `isRecognitionAvailable` | `isOnDeviceRecognitionAvailable` | `createOnDeviceSpeechRecognizer()` |
+|---|---|---|---|
+| Pixel 10 Pro (API 37) | true | **true** | created successfully |
+| OnePlus Watch 3 (Wear OS 5, API 34) | true | **false** | **throws `UnsupportedOperationException`** |
+
+Both devices have the same `com.google.android.tts` package registered as their default `RecognitionService`, and it is exactly that coincidence which made the original evidence look conclusive.
+
+So this ADR **holds for the phone** and is implemented there (`PlatformSpeechTranscriber` in `core-speech`, VC1.2/VC1.4). It **does not hold for the watch** — see ADR-035. The adapter catches the factory's `UnsupportedOperationException` and maps it to a "no on-device engine" failure rather than letting it propagate, so a device without an engine reports honestly instead of crashing.
+
 Revisiting this is a measurement question, not a design one: once Step 6 provides a real capture pipeline, ML Kit Advanced mode can be compared against the platform recognizer on the semantic seed corpus. Recorded as backlog item 6.
 
 **Reason:** ADR-006 keeps transcription separate from interpretation precisely so the transcriber can be swapped later. That makes the stable, universally-available implementation the correct starting point, and defers the quality comparison to a point where it can actually be measured.
@@ -512,3 +523,28 @@ Undo on the Log screen's Saved card (UX_VISUAL_SPEC D5), and later *Remove from 
 **Reason:** `corrections` records changes to *what* an occurrence says (activity, time, state) and has no visibility columns (DATA_MODEL.md); forcing a hide through it would mean a schema change for a flag the occurrence row already carries. The audit need is met without one: the raw capture and interpretation stay, the hidden row stays, and `updated_at` shows when it was hidden. This settles the PROJECT_STATUS open decision "hide/restore ... how it is audited".
 
 **Revisit** if a restore / "show hidden items" feature needs to say *who* hid something and why, or if sync (deferred, ADR-013) needs hides as ordered events rather than a current-state flag.
+
+## ADR-035 — The OnePlus Watch 3 has no on-device speech recognizer; the Wear capture design needs revisiting
+
+**Status:** Accepted (the measurement); the consequence is an open product decision
+
+Measured on hardware 2026-09-19 (VC1.1, `app-wear`'s `PlatformSpeechRecognizerProbeTest` run against the paired OnePlus Watch 3, Wear OS 5 / API 34):
+
+- `SpeechRecognizer.isRecognitionAvailable(context)` → true
+- `SpeechRecognizer.isOnDeviceRecognitionAvailable(context)` → **false**
+- `SpeechRecognizer.createOnDeviceSpeechRecognizer(context)` → **throws `UnsupportedOperationException`**
+
+A Wear build of `com.google.android.tts` is installed and is the default `RecognitionService`, so ordinary (potentially network-backed) recognition is available. On-device recognition is not.
+
+**What this invalidates.** The designed in-app Wear Listening screen (ADR-020, `docs/UX_VISUAL_SPEC.md` §3 D2 and §4) assumed in-app on-device recognition on the watch. It cannot be built on ADR-024's mechanism. Using the ordinary `SpeechRecognizer` instead is **not** an available fallback: it may transcribe over the network, which breaches ADR-005 and AGENTS.md #11 (no captured text leaves the device), and the privacy guarantee is the reason phone `minSdk` is 33 in the first place (ADR-021).
+
+**Options, none yet chosen** — this is a product decision for the Wear work item, not something to settle here:
+
+1. **Wear's system dictation surface** (`RecognizerIntent.ACTION_RECOGNIZE_SPEECH` as an activity). One extra screen, and it is the path Wear users already know. Whether it transcribes strictly on-device is unverified and would have to be measured before it could be accepted; if it can go to the network, it is disqualified.
+2. **Record on the watch, transcribe on the phone.** Keeps the privacy guarantee intact and reuses the phone's proven engine, but means moving audio over the Data Layer, holding audio on the watch until the phone acknowledges, and a noticeably slower capture.
+3. **A non-voice watch capture** (a short list of recent activities, one tap). Privacy-safe and instant, but it stops being an open-ended activity logger on the wrist and only works for repeats.
+4. **Different watch hardware**, if a Wear device with on-device recognition exists.
+
+**Reason:** recorded as its own decision rather than folded into ADR-024 because the measurement is durable and the consequence is not: a future Wear OS or recognizer update could change the answer, and whoever revisits it needs to know exactly what was measured, on what, and when.
+
+---

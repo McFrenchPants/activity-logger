@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-19T23:08:44.000Z",
+  "updated_at": "2026-09-19T23:13:17.000Z",
   "work_items": [
     {
       "id": "SS1",
@@ -785,19 +785,19 @@
         {
           "id": "VC1.5",
           "title": "Device pass and documentation",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "blocked",
+          "lifecycle_state": "in_progress",
           "dependencies": [
             "VC1.4"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/VC1.5.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Documentation half done (ADR-024 amended, ADR-035 added, UX_VISUAL_SPEC/ARCHITECTURE/BACKLOG/PROGRESS updated). Device half BLOCKED: both test devices went offline mid-run. Voice capture has never met a real recognizer."
         }
       ]
     }

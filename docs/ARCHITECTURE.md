@@ -222,15 +222,21 @@ class CapturePipeline : AutoCloseable {                      // exactly one per 
 
 `CapturePipeline.create` is the single composition point for the capture pipeline. Creating it checks nothing and downloads nothing. `interpreterDecorator` is an observation seam for tests (timing only) and the identity in production.
 
+`SpeechTranscriber` is implemented in `core-speech` (§14):
+
+```kotlin
+interface SpeechTranscriber {
+    fun listen(): Flow<SpeechEvent>
+}
+```
+
+A cold flow per explicit session: zero or more display-only `PartialTranscript`s, then exactly one terminal event (`FinalTranscript` or `Failed`), then completion. No Android type appears in the interface or any type in its signatures, and `SpeechFailure` is a payload-free enum, so a failure is structurally incapable of carrying the user's words (AGENTS.md #11).
+
 ### Conceptual (not built)
 
 These remain design sketches; signatures will be fixed when they are implemented.
 
 ```kotlin
-interface SpeechTranscriber {
-    suspend fun transcribe(request: SpeechRequest): SpeechResult
-}
-
 interface QueryInterpreter {
     suspend fun interpret(question: QueryInput): QueryIntent
 }
@@ -305,6 +311,8 @@ Compose UI
 ```
 
 Speech recognition and semantic inference remain separate even if both use Google on-device technologies.
+
+**Built 2026-09-19 (VC1).** The Log screen's microphone control starts one `SpeechTranscriber` session; partials are shown live and never stored; the final transcript becomes exactly one `RawCapture` with `source = PHONE_VOICE`, the recognizer's confidence in `speech_confidence` and its alternatives in `speech_alternatives_json`, and then takes the same `CaptureInterpretationOrchestrator.process` path typed text takes. There is one capture path, not two: a spoken and a typed capture of the same sentence reach the model identically and produce the same result card. A session that hears nothing persists nothing at all. Listening cannot start while the screen is stopped (ADR-029), and a session is cancelled when the screen stops or the user leaves Log.
 
 ## 8. Watch-originated capture
 
@@ -410,6 +418,14 @@ Speech implementation should likewise be replaceable.
 The system may choose the best supported on-device recognition API for the target device.
 
 The semantic pipeline only receives text and recognition metadata.
+
+Implemented as `core-speech` (VC1.2):
+
+- **`PlatformSpeechTranscriber`** over `SpeechRecognizer.createOnDeviceSpeechRecognizer()` (ADR-024), exposed as a `callbackFlow`. Every recognizer call happens on the main thread, which the platform requires, via an injected `Handler`-backed runner. The recognizer is cancelled and destroyed in `awaitClose` on every exit path, including flow cancellation.
+- **Error translation:** the platform's numeric `ERROR_*` codes are mapped to a small closed `SpeechFailure` enum and then discarded. A caller learns what it can act on — ask for the permission, this device has no engine, nothing was heard, the engine is busy, an engine error, cancelled — and never sees a code or a message.
+- **No on-device engine is a real, handled case, not an exception.** `createOnDeviceSpeechRecognizer()` throws `UnsupportedOperationException` on the OnePlus Watch 3 (ADR-035); the adapter catches it and reports "no engine" rather than crashing.
+- **Audio never crosses the seam.** The platform's audio-buffer callback is deliberately not carried across the adapter boundary, so no audio bytes exist on the app's side of it. The module contains no logging call of any kind.
+- **Capability** is `SpeechCapability`: whether on-device recognition is available here and the language tag the transcriber will ask for. It starts no recognizer and downloads nothing.
 
 ## 15. Temporal resolver
 
@@ -526,7 +542,11 @@ AI capability is implemented as `OnDeviceModelCapability.readiness()` in `core-a
 | `STRUCTURED_OUTPUT_UNSUPPORTED` | model installed but cannot produce structured output | none possible for now |
 | `CHECK_FAILED` | the check itself failed (or the capability is closed) | try again later |
 
-Any state other than `READY` makes interpretation fail as `UNAVAILABLE` without calling the model; the capture is kept as `FAILED_RETRYABLE`. Readiness alone is not sufficient: the app must also be the top foreground app when interpreting (ADR-029). Speech and Wear Data Layer capability detection are not built yet.
+Any state other than `READY` makes interpretation fail as `UNAVAILABLE` without calling the model; the capture is kept as `FAILED_RETRYABLE`. Readiness alone is not sufficient: the app must also be the top foreground app when interpreting (ADR-029).
+
+Speech capability is implemented as `SpeechCapability` in `core-speech` (§14, VC1.2): whether this device has an on-device recognition engine, and the language tag the transcriber asks for. It starts no recognizer and downloads nothing. On a device with no engine, voice capture must be presented as unavailable rather than broken, and typing must stay fully available — the Log screen enforces that today (VC1.3). Measured answers: the Pixel 10 Pro has an engine, the OnePlus Watch 3 does not (ADR-035).
+
+Wear Data Layer capability detection is not built yet.
 
 ## 22. Supported platform baseline
 

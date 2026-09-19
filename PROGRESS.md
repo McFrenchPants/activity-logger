@@ -18,6 +18,7 @@ status; this file only tracks discrete task rows.
 | PV1 | Platform/API validation and version pinning (backlog item 1) | done | ADR-021..024. Desk research + read-only `adb` checks on the Pixel 10 Pro. Library-level Gemini Nano availability confirmed; a real inference call remains unproven until Step 4. Watch speech unverified (hardware not yet in hand) — backlog item 7. |
 | FX1.1 | AICore BUSY treated as "try again" + short wait-and-retry in the phone pipeline (backlog item 14b) | done | Verifier pass. Busy refusal now RETRYABLE; `BusyRetryInterpreter` waits 2 s then 4 s. ADR-030 amended. Not yet seen on a device. |
 | FX1.2 | Weekday + part-of-day dates ("Saturday morning") in `TemporalResolver` (backlog item 14c) | done | Spot-check. ADR-028 rule added; corpus gap cleared; baseline now 36 cases. Device recording flagged "different corpus" (hash changed) until the next Pixel re-record. |
+| VC1 | Phone voice capture (backlog item 15) | in progress | Five tasks in `docs/proposals/voice-capture/`. VC1.1-VC1.4 done on `feature/voice-capture`; VC1.5's docs done, its device pass blocked on hardware being offline. Watch cannot do on-device recognition (ADR-035). |
 
 ## Session log
 
