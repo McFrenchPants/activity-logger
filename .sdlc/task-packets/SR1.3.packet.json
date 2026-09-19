@@ -1,0 +1,78 @@
+{
+  "task_id": "SR1.3",
+  "plan_revision": "aed0a53",
+  "objective": "Build the PHONE half of the semantic regression recorder: an instrumented test that runs every corpus case through the REAL on-device model (Gemini Nano via `GeminiNanoActivityInterpreter`) and writes a recording file, plus one script that runs it on the owner's phone over Wi-Fi ADB and brings the recording back into the repository. The owner's phone is rarely available, so this must be a short, reliable, one-command session.\n\nWHAT EXISTS (read the code):\n- core-testing (JVM library), package `com.mcfrenchpants.activityledger.core.testing.corpus`: `SemanticCorpus.load()` (classpath resource `semantic-corpus/corpus.json`, `sha256`, `cases`), `CorpusInterpretationInput.forCase(corpus, case): CorpusCaseInput(selection, input)` -- the ONE function that builds what the model is shown; `SemanticRecording` / `RecordingProvenance` / `RecordingEntry` / `RecordingSource.DEVICE` with `RecordingEntry.of(caseId, selection, result, latencyMs)` and write-to-OutputStream. Recordings are replayed on the JVM by `com.mcfrenchpants.activityledger.core.testing.corpus.SemanticRegressionGateTest`, which reads `core-testing/src/test/resources/semantic-corpus/recordings/device-latest.json` and writes `core-testing/build/reports/semantic-corpus/device.md`. See that directory's README.md for file names.\n- core-ai: `OnDeviceModelCapability()` (public ctor; `suspend readiness(): ModelReadiness`, `close()`), `GeminiNanoActivityInterpreter(capability)` (`interpret(input)`, `warmUp()`, `provenance`). \n- app-phone: `CapturePipeline.create(context, clock, interpreterDecorator)` exposes `capability` and `interpreter`; the existing androidTest `pipeline/CaptureVerticalSliceTest.kt` shows the mandatory foreground pattern (`ActivityScenario.launch(MainActivity::class.java).use { it.moveToState(RESUMED); ... }`) -- Google refuses on-device GenAI calls unless the app is the top foreground app (ADR-029) -- and the skip-not-fail readiness check. app-phone already has androidTest deps (runner, core, ext-junit, junit4, coroutines).\n\nBUILD:\n\n1. **Dependency.** `androidTestImplementation(project(\":core-testing\"))` in `app-phone/build.gradle.kts`. core-testing brings kotlin-test and kotlinx-serialization transitively; make sure `assembleDebugAndroidTest` builds (resolve any duplicate-resource/META-INF packaging clash minimally in app-phone's build file and say what you did). The corpus JSON must be readable on-device from the classpath via `SemanticCorpus.load()` -- verify the resource is inside the test APK (e.g. inspect the built APK with `unzip -l` or aapt) and report it.\n\n2. **Recorder test** `app-phone/src/androidTest/kotlin/com/mcfrenchpants/activityledger/semantic/SemanticCorpusRecorderTest.kt`:\n   a. OPT-IN: runs only when the instrumentation argument `semanticCorpus=true` is present (read via `InstrumentationRegistry.getArguments()`); otherwise skipped with `Assume` and a message saying how to enable it. So a plain `connectedDebugAndroidTest` stays fast.\n   b. Readiness: if `readiness()` is not READY, skip via `Assume` with the state named. NEVER download the model from this path (no call to `download`) -- that is the owner's decision alone (ADR-031).\n   c. Hold `MainActivity` RESUMED for the whole run (one launch around the loop, not one per case); `warmUp()` once before the first case (not timed).\n   d. For each corpus case, in corpus order: build input with `CorpusInterpretationInput.forCase`, call `interpreter.interpret(input)` EXACTLY once (no retries, no repair), measure latency in ms, build the entry with `RecordingEntry.of(...)`. A failure result is recorded as-is (it is data). Do not go through Room/the orchestrator -- replay does that on the JVM.\n   e. Provenance: source DEVICE, modelLabel e.g. \"gemini-nano (AICore)\", deviceModel `Build.MODEL`, the interpreter's `provenance` fields, `corpusSha256`, `recordedAt` now.\n   f. Write the recording as JSON into the app's own external files dir (`context.getExternalFilesDir(null)`), subdirectory `semantic-corpus/`, fixed name `device-recording.json`, overwriting. Write atomically (temp file then rename) so a half-run never leaves a truncated file that looks complete. Also emit ONE logcat line with numbers only (cases run, failures, total and median ms) and the absolute path of the file -- NO corpus text, prompt or model output in logcat (AGENTS.md #11).\n   g. If the process is interrupted mid-run, nothing partial should be mistaken for a full recording (atomic rename covers this).\n\n3. **Script** `scripts/semantic/run-device-corpus.sh` (bash, must work in Git Bash on Windows and on macOS/Linux; `set -euo pipefail`):\n   - Prints up front what it will do and roughly how long (about 45-50 sentences at roughly 6-7 s each = ~5-6 minutes, plus build/install).\n   - Requires exactly one device from `adb devices` (or honours `ANDROID_SERIAL` if set); with zero or several, stops with a clear message explaining how to pick one. Prints the device model (`ro.product.model`) and asks nothing interactively.\n   - Runs only the recorder: `./gradlew :app-phone:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.mcfrenchpants.activityledger.semantic.SemanticCorpusRecorderTest -Pandroid.testInstrumentationRunnerArguments.semanticCorpus=true` (verify this is the right property syntax for this AGP version; adjust if not and say so).\n   - Detects the skip (model not READY) and says so plainly rather than pretending success; never triggers a download.\n   - Pulls `/sdcard/Android/data/com.mcfrenchpants.activityledger/files/semantic-corpus/device-recording.json` (derive the path from the package; verify) to `core-testing/src/test/resources/semantic-corpus/recordings/device-latest.json`, only if the pull succeeds and the file parses as JSON with a non-empty entries list (use a cheap check, e.g. grep or node/python if available -- degrade gracefully).\n   - Then runs `./gradlew :core-testing:test --tests com.mcfrenchpants.activityledger.core.testing.corpus.SemanticRegressionGateTest` and tells the user where `device.md` is. A gate failure (baseline regression) must be reported as such, not swallowed.\n   - Idempotent; no destructive operation beyond overwriting device-latest.json; does not uninstall or clear app data.\n\n4. **Honesty about what ran.** A Pixel 10 Pro is NOT attached for this task. A DIFFERENT phone (a Motorola moto g 2025, the owner's other device) may be attached over USB: DO NOT install, run instrumented tests on, or otherwise touch ANY attached device -- no `connected*` tasks, no `adb install`, no `adb shell` beyond nothing. This task is COMPILE-ONLY: `./gradlew :app-phone:assembleDebugAndroidTest` and `./gradlew test`, plus `bash -n` on the script. Report plainly that the recorder was compiled, not executed. The first real run is a later orchestrator task.\n\nSTANDING RULES. ADR-023: no ML Kit import outside core-ai. No change to `app-phone/src/main` (no manifest permission, no production code), core-ai, core-domain, core-data, core-testing (if core-testing needs a change, report scope_change_requested). AGENTS.md #11: no corpus text, prompt or model output in logcat or console. ADR-031: no model download. ADR-029: foreground held. One interpret call per case.",
+  "non_goals": [
+    "Do not run anything on any device (compile-only; see objective item 4).",
+    "No stand-in/local model recorder (SR1.4).",
+    "No change to the corpus, the recording format, the replay or the gate (core-testing is read-only here).",
+    "No production code, manifest or permission change in app-phone.",
+    "No docs under docs/ (SR1.6).",
+    "Do not commit a device-latest.json or baseline.json.",
+    "Do not disable, @Ignore or weaken any existing test. Do not commit."
+  ],
+  "dependencies": ["SR1.2"],
+  "read_paths": [
+    "app-phone",
+    "core-testing",
+    "core-ai/src/main",
+    "core-domain",
+    "gradle/libs.versions.toml",
+    "build.gradle.kts",
+    "settings.gradle.kts",
+    "gradle.properties",
+    "docs/AI_INTERPRETATION_SPEC.md",
+    "docs/DECISIONS.md",
+    "docs/PLATFORM_REFERENCES.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "app-phone/src/androidTest",
+    "app-phone/build.gradle.kts",
+    "scripts/semantic"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    ".sdlc",
+    "agents",
+    ".claude",
+    "scripts/sdlc",
+    "docs/proposals",
+    "docs/sdlc",
+    "gradle/libs.versions.toml",
+    "build.gradle.kts",
+    "settings.gradle.kts",
+    "gradle.properties",
+    "app-phone/src/main",
+    "app-phone/src/test",
+    "core-domain",
+    "core-data",
+    "core-ai",
+    "core-testing",
+    "core-speech",
+    "core-wear-protocol",
+    "app-wear"
+  ],
+  "acceptance_criteria": [
+    "app-phone declares androidTestImplementation(project(\":core-testing\")); `./gradlew :app-phone:assembleDebugAndroidTest` succeeds; the corpus JSON resource is verified to be inside the built test APK (report the evidence).",
+    "SemanticCorpusRecorderTest is opt-in via instrumentation argument semanticCorpus=true and otherwise Assume-skips with instructions.",
+    "It Assume-skips naming the readiness state when not READY; there is no model download call anywhere in the diff.",
+    "MainActivity is held RESUMED for the whole loop; warmUp is called once before the first case; each case is interpreted exactly once with input from CorpusInterpretationInput.forCase and recorded via RecordingEntry.of, including failures.",
+    "Provenance is source DEVICE with Build.MODEL, the interpreter's provenance, corpusSha256 and recordedAt.",
+    "The recording is written atomically to the app's external files dir under semantic-corpus/device-recording.json; logcat receives only numbers and the file path -- grep of the diff finds no logging of corpus text, prompt or model output.",
+    "scripts/semantic/run-device-corpus.sh passes `bash -n`; handles zero/multiple devices and ANDROID_SERIAL; runs only the recorder class with the opt-in argument; detects the not-READY skip; validates before overwriting device-latest.json at core-testing/src/test/resources/semantic-corpus/recordings/; then runs SemanticRegressionGateTest and reports its result honestly.",
+    "No file outside write_paths changed; no app-phone/src/main change; no new manifest permission; no ML Kit import in app-phone.",
+    "`./gradlew test` passes; the report states plainly that the recorder was COMPILED, NOT EXECUTED, and that no device was touched."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:assembleDebugAndroidTest",
+    "./gradlew test",
+    "bash -n scripts/semantic/run-device-corpus.sh",
+    "git status --porcelain",
+    "git diff --stat"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

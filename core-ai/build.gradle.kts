@@ -60,3 +60,42 @@ dependencies {
     // kotlin.test.Test unresolved here. JUnit 4 arrives transitively with it.
     testImplementation(kotlin("test-junit"))
 }
+
+// ---- Semantic corpus STAND-IN recorder (opt-in, host-only) ---------------------------------
+//
+// core-ai's own unit tests may use core-testing (the semantic corpus and its recording format)
+// and the kotlinx JSON *library* -- test scope only. The serialization compiler plugin is
+// deliberately NOT applied here: the stand-in client builds and reads JSON with
+// Json.parseToJsonElement / buildJsonObject, which need no plugin.
+dependencies {
+    testImplementation(project(":core-testing"))
+    testImplementation(libs.kotlinx.serialization.json)
+}
+
+// StandInCorpusRecorderTest sends every corpus case to an open-source model served LOCALLY by
+// Ollama (loopback only) and writes a STAND_IN recording. It is opt-in: without
+// -PsemanticStandIn=true it Assume-skips and nothing contacts any server. Optional overrides:
+// -PsemanticStandIn.model=<ollama model>, -PsemanticStandIn.baseUrl=<loopback URL>.
+// Run it via scripts/semantic/run-standin-corpus.sh. Properties are read through
+// providers.gradleProperty so the configuration cache tracks them as inputs.
+val semanticStandInEnabled: Boolean =
+    providers.gradleProperty("semanticStandIn").orNull?.trim()?.equals("true", ignoreCase = true) == true
+val semanticStandInModel: String? = providers.gradleProperty("semanticStandIn.model").orNull
+val semanticStandInBaseUrl: String? = providers.gradleProperty("semanticStandIn.baseUrl").orNull
+val semanticStandInOutput: String = rootProject.layout.projectDirectory
+    .file("core-testing/src/test/resources/semantic-corpus/recordings/standin-latest.json")
+    .asFile.absolutePath
+
+tasks.withType<Test>().configureEach {
+    if (semanticStandInEnabled) {
+        systemProperty("semanticStandIn", "true")
+        systemProperty("semanticStandIn.output", semanticStandInOutput)
+        semanticStandInModel?.let { systemProperty("semanticStandIn.model", it) }
+        semanticStandInBaseUrl?.let { systemProperty("semanticStandIn.baseUrl", it) }
+        // A recording run talks to a live local model: never "up to date", never from cache.
+        outputs.upToDateWhen { false }
+        outputs.cacheIf { false }
+        // The recorder prints exactly one summary line (counts, timings, path); show it.
+        testLogging.showStandardStreams = true
+    }
+}

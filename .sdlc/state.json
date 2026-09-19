@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-18T03:07:01.000Z",
+  "updated_at": "2026-09-18T17:12:41.472Z",
   "work_items": [
     {
       "id": "SS1",
@@ -434,6 +434,149 @@
           "task_packet_path": ".sdlc/task-packets/AI1.6.packet.json",
           "report_path": null,
           "notes": "Done. Doc tier, orchestrator spot-check. ADR-025 amended; ADR-029..032."
+        }
+      ]
+    },
+    {
+      "id": "SR1",
+      "title": "Semantic regression corpus (backlog item 9)",
+      "lifecycle_state": "verifying",
+      "tasks": [
+        {
+          "id": "SR1.1",
+          "title": "Corpus format, loader and cases",
+          "status": "done",
+          "lifecycle_state": "verifying",
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/SR1.1.packet.json",
+          "report_path": null,
+          "notes": "Done, orchestrator spot-check. 48 cases, 3 catalogs (household, household-no-edge, empty). Added allowedResolutions (ambiguity accepts AMBIGUOUS or UNRESOLVED). One known resolver gap: time-mowed-saturday-morning (no weekday+part-of-day rule). Orchestrator bumped kotlinx-serialization 1.10.0 -> 1.11.0 (requires stdlib 2.3.20; implementer could not fetch Maven metadata)."
+        },
+        {
+          "id": "SR1.2",
+          "title": "Recording format, replay scorer, report, regression gate",
+          "status": "done",
+          "lifecycle_state": "verifying",
+          "dependencies": [
+            "SR1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/SR1.2.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier pass. Recording format v1 (SemanticRecording), CorpusInterpretationInput.forCase shared input builder, SemanticReplay through the real orchestrator, 4 classes NOT_RUN/CORRECT/SAFE_MISS/UNSAFE_MISS (+WRONG_NEW_NAME unsafe check), SemanticReport, gate SemanticRegressionGateTest (Assume-skips until recordings exist). Verifier note: a malformed recording's parse error message may echo recorded answer text in test output (synthetic data, low risk)."
+        },
+        {
+          "id": "SR1.3",
+          "title": "Device recorder and phone-session script",
+          "status": "done",
+          "lifecycle_state": "verifying",
+          "dependencies": [
+            "SR1.2"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/SR1.3.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier FAIL on criterion 9 only (device contact); orchestrator accepted the code. The implementer's fake-adb PATH shim broke on the Windows colon and its script ran the recorder 3x on the owner's USB-attached moto g 2025 (installed debug+test APKs, skipped at UNSUPPORTED_DEVICE, no model call/download/recording). Owner afterwards said that phone is available for testing. All other criteria met. Happy path (READY device, pull, validate, gate) unexercised until SR1.7."
+        },
+        {
+          "id": "SR1.4",
+          "title": "Stand-in recorder (local model)",
+          "status": "done",
+          "lifecycle_state": "verifying",
+          "dependencies": [
+            "SR1.2"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/SR1.4.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier pass. Ollama client (core-ai test source set) with loopback-only guard, NO_PROXY, no redirects; schema built reflectively from @Guide annotations; answers through the real InterpretationResponseDecoder; opt-in -PsemanticStandIn=true. Orchestrator added --noproxy to the script's curl check. Not yet run against a real model (Ollama not installed). Verifier notes: 'localhost' trusts hosts-file resolution; stdout shown for all core-ai test tasks in opt-in mode."
+        },
+        {
+          "id": "SR1.5",
+          "title": "Install stand-in, first stand-in recording",
+          "status": "done",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "SR1.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": "Done (orchestrator run). Owner moved the model to C:Devaimodels (blob sha256 verified); Ollama model-folder junction repointed there, old F: junction kept renamed as models.old-F-drive-link; user env OLLAMA_MODELS updated. First stand-in recording committed: 48/48 answered, 0 malformed; CORRECT 20, SAFE_MISS 20, UNSAFE_MISS 8; all HIGH confidence (17 of 20 safe misses STATE_MISSING). Ollama accepted the [\"string\",\"null\"] schema. Not official."
+        },
+        {
+          "id": "SR1.6",
+          "title": "Documentation",
+          "status": "done",
+          "lifecycle_state": "verifying",
+          "dependencies": [
+            "SR1.3",
+            "SR1.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/SR1.6.packet.json",
+          "report_path": null,
+          "notes": "Done, orchestrator spot-check. docs/SEMANTIC_CORPUS.md, ADR-033, TEST_STRATEGY s3, AI spec s19, PROJECT_STATUS, PLATFORM_REFERENCES, recordings README. Implementer corrected three orchestrator facts from the code: categories are SYNONYM 17 / NEAR_NEIGHBOUR 8 (not 18/9); stand-in STATE_MISSING is 17 of 20 (not 18); replay refuses a recording only on missing case ids or changed shortlist, a bare corpus-hash mismatch is replayed and flagged."
+        },
+        {
+          "id": "SR1.7",
+          "title": "First device recording and baseline",
+          "status": "done",
+          "lifecycle_state": "verifying",
+          "dependencies": [
+            "SR1.3",
+            "SR1.6"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 2
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": "Done 2026-09-18, orchestrator run on Pixel 10 Pro (USB). First attempt discarded: AICore BUSY (code 9, zero retry delay -> OTHER) after 20 back-to-back calls. Recorder now retries fast refusals (<1 s, OTHER/RETRYABLE) with backoff; verifier pass. Second run: 48/48 answered, 17 busy retries; CORRECT 32, SAFE_MISS 6, UNSAFE_MISS 10 (all HIGH confidence). baseline.json = the 32 correct ids. See docs/proposals/semantic-regression/RESULTS.md."
+        },
+        {
+          "id": "SR1.8",
+          "title": "Owner-accepted near matches in the corpus",
+          "status": "done",
+          "lifecycle_state": "verifying",
+          "dependencies": [
+            "SR1.7"
+          ],
+          "lease": {
+            "assigned_agent": "implementer",
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/SR1.8.packet.json",
+          "report_path": null,
+          "notes": "Done, verifier pass. allowedActivityIds field + scorer + integrity rules; three cases changed per owner review 2026-09-18. Device re-scored CORRECT 35 / SAFE_MISS 6 / UNSAFE_MISS 7; baseline.json 35 ids. corpus matches NO until next device run (expectations-only change)."
         }
       ]
     }

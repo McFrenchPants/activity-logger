@@ -12,6 +12,8 @@ No user-facing product behaviour has been implemented yet. Room schema v1 (backl
 
 The AI vertical slice (Step 4, work item AI1, `docs/proposals/ai-vertical-slice/`) is built and merged to `main` (2026-09-17): the Gemini Nano interpreter and capability check in `core-ai`, wired into the phone app through `CapturePipeline` (ARCHITECTURE.md §5, §13). It has passed **once** on a real device (Pixel 10 Pro, 2026-09-17): the hard-coded sentence "I cut the grass yesterday." was matched to an existing "Mow lawn" activity, dated to the previous day at date-only precision, auto-accepted and stored with its raw text intact (`docs/proposals/ai-vertical-slice/RESULTS.md`). That is one sentence, not evidence of general accuracy; accuracy is what the semantic regression corpus (Step 5) is for. Decisions from the device run: ADR-025 amended (the phone keeps `ACCESS_NETWORK_STATE`, still no `INTERNET`), ADR-029 (on-device AI only while the app is in the foreground), ADR-030 (one-shot interpretation, no repair loop), ADR-031 (model download only on explicit request), ADR-032 (no DI framework). There is still no user interface: capture is not yet possible by voice or by typing in the app.
 
+The semantic regression corpus (Step 5, work item SR1) is built on branch `feature/semantic-regression`, **not yet merged**: 48 synthetic cases, JVM replay of recorded model answers through the real pipeline, the regression gate, and two recorders -- one on the phone (official) and one against a local stand-in model (iteration only). See `docs/SEMANTIC_CORPUS.md` and ADR-033. The only recording so far is from the stand-in (`gemma3n:e4b` via Ollama, 2026-09-18): 20 correct, 20 safe misses, 8 unsafe misses of 48 -- **not official**. The first device recording, and the baseline written from it, are pending and need the Pixel 10 Pro.
+
 ## Completed
 
 - Product scope defined.
@@ -46,7 +48,7 @@ Recommended tasks:
    - hardcoded text input
    - Gemini Nano structured interpretation
    - Room persistence
-10. **Next:** Run seed semantic corpus (Step 5 — semantic regression: automate the seed corpus; do not move on until core synonym and near-neighbour cases are measurable). This is also where the provisional choices recorded in the vertical slice (confidence policy, schema-in-prompt, one-shot decoding) get measured.
+10. **In progress:** Run seed semantic corpus (Step 5 — semantic regression: automate the seed corpus; do not move on until core synonym and near-neighbour cases are measurable). This is also where the provisional choices recorded in the vertical slice (confidence policy, schema-in-prompt, one-shot decoding) get measured. Corpus, replay, gate and both recorders built on `feature/semantic-regression` (work item SR1, ADR-033; stand-in results only, not official). Remaining: the first device recording on the Pixel 10 Pro, and the baseline written from it.
 11. Then add actual voice capture and Wear OS transport.
 
 The technical spike is not a throwaway architecture. It is a vertical validation of the intended MVP stack.

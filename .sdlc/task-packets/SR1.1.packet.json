@@ -1,0 +1,72 @@
+{
+  "task_id": "SR1.1",
+  "plan_revision": "cad43e1",
+  "objective": "Create the machine-readable semantic regression corpus for this Android activity-logging app, and the Kotlin model + loader that reads it. This is test infrastructure: no production behaviour changes anywhere.\n\nCONTEXT. The app turns a short sentence (\"I cut the grass yesterday.\") into a logged activity. The pipeline (all built and tested) is: `CandidateSelector` (core-domain, `select(catalog: List<CatalogActivity>, rawText): CandidateSelection`, bound `CandidateSelector.DEFAULT_BOUND` = 40) picks which existing activities to offer the on-device model; the model returns an `InterpretationCandidate` (core-domain `interpretation/InterpretationTypes.kt`: operation, activityResolution EXISTING_ACTIVITY/NEW_ACTIVITY/AMBIGUOUS/UNRESOLVED, matchedActivityId, proposedCanonicalName, activityState COMPLETED/IN_PROGRESS or null, temporalExpression = the user's own time words, confidenceBand); `TemporalResolver` (core-domain `temporal/`) deterministically turns the time words into an Instant + `TimePrecision`; `InterpretationValidator` decides auto-accept vs review; `CaptureInterpretationOrchestrator` runs all of that and returns `AutoAccepted` / `NeedsReview(reasons)` / `Rejected(reasons)` / `InterpreterUnavailable`. `CatalogActivity(id, displayName, normalizedName, normalizedAliases, lastOccurredAt)` is in core-domain `repository/RepositoryTypes.kt`; `NameNormalizer` in core-domain `naming/` produces the normalized forms.\n\nLater tasks (not this one) will (a) run every case through the real model on a phone and record its answers, (b) run it through a local stand-in model, and (c) replay recorded answers through the real orchestrator on the JVM and score them. So this corpus must be loadable from the CLASSPATH by: core-testing's own tests, an app-phone instrumented test (Android), and a core-ai host test. Put it at `core-testing/src/main/resources/semantic-corpus/corpus.json`.\n\nBUILD:\n\n1. **JSON library.** Add kotlinx.serialization (JSON) to `gradle/libs.versions.toml`: the runtime library, and the `org.jetbrains.kotlin.plugin.serialization` Gradle plugin whose version is the existing `kotlin` version ref (2.3.21 -- Kotlin MUST NOT move off 2.3.x; see the catalog header). Verify the kotlinx-serialization-json version against Maven Central (e.g. fetch https://repo1.maven.org/maven2/org/jetbrains/kotlinx/kotlinx-serialization-json/maven-metadata.xml) and pick the newest release compatible with Kotlin 2.3.21 -- do not recall it from memory; state in your report what you checked. Declare the plugin `apply false` in the root `build.gradle.kts` next to the others, and apply it in `core-testing/build.gradle.kts` only. Expose the JSON library from core-testing as `api` only if a public signature needs it; otherwise `implementation`.\n\n2. **Corpus model + loader** in `core-testing/src/main/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/`. `@Serializable` types for the corpus, a loader `SemanticCorpus.load(): SemanticCorpus` reading the classpath resource, a stable corpus hash (SHA-256 hex of the resource bytes) for later recordings to reference, and `catalogFor(case): List<CatalogActivity>` building the catalog with the fixture's FIXED ids (e.g. \"act-mow-lawn\"), normalized via `NameNormalizer`, `lastOccurredAt = null`. Keep the model plain and documented; later tasks build on it.\n\n3. **Corpus shape.** Named catalog fixtures (reusable, fixed ids, display names, optional aliases) plus cases. Each case carries TEST_STRATEGY section 3 fields: `id` (stable, kebab-case), `category` (SYNONYM, NEAR_NEIGHBOUR, NEW_ACTIVITY, TEMPORAL, AMBIGUITY, STATE -- add others only if needed), `catalog` (fixture name), `rawText`, `capturedAt` (ISO offset datetime) and `zoneId`, and `expected`: `resolution`; `activityId` (catalog id) for EXISTING_ACTIVITY or `newActivityName` for NEW_ACTIVITY (plus `allowedNewNames` alternatives, compared after NameNormalizer); `state` with allowed alternatives (a sentence that does not say may legitimately yield null OR COMPLETED -- model that as a set); `temporalExpression` with `allowedTemporalExpressions` (null means the sentence gives no time); `resolvedLocalDate` + `precision` where a time is given; `mustNotMatch` (catalog ids); `outcome` = AUTO_ACCEPT or NEEDS_REVIEW. Optional `note` explaining why, for anything non-obvious.\n\n   Expected values are the CORRECT PRODUCT BEHAVIOUR, not what any current model does. Principles (from the product spec): prefer an existing equivalent activity; never merge merely-related activities (a false merge corrupts history); new activity names are short, verb-first, one concept; copy the user's time words, never compute; when unclear, go to review rather than guess -- aggressive guessing is never rewarded.\n\n4. **Cases (~40-50).** Use the fixed capture context 2026-09-15T20:00:00-04:00 / America/Detroit for all cases unless a case needs otherwise (2026-09-15 is a Tuesday). Must include, verbatim:\n   - TEST_STRATEGY section 4 seed: Mow lawn equivalents \"I mowed the lawn.\", \"I cut the grass.\", \"Finished mowing.\", \"Just mowed.\", \"I did the grass.\", \"The lawn is cut.\"; Edge lawn distinct \"I edged the lawn.\", \"Finished edging.\", \"Did the lawn edges.\" (must not match Mow lawn); furnace filter \"Changed the furnace filter.\", \"Replaced the HVAC filter.\", \"Put a new filter in the furnace.\", \"Swapped the air filter.\"; gutters \"Cleaned the gutters.\", \"Cleared leaves out of the gutters.\", \"Did the gutters.\"; dryer vent \"Cleaned the dryer vent.\", \"Cleared lint out of the dryer pipe.\"; plus generic dryer phrasing (e.g. \"Cleaned the dryer.\") that must NOT auto-accept Clean dryer vent.\n   - TEST_STRATEGY section 5 temporal: \"Mowed yesterday.\", \"Mowed this morning.\", \"Mowed Saturday.\", \"Mowed about an hour ago.\", \"Just finished mowing.\", \"Mowed on September 1st.\"\n   - TEST_STRATEGY section 6 ambiguity: \"Worked on the yard.\", \"Did the furnace thing.\", \"Handled the filter.\", \"Fixed that thing outside.\" -- all NEEDS_REVIEW, none may auto-accept anything.\n   - AGENTS.md section 6: \"cut the grass\" matches Mow lawn (not a new activity); \"edged the lawn\" must not map to Mow lawn; \"changed the furnace filter yesterday\" resolves to yesterday, not today.\n   - Near neighbours from the prompt's worked examples: raked leaves vs Blow leaves; washed the car vs Wax car -- with catalogs that make the point (neighbour present, equivalent absent => new activity, must not match the neighbour).\n   - Edging against a catalog that has Mow lawn but NOT Edge lawn => NEW_ACTIVITY (name like \"Edge lawn\"), must not match Mow lawn. And edging against a catalog that has both => EXISTING Edge lawn.\n   - New activity: e.g. \"Flushed the water heater.\" against a catalog without it; and one case against an EMPTY catalog.\n   - State: completed vs in progress (\"I'm mowing now.\" => IN_PROGRESS).\n   Design the catalog fixtures yourself (e.g. a standard household catalog of ~8-10 activities, a variant without Edge lawn, an empty one); keep each within the selector bound so every activity is offered.\n\n5. **Corpus integrity tests** in `core-testing/src/test/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/`:\n   a. Loads; case ids unique; every catalog reference exists; every activityId / mustNotMatch id exists in that case's catalog; each catalog within `CandidateSelector.DEFAULT_BOUND`; EXISTING_ACTIVITY cases have an activityId, NEW_ACTIVITY cases a newActivityName; AMBIGUITY cases expect NEEDS_REVIEW.\n   b. Presence: every sentence listed in item 4's TEST_STRATEGY and AGENTS.md bullets appears (list them in the test; match case-insensitively on the sentence text; AGENTS.md phrases may be embedded in a longer sentence).\n   c. Deterministic temporal check (hard): for every case with an expected temporalExpression, `TemporalResolver().resolve(expr, capturedAt, zone)` gives the expected local date (in the case's zone) and precision. Where the resolver's actual behaviour differs from the product-correct expectation, DO NOT change the resolver and DO NOT bend the expectation: mark the case with a `knownResolverGap` field describing the difference, and have the test assert that the set of gap cases is EXACTLY the marked set (so a later resolver fix, or a new regression, both fail the test loudly and visibly). Report each gap.\n   d. `catalogFor` yields the fixed ids and NameNormalizer-normalized names.\n\nSTANDING RULES. Test infrastructure only. No change to core-domain, core-data, core-ai, app-phone, app-wear, or any production code; needing one is `scope_change_requested`. No logging/printing of corpus text from tests beyond assertion messages. Kotlin stays 2.3.21.",
+  "non_goals": [
+    "No recording format, replay, scoring or report (SR1.2).",
+    "No device test, no stand-in model runner, no scripts (SR1.3, SR1.4).",
+    "No query corpus (TEST_STRATEGY section 7) -- needs the not-yet-built query interpreter.",
+    "Do not change TemporalResolver, CandidateSelector, the validator, the prompt or any production code, even to make a case pass.",
+    "No documentation files under docs/ (SR1.6).",
+    "Do not disable, @Ignore or weaken any existing test. Do not commit."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "core-testing",
+    "core-domain",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/InterpretationPrompt.kt",
+    "gradle/libs.versions.toml",
+    "build.gradle.kts",
+    "settings.gradle.kts",
+    "docs/TEST_STRATEGY.md",
+    "docs/AI_INTERPRETATION_SPEC.md",
+    "docs/DOMAIN_MODEL.md",
+    "docs/DECISIONS.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "core-testing/src",
+    "core-testing/build.gradle.kts",
+    "gradle/libs.versions.toml",
+    "build.gradle.kts"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    ".sdlc",
+    "agents",
+    ".claude",
+    "scripts",
+    "docs/proposals",
+    "docs/sdlc",
+    "settings.gradle.kts",
+    "gradle.properties",
+    "core-domain",
+    "core-data",
+    "core-ai",
+    "core-speech",
+    "core-wear-protocol",
+    "app-phone",
+    "app-wear"
+  ],
+  "acceptance_criteria": [
+    "kotlinx-serialization JSON library and the serialization plugin are in the version catalog; the plugin's version is the existing kotlin ref (2.3.21); the library version was verified against Maven Central (report says how); plugin declared apply-false in root build.gradle.kts and applied only in core-testing.",
+    "core-testing/src/main/resources/semantic-corpus/corpus.json exists and loads via a classpath loader in package com.mcfrenchpants.activityledger.core.testing.corpus; a stable SHA-256 corpus hash is exposed.",
+    "Every case has id, category, catalog ref, rawText, capturedAt, zoneId and an expected block with resolution, activityId or newActivityName (+ allowed alternatives), allowed states, temporal expression + allowed alternatives + resolved local date + precision where a time is given, mustNotMatch, and outcome.",
+    "Corpus integrity test enforces: unique ids, valid catalog refs, every referenced activity id exists in its catalog, every catalog within CandidateSelector.DEFAULT_BOUND, resolution/field consistency, AMBIGUITY => NEEDS_REVIEW.",
+    "Presence test proves every TEST_STRATEGY section 4/5/6 sentence and the three AGENTS.md section 6 examples are in the corpus; near-neighbour, new-activity (incl. empty catalog), edging-without-Edge-lawn, generic dryer and in-progress cases exist.",
+    "Deterministic temporal test asserts TemporalResolver's local date and precision for every case with a time expression; any resolver gap is marked knownResolverGap on the case, the test asserts the gap set equals the marked set exactly, and the report lists each gap. TemporalResolver is unchanged.",
+    "catalogFor returns CatalogActivity entries with the fixture's fixed ids and NameNormalizer-normalized name/aliases.",
+    "No file outside write_paths changed (git status); no production module changed.",
+    "`./gradlew :core-testing:test` and `./gradlew test` pass."
+  ],
+  "verification_commands": [
+    "./gradlew :core-testing:test",
+    "./gradlew test",
+    "git status --porcelain",
+    "git diff --stat"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

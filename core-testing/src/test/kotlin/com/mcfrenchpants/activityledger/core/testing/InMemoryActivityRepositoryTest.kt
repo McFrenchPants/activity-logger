@@ -272,4 +272,19 @@ class InMemoryActivityRepositoryTest {
         repo.applyCorrection(occurrenceId, CorrectionChanges(ActivityTarget.New("Other"), captured.minusSeconds(5), TimePrecision.APPROXIMATE, ActivityState.IN_PROGRESS), CorrectionSource.USER, "r", now)
         assertEvidence()
     }
+
+    @Test
+    fun `seedActivity accepts an explicit id and keeps generated ids unchanged`() = runSuspend {
+        val fixed = repo.seedActivity("Mow lawn", aliases = listOf("Cut Grass"), id = "act-mow-lawn")
+        assertEquals("act-mow-lawn", fixed)
+        assertEquals("activity-1", repo.seedActivity("Edge lawn"))
+        val view = assertNotNull(repo.getActivity("act-mow-lawn"))
+        assertEquals("mow lawn", view.normalizedName)
+        assertEquals(CanonicalActivityStatus.ACTIVE, view.status)
+        assertEquals(listOf("cut grass"), repo.loadCatalog().first { it.id == "act-mow-lawn" }.normalizedAliases)
+        assertEquals(0, repo.writeCount)
+        assertFailsWith<IllegalArgumentException> { repo.seedActivity("Again", id = "act-mow-lawn") }
+        assertFailsWith<IllegalArgumentException> { repo.seedActivity("Blank", id = " ") }
+        assertEquals(2, repo.activities.size)
+    }
 }

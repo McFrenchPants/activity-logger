@@ -1,0 +1,69 @@
+{
+  "task_id": "SR1.6",
+  "plan_revision": "0d33935",
+  "objective": "Write the documentation for the semantic regression corpus (work item SR1). Documentation only: no code, no test, no script, no corpus change. Read the code and existing docs to get facts right; do not invent numbers or behaviour.\n\nWHAT EXISTS (read it, it is the source of truth):\n- Corpus: `core-testing/src/main/resources/semantic-corpus/corpus.json` (48 cases: synonym 18, near-neighbour 9, new-activity 4, temporal 11, ambiguity 5, state 3; catalogs household, household-no-edge, empty; fixed capture context 2026-09-15T20:00:00-04:00 America/Detroit). Model + loader + recording format in `core-testing/src/main/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/` (see `SemanticRecording.kt` header). Corpus-integrity tests, temporal hard-assertion test (with the pinned known resolver gap: 'Mowed Saturday morning.' is Unresolvable, should be 2026-09-12 APPROXIMATE), replay scorer, report and gate in `core-testing/src/test/kotlin/.../core/testing/corpus/` (`SemanticRegressionGateTest`). Recordings dir + README: `core-testing/src/test/resources/semantic-corpus/recordings/` (device-latest.json, baseline.json, standin-latest.json; only standin-latest.json exists today).\n- Outcome classes: NOT_RUN, CORRECT, SAFE_MISS (went to review / unresolved when it should have been auto-accepted; nothing wrong saved), UNSAFE_MISS (something wrong auto-accepted: wrong or must-not-match activity, wrong date, ambiguous sentence auto-accepted, wrong new name). Unsafe misses are the headline number. Verify the exact definitions against the scorer code.\n- Device recorder `app-phone/src/androidTest/.../semantic/SemanticCorpusRecorderTest.kt` (opt-in runner arg semanticCorpus=true; skips unless the model is READY; holds MainActivity in the foreground per ADR-029; one interpret call per case, no retries; never downloads the model) and `scripts/semantic/run-device-corpus.sh` (exit codes 0 ok / 1 error / 2 model not ready / 3 gate failed; pulls to recordings/device-latest.json then replays). Read the script header for exact usage.\n- Stand-in recorder in `core-ai/src/test/.../semantic/` (StandInCorpusRecorderTest, OllamaStandInClient, StandInSchema; opt-in -PsemanticStandIn=true, optional -PsemanticStandIn.model / -PsemanticStandIn.baseUrl; loopback only) and `scripts/semantic/run-standin-corpus.sh` (never installs or pulls; MODEL env var). Read the script header for exact usage.\n- Reports: `core-testing/build/reports/semantic-corpus/{device,standin}.md`.\n- Gate: baseline.json lists case ids that were correct in the accepted DEVICE recording; replay of device-latest.json fails the build if any baseline case is not correct. Stand-in never gates. Missing recordings -> skip.\n- First stand-in result (2026-09-18, Ollama 0.34.2, model gemma3n:e4b, Q4_K_M, 6.9B params, digest 15cb39fd9394fd2549f6df9081cfc84dd134ecf2c9c5be911e5629920489ac32, on an RTX 4070 Laptop GPU 8 GB): 48/48 answered, 0 malformed; CORRECT 20, SAFE_MISS 20, UNSAFE_MISS 8; every answer HIGH confidence; 18 of 20 safe misses are STATE_MISSING (model left state null). NOT official. No device recording exists yet; the first one is the next task (SR1.7) and needs the owner's Pixel 10 Pro.\n\nWRITE:\n1. NEW `docs/SEMANTIC_CORPUS.md`: what the corpus is and why the pipeline is split (record the model's answer once, on the phone or with the local stand-in; replay everything downstream on the PC JVM every build, through the REAL orchestrator/selector/resolver/validator); where each file lives; the case fields; the outcome classes; the regression gate and baseline (who writes baseline.json and when: a human, from a reviewed device run); how to add a case following AGENTS.md section 6 (add failing case, reproduce, fix, verify, document) including that corpus.json is LF-only and changing it changes the corpus hash, which makes existing recordings stale so replay refuses them until re-recorded (verify this against the replay code); how to run the phone session (prereqs: Wi-Fi ADB to the Pixel 10 Pro, model READY, app in foreground; expected duration from the script) and the stand-in (install Ollama and pull the model yourself; the script never installs); how to read the report; privacy (synthetic text only, never real captures; no corpus text or model output in logs/console; stand-in loopback only); the stand-in is never the official measurement. Short, plain, precise; it is for developers/agents.\n2. `docs/TEST_STRATEGY.md` section 3: keep the existing field list, add a short paragraph that the corpus is implemented and point at docs/SEMANTIC_CORPUS.md.\n3. `docs/DECISIONS.md`: append ADR-033 in the same format as ADR-030..032 (Status: Accepted (shape approved by owner 2026-09-17; recorded 2026-09-18)). Decision: semantic accuracy is measured by a record-and-replay split at the model call; the device recording is the only official measurement; a local stand-in model (Ollama, Gemma 3n) is allowed for iteration but never gates and is always labelled; the regression gate is a human-written baseline of case ids from a reviewed device run; recordings are refused when stale against the corpus. Reason: Gemini Nano runs only on the phone, only in the foreground, the phone is rarely available, and there is no emulator path. Include a revisit condition.\n4. `docs/AI_INTERPRETATION_SPEC.md` section 19: replace the sentence 'The semantic regression corpus (Step 5) does not exist yet, so no prompt version has been measured against it.' with the current truth: the corpus exists (link SEMANTIC_CORPUS.md); prompt version 2 has been measured only against the stand-in (numbers above, labelled not official); no device measurement yet. Add that a material prompt change means re-recording (device; stand-in for iteration only) and comparing reports.\n5. `docs/PROJECT_STATUS.md`: in Overall status add a short paragraph on SR1 (corpus, replay, gate and both recorders built on branch feature/semantic-regression, not yet merged; stand-in numbers not official; first device recording pending). In Next milestone item 10, mark it in progress with the remaining step (first device recording + baseline). Mention ADR-033 where ADRs are listed if natural. Do not rewrite unrelated sections.\n6. `docs/PLATFORM_REFERENCES.md`: add a section 'Local stand-in model (semantic corpus only)' before 'Baseline date' with https://ollama.com, the API docs https://github.com/ollama/ollama/blob/main/docs/api.md, the model page https://ollama.com/library/gemma3n, the pinned runtime/model versions and digest above, 'verified 2026-09-18', and key-relevance bullets (structured output via a JSON-schema `format`; greedy settings; never shipped in the app, never official).\n7. `core-testing/src/test/resources/semantic-corpus/recordings/README.md`: add one line pointing to docs/SEMANTIC_CORPUS.md (only this edit there).\n\nSTYLE: match each doc's existing tone and formatting; no emojis; relative links. Refer to ADRs the way the other docs do. Do not change any code.\n\nDEVICE SAFETY: a phone may be attached over USB. This task needs no device: never run adb, any connected* Gradle task, or scripts/semantic/*.sh.",
+  "non_goals": [
+    "No code, test, script, build or corpus change.",
+    "No change to BACKLOG.md, PROGRESS.md, docs/proposals, .sdlc, CLAUDE.md, AGENTS.md.",
+    "Do not write RESULTS.md or baseline.json (SR1.7).",
+    "Never run adb, a connected* task, or scripts/semantic/*.sh. Do not commit."
+  ],
+  "dependencies": ["SR1.3", "SR1.4"],
+  "read_paths": [
+    "docs",
+    "AGENTS.md",
+    "core-testing",
+    "core-ai/src/test",
+    "core-ai/src/main",
+    "core-ai/build.gradle.kts",
+    "app-phone/src/androidTest",
+    "scripts/semantic"
+  ],
+  "write_paths": [
+    "docs/SEMANTIC_CORPUS.md",
+    "docs/TEST_STRATEGY.md",
+    "docs/DECISIONS.md",
+    "docs/AI_INTERPRETATION_SPEC.md",
+    "docs/PROJECT_STATUS.md",
+    "docs/PLATFORM_REFERENCES.md",
+    "core-testing/src/test/resources/semantic-corpus/recordings/README.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".sdlc",
+    "agents",
+    ".claude",
+    "scripts",
+    "docs/proposals",
+    "docs/sdlc",
+    "core-testing/src/main",
+    "core-testing/src/test/kotlin",
+    "core-ai",
+    "core-domain",
+    "core-data",
+    "app-phone",
+    "app-wear",
+    "gradle",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "acceptance_criteria": [
+    "docs/SEMANTIC_CORPUS.md exists and covers: purpose and record/replay split, file locations, case fields, outcome classes, gate and baseline, adding a case per AGENTS.md section 6 (incl. corpus hash / stale recordings), running the phone session and the stand-in, reading the report, privacy, stand-in never official.",
+    "TEST_STRATEGY section 3 points at docs/SEMANTIC_CORPUS.md without losing its field list.",
+    "ADR-033 appended to docs/DECISIONS.md in the existing ADR format, covering record-and-replay, device-only official, stand-in never gates, human baseline gate, stale recordings refused.",
+    "AI spec section 19 no longer says the corpus does not exist; states prompt v2 measured only against the stand-in (20 correct / 20 safe miss / 8 unsafe miss, not official), no device measurement yet.",
+    "PROJECT_STATUS reflects SR1 built on the feature branch, stand-in results not official, device recording + baseline pending.",
+    "PLATFORM_REFERENCES has the stand-in section with Ollama 0.34.2, gemma3n:e4b Q4_K_M, digest, links and verification date.",
+    "Every fact about commands, flags, paths, exit codes and class names matches the code/scripts (checked by reading them).",
+    "Only the seven write_paths changed; `git diff --stat` lists only those files."
+  ],
+  "verification_commands": [
+    "git status --porcelain",
+    "git diff --stat"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

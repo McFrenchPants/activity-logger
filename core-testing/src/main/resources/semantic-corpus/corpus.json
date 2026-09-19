@@ -1,0 +1,1497 @@
+{
+  "schemaVersion": 1,
+  "description": "Semantic regression corpus. Expected values are the correct product behaviour, not what any model currently does. Test infrastructure only.",
+  "catalogs": {
+    "household": {
+      "description": "Standard household catalog: ten active activities including the seed-corpus targets and the near-neighbours Edge lawn, Blow leaves, Wax car and Replace fridge water filter.",
+      "activities": [
+        {
+          "id": "act-mow-lawn",
+          "displayName": "Mow lawn",
+          "aliases": []
+        },
+        {
+          "id": "act-edge-lawn",
+          "displayName": "Edge lawn",
+          "aliases": []
+        },
+        {
+          "id": "act-replace-furnace-filter",
+          "displayName": "Replace furnace filter",
+          "aliases": []
+        },
+        {
+          "id": "act-clean-gutters",
+          "displayName": "Clean gutters",
+          "aliases": []
+        },
+        {
+          "id": "act-clean-dryer-vent",
+          "displayName": "Clean dryer vent",
+          "aliases": []
+        },
+        {
+          "id": "act-blow-leaves",
+          "displayName": "Blow leaves",
+          "aliases": [
+            "Leaf blowing"
+          ]
+        },
+        {
+          "id": "act-wax-car",
+          "displayName": "Wax car",
+          "aliases": []
+        },
+        {
+          "id": "act-replace-fridge-water-filter",
+          "displayName": "Replace fridge water filter",
+          "aliases": [
+            "Change fridge filter"
+          ]
+        },
+        {
+          "id": "act-water-garden",
+          "displayName": "Water garden",
+          "aliases": []
+        },
+        {
+          "id": "act-take-out-trash",
+          "displayName": "Take out trash",
+          "aliases": [
+            "Trash day"
+          ]
+        }
+      ]
+    },
+    "household-no-edge": {
+      "description": "The household catalog without Edge lawn: edging has no equivalent and Mow lawn is the tempting wrong match.",
+      "activities": [
+        {
+          "id": "act-mow-lawn",
+          "displayName": "Mow lawn",
+          "aliases": []
+        },
+        {
+          "id": "act-replace-furnace-filter",
+          "displayName": "Replace furnace filter",
+          "aliases": []
+        },
+        {
+          "id": "act-clean-gutters",
+          "displayName": "Clean gutters",
+          "aliases": []
+        },
+        {
+          "id": "act-clean-dryer-vent",
+          "displayName": "Clean dryer vent",
+          "aliases": []
+        },
+        {
+          "id": "act-blow-leaves",
+          "displayName": "Blow leaves",
+          "aliases": [
+            "Leaf blowing"
+          ]
+        },
+        {
+          "id": "act-wax-car",
+          "displayName": "Wax car",
+          "aliases": []
+        },
+        {
+          "id": "act-replace-fridge-water-filter",
+          "displayName": "Replace fridge water filter",
+          "aliases": [
+            "Change fridge filter"
+          ]
+        },
+        {
+          "id": "act-water-garden",
+          "displayName": "Water garden",
+          "aliases": []
+        },
+        {
+          "id": "act-take-out-trash",
+          "displayName": "Take out trash",
+          "aliases": [
+            "Trash day"
+          ]
+        }
+      ]
+    },
+    "empty": {
+      "description": "No activities at all (first use of the app).",
+      "activities": []
+    }
+  },
+  "cases": [
+    {
+      "id": "mow-i-mowed-the-lawn",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "I mowed the lawn.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-edge-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "mow-i-cut-the-grass",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "I cut the grass.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-edge-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "AGENTS.md section 6: 'cut the grass' must match Mow lawn, never create a new activity."
+    },
+    {
+      "id": "mow-finished-mowing",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Finished mowing.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-edge-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "mow-just-mowed",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Just mowed.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "just",
+        "allowedTemporalExpressions": [
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "mustNotMatch": [
+          "act-edge-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "'just' is the time wording; leaving it empty is equally correct because both resolve to the capture instant."
+    },
+    {
+      "id": "mow-i-did-the-grass",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "I did the grass.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-edge-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "TEST_STRATEGY section 4 lists this as a Mow lawn equivalent: 'doing the grass' is mowing."
+    },
+    {
+      "id": "mow-the-lawn-is-cut",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "The lawn is cut.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-edge-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "Passive result sentence; it states the activity is done, so COMPLETED."
+    },
+    {
+      "id": "edge-i-edged-the-lawn",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household",
+      "rawText": "I edged the lawn.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-edge-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-mow-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "AGENTS.md section 6: edging is not mowing."
+    },
+    {
+      "id": "edge-finished-edging",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household",
+      "rawText": "Finished edging.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-edge-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-mow-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "edge-did-the-lawn-edges",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household",
+      "rawText": "Did the lawn edges.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-edge-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-mow-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "edge-no-edge-catalog-i-edged-the-lawn",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household-no-edge",
+      "rawText": "I edged the lawn.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "NEW_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": null,
+        "allowedActivityIds": [],
+        "newActivityName": "Edge lawn",
+        "allowedNewNames": [
+          "Edge the lawn"
+        ],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-mow-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "Edge lawn is not in this catalog; Mow lawn is related, not equivalent, so the correct answer is a new activity."
+    },
+    {
+      "id": "edge-no-edge-catalog-finished-edging",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household-no-edge",
+      "rawText": "Finished edging.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "NEW_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": null,
+        "allowedActivityIds": [],
+        "newActivityName": "Edge lawn",
+        "allowedNewNames": [
+          "Edge the lawn"
+        ],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-mow-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "As above; 'Finished' is completion status and must not appear in the name."
+    },
+    {
+      "id": "furnace-changed-the-furnace-filter",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Changed the furnace filter.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-replace-furnace-filter",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-replace-fridge-water-filter"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "furnace-replaced-the-hvac-filter",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Replaced the HVAC filter.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-replace-furnace-filter",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-replace-fridge-water-filter"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "furnace-put-a-new-filter-in-the-furnace",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Put a new filter in the furnace.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-replace-furnace-filter",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-replace-fridge-water-filter"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "furnace-swapped-the-air-filter",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Swapped the air filter.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-replace-furnace-filter",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-replace-fridge-water-filter"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "In a house the air filter is the furnace/HVAC filter; the fridge filter is a water filter."
+    },
+    {
+      "id": "gutters-cleaned-the-gutters",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Cleaned the gutters.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-clean-gutters",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "gutters-cleared-leaves-out-of-the-gutters",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Cleared leaves out of the gutters.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-clean-gutters",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-blow-leaves"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "Mentions leaves, but the activity is gutter cleaning, not leaf blowing."
+    },
+    {
+      "id": "gutters-did-the-gutters",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Did the gutters.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-clean-gutters",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "dryer-vent-cleaned-the-dryer-vent",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Cleaned the dryer vent.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-clean-dryer-vent",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "dryer-vent-cleared-lint-out-of-the-dryer-pipe",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Cleared lint out of the dryer pipe.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-clean-dryer-vent",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "The dryer pipe is the vent duct."
+    },
+    {
+      "id": "dryer-generic-cleaned-the-dryer",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Cleaned the dryer.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [
+          "AMBIGUOUS",
+          "UNRESOLVED"
+        ],
+        "activityId": "act-clean-dryer-vent",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "Generic dryer phrasing. The owner (2026-09-18) accepts Clean dryer vent as the match for this sentence. Asking the user (AMBIGUOUS or UNRESOLVED, i.e. review) is still acceptable and scores as a safe miss."
+    },
+    {
+      "id": "dryer-emptied-the-lint-trap",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household",
+      "rawText": "Emptied the dryer lint trap.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "NEW_ACTIVITY",
+        "allowedResolutions": [
+          "EXISTING_ACTIVITY"
+        ],
+        "activityId": null,
+        "allowedActivityIds": [
+          "act-clean-dryer-vent"
+        ],
+        "newActivityName": "Empty dryer lint trap",
+        "allowedNewNames": [
+          "Empty lint trap",
+          "Clean lint trap",
+          "Clean dryer lint trap"
+        ],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "The owner (2026-09-18) accepts Clean dryer vent as a match (lint trap and vent logged as one activity). A new lint-trap activity is also correct."
+    },
+    {
+      "id": "leaves-raked-the-leaves",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household",
+      "rawText": "Raked the leaves.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "NEW_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": null,
+        "allowedActivityIds": [],
+        "newActivityName": "Rake leaves",
+        "allowedNewNames": [
+          "Rake the leaves"
+        ],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-blow-leaves"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "Raking is not leaf blowing; Blow leaves is present, Rake leaves is not, so this is a new activity."
+    },
+    {
+      "id": "leaves-blew-leaves-off-the-driveway",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Blew leaves off the driveway.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-blow-leaves",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "Positive control for the raking case."
+    },
+    {
+      "id": "car-washed-the-car",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household",
+      "rawText": "Washed the car.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "NEW_ACTIVITY",
+        "allowedResolutions": [
+          "EXISTING_ACTIVITY"
+        ],
+        "activityId": null,
+        "allowedActivityIds": [
+          "act-wax-car"
+        ],
+        "newActivityName": "Wash car",
+        "allowedNewNames": [
+          "Wash the car"
+        ],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "The owner (2026-09-18) accepts Wax car as a match (washing and waxing the car logged as one activity). A new 'Wash car' activity is also correct."
+    },
+    {
+      "id": "car-waxed-the-car",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Waxed the car.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-wax-car",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "Positive control for the washing case."
+    },
+    {
+      "id": "new-flushed-the-water-heater",
+      "category": "NEW_ACTIVITY",
+      "catalog": "household",
+      "rawText": "Flushed the water heater.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "NEW_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": null,
+        "allowedActivityIds": [],
+        "newActivityName": "Flush water heater",
+        "allowedNewNames": [
+          "Flush the water heater",
+          "Drain water heater"
+        ],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "The prompt's own worked example of a good new name."
+    },
+    {
+      "id": "new-replaced-smoke-detector-batteries",
+      "category": "NEW_ACTIVITY",
+      "catalog": "household",
+      "rawText": "Replaced the smoke detector batteries.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "NEW_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": null,
+        "allowedActivityIds": [],
+        "newActivityName": "Replace smoke detector batteries",
+        "allowedNewNames": [
+          "Change smoke detector batteries",
+          "Replace smoke alarm batteries"
+        ],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "new-empty-catalog-changed-the-furnace-filter",
+      "category": "NEW_ACTIVITY",
+      "catalog": "empty",
+      "rawText": "Changed the furnace filter.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "NEW_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": null,
+        "allowedActivityIds": [],
+        "newActivityName": "Replace furnace filter",
+        "allowedNewNames": [
+          "Change furnace filter",
+          "Change the furnace filter",
+          "Replace the furnace filter"
+        ],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "Empty catalog: there is nothing to match and no id to copy."
+    },
+    {
+      "id": "new-empty-catalog-mowed-the-lawn",
+      "category": "NEW_ACTIVITY",
+      "catalog": "empty",
+      "rawText": "Mowed the lawn.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "NEW_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": null,
+        "allowedActivityIds": [],
+        "newActivityName": "Mow lawn",
+        "allowedNewNames": [
+          "Mow the lawn"
+        ],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "time-mowed-yesterday",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Mowed yesterday.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "yesterday",
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": "2026-09-14",
+        "precision": "DATE_ONLY",
+        "mustNotMatch": [
+          "act-edge-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "time-mowed-this-morning",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Mowed this morning.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "this morning",
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "APPROXIMATE",
+        "mustNotMatch": [
+          "act-edge-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "time-mowed-saturday",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Mowed Saturday.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "Saturday",
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": "2026-09-12",
+        "precision": "DATE_ONLY",
+        "mustNotMatch": [
+          "act-edge-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "Capture is Tuesday 2026-09-15; the most recent Saturday is 2026-09-12."
+    },
+    {
+      "id": "time-mowed-about-an-hour-ago",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Mowed about an hour ago.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "about an hour ago",
+        "allowedTemporalExpressions": [
+          "an hour ago"
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "APPROXIMATE",
+        "mustNotMatch": [
+          "act-edge-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "'about' makes it approximate; never EXACT."
+    },
+    {
+      "id": "time-just-finished-mowing",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Just finished mowing.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "just",
+        "allowedTemporalExpressions": [
+          "just finished",
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "mustNotMatch": [
+          "act-edge-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "time-mowed-on-september-1st",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Mowed on September 1st.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "on September 1st",
+        "allowedTemporalExpressions": [
+          "September 1st"
+        ],
+        "resolvedLocalDate": "2026-09-01",
+        "precision": "DATE_ONLY",
+        "mustNotMatch": [
+          "act-edge-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "time-changed-the-furnace-filter-yesterday",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Changed the furnace filter yesterday.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-replace-furnace-filter",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "yesterday",
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": "2026-09-14",
+        "precision": "DATE_ONLY",
+        "mustNotMatch": [
+          "act-replace-fridge-water-filter"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "AGENTS.md section 6: must record yesterday, not today."
+    },
+    {
+      "id": "time-cleaned-the-gutters-two-days-ago",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Cleaned the gutters two days ago.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-clean-gutters",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "two days ago",
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": "2026-09-13",
+        "precision": "DATE_ONLY",
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "time-took-out-the-trash-last-night",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Took out the trash last night.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-take-out-trash",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "last night",
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": "2026-09-14",
+        "precision": "APPROXIMATE",
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "time-watered-the-garden-at-7pm",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Watered the garden at 7pm.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-water-garden",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "at 7pm",
+        "allowedTemporalExpressions": [
+          "7pm"
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "EXACT",
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "An explicit clock time is the only EXACT precision."
+    },
+    {
+      "id": "time-mowed-saturday-morning",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Mowed Saturday morning.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "Saturday morning",
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": "2026-09-12",
+        "precision": "APPROXIMATE",
+        "mustNotMatch": [
+          "act-edge-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      },
+      "note": "Correct behaviour: Saturday 2026-09-12, approximate (a part of day).",
+      "knownResolverGap": "TemporalResolver has no weekday + part-of-day rule: 'Saturday morning' is Unresolvable, so the capture goes to review instead of being logged on 2026-09-12 (APPROXIMATE)."
+    },
+    {
+      "id": "ambiguous-worked-on-the-yard",
+      "category": "AMBIGUITY",
+      "catalog": "household",
+      "rawText": "Worked on the yard.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "AMBIGUOUS",
+        "allowedResolutions": [
+          "UNRESOLVED"
+        ],
+        "activityId": null,
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED",
+          null
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-mow-lawn",
+          "act-edge-lawn",
+          "act-blow-leaves",
+          "act-water-garden"
+        ],
+        "outcome": "NEEDS_REVIEW"
+      }
+    },
+    {
+      "id": "ambiguous-did-the-furnace-thing",
+      "category": "AMBIGUITY",
+      "catalog": "household",
+      "rawText": "Did the furnace thing.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "AMBIGUOUS",
+        "allowedResolutions": [
+          "UNRESOLVED"
+        ],
+        "activityId": null,
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED",
+          null
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-replace-furnace-filter"
+        ],
+        "outcome": "NEEDS_REVIEW"
+      },
+      "note": "Only one furnace activity exists, but 'the furnace thing' does not say what was done; TEST_STRATEGY section 6 expects review."
+    },
+    {
+      "id": "ambiguous-handled-the-filter",
+      "category": "AMBIGUITY",
+      "catalog": "household",
+      "rawText": "Handled the filter.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "AMBIGUOUS",
+        "allowedResolutions": [
+          "UNRESOLVED"
+        ],
+        "activityId": null,
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED",
+          null
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-replace-furnace-filter",
+          "act-replace-fridge-water-filter"
+        ],
+        "outcome": "NEEDS_REVIEW"
+      },
+      "note": "Two filter activities exist and 'handled' does not say replaced."
+    },
+    {
+      "id": "ambiguous-fixed-that-thing-outside",
+      "category": "AMBIGUITY",
+      "catalog": "household",
+      "rawText": "Fixed that thing outside.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "AMBIGUOUS",
+        "allowedResolutions": [
+          "UNRESOLVED"
+        ],
+        "activityId": null,
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED",
+          null
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "mustNotMatch": [
+          "act-mow-lawn",
+          "act-edge-lawn",
+          "act-replace-furnace-filter",
+          "act-clean-gutters",
+          "act-clean-dryer-vent",
+          "act-blow-leaves",
+          "act-wax-car",
+          "act-replace-fridge-water-filter",
+          "act-water-garden",
+          "act-take-out-trash"
+        ],
+        "outcome": "NEEDS_REVIEW"
+      },
+      "note": "Nothing in the catalog is a fix; no activity may be matched."
+    },
+    {
+      "id": "state-im-mowing-now",
+      "category": "STATE",
+      "catalog": "household",
+      "rawText": "I'm mowing now.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-mow-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "IN_PROGRESS"
+        ],
+        "temporalExpression": "now",
+        "allowedTemporalExpressions": [
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "mustNotMatch": [
+          "act-edge-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "state-cleaning-the-gutters-right-now",
+      "category": "STATE",
+      "catalog": "household",
+      "rawText": "Cleaning the gutters right now.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-clean-gutters",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "IN_PROGRESS"
+        ],
+        "temporalExpression": "right now",
+        "allowedTemporalExpressions": [
+          "now",
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "mustNotMatch": [],
+        "outcome": "AUTO_ACCEPT"
+      }
+    },
+    {
+      "id": "state-just-finished-edging-the-lawn",
+      "category": "STATE",
+      "catalog": "household",
+      "rawText": "Just finished edging the lawn.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "resolution": "EXISTING_ACTIVITY",
+        "allowedResolutions": [],
+        "activityId": "act-edge-lawn",
+        "allowedActivityIds": [],
+        "newActivityName": null,
+        "allowedNewNames": [],
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "just",
+        "allowedTemporalExpressions": [
+          "just finished",
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "mustNotMatch": [
+          "act-mow-lawn"
+        ],
+        "outcome": "AUTO_ACCEPT"
+      }
+    }
+  ]
+}

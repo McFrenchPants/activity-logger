@@ -122,3 +122,71 @@ Status vocabulary:
    item DS1, see `docs/proposals/domain-services/`. Owner decision
    2026-09-17: no "save but mark for review" tier — anything short of
    confident goes to Needs review and nothing is logged until the user picks.
+
+9. **Semantic regression corpus, automated** — `done`
+   Merged to `main` 2026-09-18 (work item SR1).
+   First device run 2026-09-18: 32 of 48 correct, 10 wrong entries that would
+   have been saved; see `docs/proposals/semantic-regression/RESULTS.md`.
+   Work item SR1, see `docs/proposals/semantic-regression/`. Owner decision
+   2026-09-17: tests run on the PC by recording model answers (short phone
+   sessions, plus a local stand-in model) and replaying everything else.
+   Added 2026-09-17. Build-guide Step 5, the stated next milestone in
+   `docs/PROJECT_STATUS.md`. Encode the seed, temporal and ambiguity corpora of
+   `docs/TEST_STRATEGY.md` §3-6 in a machine-readable file, plus a runner that
+   pushes each case through the production interpreter + validator on the
+   Pixel 10 Pro (Gemini Nano only runs on-device and in the foreground,
+   ADR-029) and a deterministic JVM half for the temporal resolver and the
+   validator. Output: a per-case report and summary, so the provisional
+   choices (confidence policy ADR-027, schema-in-prompt, one-shot decoding
+   ADR-030) get measured. The query corpus (§7) waits for Step 9. Satisfies
+   REQUIREMENTS TST-001..004 and AGENTS.md §6. Build guide: "do not move on
+   until core synonym and near-neighbor cases are measurable."
+
+10. **Typed capture and history screens on the phone** — `idea`
+    Added 2026-09-17. The earliest usable slice of build-guide Step 7: a
+    Log screen with a text field, the History list, and the Needs-review
+    list, per `docs/UX_VISUAL_SPEC.md`. First point at which the app can be
+    used by hand. Skips ahead of Step 5, so interpretation accuracy would be
+    unmeasured while it is built.
+
+11. **Short countdown before the AI's match is saved** — `idea`
+    Added 2026-09-18 by the owner, after the first device corpus run showed
+    every wrong match at HIGH confidence (see
+    `docs/proposals/semantic-regression/RESULTS.md`). After a capture, show
+    the activity the AI picked for ~3 seconds with a countdown spinner; it
+    saves automatically unless the user acts. One button opens the existing
+    activities to pick a different one, or "New activity". Replaces
+    "HIGH confidence -> silent auto-accept" (ADR-027) with a brief, cheap
+    correction window, without falling back to confirming every entry.
+    Owner flagged it may widen scope. Open questions for analysis: how it
+    fits the watch capture flow (small screen, often glanced at, not
+    watched); whether a correction after the window lands in the
+    Needs-review list; how it interacts with raw captures being immutable
+    (a correction is a new interpretation, not an edit); dependency on item
+    10 (no phone capture screen exists yet).
+
+12. **Corpus expectations: which near matches are acceptable** — `done` (SR1.8)
+    Added 2026-09-18. The owner judged some "unsafe" device answers as
+    acceptable (e.g. "Washed the car" filed under Wax car). Corpus cases
+    whose product-correct answer is really "either" should list the existing
+    activity as an allowed answer, so the score measures real mistakes.
+    Owner confirmed 2026-09-18: wash→Wax car, lint trap→Clean dryer vent,
+    "Cleaned the dryer"→Clean dryer vent.
+
+13. **Cut down wrong confident matches** — `idea`
+    Added 2026-09-18 from SR1.7/SR1.8 follow-up (a). The Pixel 10 Pro still
+    files 7 of 48 corpus cases under the wrong existing activity, all at HIGH
+    confidence (edging→mowing, raking→mowing, water heater, smoke-detector
+    batteries, "the furnace thing"). Prompt wording and/or the confidence
+    policy (ADR-027), measured against the SR1 baseline (35 correct). Needs
+    short Pixel 10 Pro sessions to re-record. Overlaps item 11, which attacks
+    the same problem from the UI side.
+
+14. **Two small fixes the corpus turned up** — `idea`
+    Added 2026-09-18 from SR1 follow-ups (b) and (c). (b) The production
+    interpreter treats AICore's "busy" refusal (GenAiException BUSY,
+    statusCode 9) as a permanent failure (OTHER) instead of retryable, so a
+    real capture made while the model is busy would fail instead of waiting.
+    (c) `TemporalResolver` has no weekday + part-of-day rule, so "Mowed
+    Saturday morning." is unresolvable. Both JVM-testable; (c) moves one
+    corpus case from miss to correct.

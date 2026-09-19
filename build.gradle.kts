@@ -9,5 +9,6 @@ plugins {
     // note in gradle/libs.versions.toml.
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.compose) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ksp) apply false
 }
