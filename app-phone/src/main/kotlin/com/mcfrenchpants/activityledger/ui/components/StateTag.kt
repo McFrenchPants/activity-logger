@@ -1,5 +1,6 @@
 package com.mcfrenchpants.activityledger.ui.components
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -48,6 +49,15 @@ enum class RowState {
     CAPTURE_FAILED,
 }
 
+/** The state's visible label (also what screen readers say for it). */
+@StringRes
+fun RowState.labelRes(): Int = when (this) {
+    RowState.IN_PROGRESS -> R.string.state_in_progress
+    RowState.NEEDS_REVIEW -> R.string.state_needs_review
+    RowState.NOT_CATEGORIZED -> R.string.state_not_categorized
+    RowState.CAPTURE_FAILED -> R.string.state_capture_failed
+}
+
 /**
  * A state tag: icon shape + text label + colour, so the state stays readable with colour
  * removed (UX_VISUAL_SPEC D3, section 5). The icon is decorative -- the label carries the
@@ -73,14 +83,7 @@ fun StateTag(state: RowState, modifier: Modifier = Modifier) {
         RowState.CAPTURE_FAILED -> colors.onErrorContainer
         else -> content
     }
-    val label = stringResource(
-        when (state) {
-            RowState.IN_PROGRESS -> R.string.state_in_progress
-            RowState.NEEDS_REVIEW -> R.string.state_needs_review
-            RowState.NOT_CATEGORIZED -> R.string.state_not_categorized
-            RowState.CAPTURE_FAILED -> R.string.state_capture_failed
-        },
-    )
+    val label = stringResource(state.labelRes())
 
     val outline: Modifier = when (state) {
         RowState.NOT_CATEGORIZED -> Modifier.drawBehind {

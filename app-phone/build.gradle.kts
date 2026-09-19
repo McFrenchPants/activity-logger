@@ -75,6 +75,8 @@ dependencies {
     testImplementation(project(":core-testing"))
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.core)
+    // Test dispatcher / virtual time for the Log screen's ViewModel tests (Dispatchers.setMain).
+    testImplementation(libs.kotlinx.coroutines.test)
 
     // Host-side (JVM, no device) UI tests: Robolectric runs the real activity and Compose
     // test rules drive it. Mirrors core-data's Robolectric setup.

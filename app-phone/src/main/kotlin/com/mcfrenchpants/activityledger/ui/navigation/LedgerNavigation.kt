@@ -82,7 +82,9 @@ fun LedgerNavigation(navController: NavHostController = rememberNavController())
             startDestination = LogRoute,
             modifier = Modifier.padding(innerPadding),
         ) {
-            composable<LogRoute> { LogScreen() }
+            composable<LogRoute> {
+                LogScreen(onOpenHistory = { navController.navigateToTopLevel(TopLevelDestination.HISTORY) })
+            }
             composable<HistoryRoute> { HistoryScreen() }
         }
     }
