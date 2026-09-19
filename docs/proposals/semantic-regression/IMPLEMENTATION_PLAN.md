@@ -207,3 +207,27 @@ minutes** — the owner schedules it. Run the phone-session script, commit
 `device-latest.json`, write `baseline.json` from its correct cases, write
 `RESULTS.md` (numbers, stand-in vs device comparison, what the
 provisional choices look like), update backlog item 9 to done.
+
+## SR1.8 — Owner-accepted near matches in the corpus
+
+Added 2026-09-18 after SR1.7. Depends on SR1.7. **Verifier** (changes the
+scorer, like SR1.2). Backlog item 12.
+
+The owner reviewed the device's unsafe misses and accepts three as correct:
+"Washed the car" → Wax car, "Emptied the dryer lint trap" → Clean dryer vent,
+"Cleaned the dryer" → Clean dryer vent. "Did the furnace thing" → Replace
+furnace filter stays wrong, as do the edging, raking, water-heater and
+smoke-detector matches.
+
+Scope. Add a required `allowedActivityIds` list to the expectation model
+(existing catalog ids that are equally acceptable matches, alongside the
+preferred resolution); `[]` on every existing case. Scorer: a match to an
+allowed id is not `MATCHED_EXISTING_WHEN_NEW_EXPECTED` / `WRONG_EXISTING_ACTIVITY`.
+Integrity: allowed ids exist in the case's catalog, are not in `mustNotMatch`,
+do not repeat `activityId`, and require EXISTING_ACTIVITY among the acceptable
+resolutions. Update the three cases (the generic-dryer case stops being an
+AMBIGUITY case: it becomes an existing match to Clean dryer vent, with review
+still acceptable). Docs: case fields and category counts in
+`docs/SEMANTIC_CORPUS.md`. The corpus hash changes; the device recording stays
+replayable (shortlists unchanged) and is re-scored; the orchestrator updates
+`baseline.json` afterwards.

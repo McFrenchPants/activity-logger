@@ -20,6 +20,7 @@ tier: spec §6 (verifier for SR1.2-SR1.4).
 | SR1.5 | Install stand-in, first stand-in recording | done | Model on `C:\Dev\ai\models`. 20 correct / 20 safe miss / 8 unsafe miss. Not official |
 | SR1.6 | Documentation | done | Spot-check. `docs/SEMANTIC_CORPUS.md` + ADR-033 |
 | SR1.7 | First device recording and baseline | done | Pixel 10 Pro. CORRECT 32 / SAFE 6 / UNSAFE 10; baseline = 32 ids. Recorder retries AICore BUSY (verifier pass). See `RESULTS.md` |
+| SR1.8 | Owner-accepted near matches in the corpus | in-progress | Verifier. Owner accepts 3 device matches (wash→wax car; lint trap, generic dryer→dryer vent) |
 
 ## Session log
 

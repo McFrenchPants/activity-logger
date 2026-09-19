@@ -560,6 +560,23 @@
           "task_packet_path": null,
           "report_path": null,
           "notes": "Done 2026-09-18, orchestrator run on Pixel 10 Pro (USB). First attempt discarded: AICore BUSY (code 9, zero retry delay -> OTHER) after 20 back-to-back calls. Recorder now retries fast refusals (<1 s, OTHER/RETRYABLE) with backoff; verifier pass. Second run: 48/48 answered, 17 busy retries; CORRECT 32, SAFE_MISS 6, UNSAFE_MISS 10 (all HIGH confidence). baseline.json = the 32 correct ids. See docs/proposals/semantic-regression/RESULTS.md."
+        },
+        {
+          "id": "SR1.8",
+          "title": "Owner-accepted near matches in the corpus",
+          "status": "in-progress",
+          "lifecycle_state": "implementing",
+          "dependencies": [
+            "SR1.7"
+          ],
+          "lease": {
+            "assigned_agent": "implementer",
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/SR1.8.packet.json",
+          "report_path": null,
+          "notes": ""
         }
       ]
     }
