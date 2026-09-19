@@ -16,6 +16,8 @@ The semantic regression corpus (Step 5, work item SR1) is built and merged to `m
 
 **The app can now be used by hand (typing only).** Work item UI1 (backlog 10, `docs/proposals/typed-capture/`, merged to `main` 2026-09-19) adds the first screens: Log (type what you did, see a Saved / Needs review / Not categorized card, with Undo and Change activity on a Saved card, and a Recent list) and History (newest first, filters *All* / *Needs review* / *Not categorized*, resolving a waiting entry from its row). Passed a hands-on device check on the Pixel 10 Pro on 2026-09-19: auto-save, needs-review with suggestions, create activity, Undo, Change activity, History filters and resolving from History, light and dark theme, 200% text size. One fix came out of it (the keyboard now closes after *Log it* so the result card is visible). Interpretation took roughly 2-5 s per entry on the device. Not built yet: voice, Ask, Settings/model download, activity detail, editing an entry after the Undo window.
 
+Two small fixes from the corpus follow-ups (work item FX1, backlog item 14) are merged to `main` (2026-09-19): a refusal from the on-device model because it is busy is now retryable and the phone pipeline retries it twice (2 s, 4 s) before giving up (`BusyRetryInterpreter`, ADR-030 amended), and `TemporalResolver` resolves weekday + part-of-day phrases such as "Saturday morning" (ADR-028). The corpus has no known resolver gaps left and the regression baseline is 36 of 48 cases; the committed device recording predates that corpus edit, so it is flagged as recorded against a different corpus until the next Pixel 10 Pro recording.
+
 ## Completed
 
 - Product scope defined.
@@ -50,7 +52,7 @@ Recommended tasks:
    - hardcoded text input
    - Gemini Nano structured interpretation
    - Room persistence
-10. ~~Run seed semantic corpus~~ Done 2026-09-18 -- work item SR1, merged to `main` (ADR-033). Core synonym and near-neighbour cases are measurable; first device baseline 35/48 correct. Follow-ups: BACKLOG items 13 (wrong confident matches) and 14 (AICore BUSY retry, weekday + part-of-day dates).
+10. ~~Run seed semantic corpus~~ Done 2026-09-18 -- work item SR1, merged to `main` (ADR-033). Core synonym and near-neighbour cases are measurable; first device baseline 35/48 correct. Follow-ups: BACKLOG item 13 (wrong confident matches) still open; item 14 (AICore BUSY retry, weekday + part-of-day dates) done 2026-09-19.
 11. Then add actual voice capture and Wear OS transport.
 
 The technical spike is not a throwaway architecture. It is a vertical validation of the intended MVP stack.

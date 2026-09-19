@@ -39,8 +39,11 @@ sdlc-tracked as FX1 on `feature/small-fixes`, rows above.
   bytes changed, device.md flags the recording as made against a different
   corpus until the next Pixel 10 Pro re-record; replay and gate still pass.
 
-Full `./gradlew test testDebugUnitTest assembleDebug` green. Not merged
-(lite mode: owner merges).
+Full `./gradlew test testDebugUnitTest assembleDebug` green.
+
+Owner asked for the merge: `feature/small-fixes` merged into `main` with
+`--no-ff` (a904b97); full build and tests green on `main` afterwards. FX1 and
+its two tasks -> lifecycle `released`. Not pushed.
 
 ### 2026-09-15 — PV1: platform/API validation
 
