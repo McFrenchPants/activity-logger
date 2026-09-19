@@ -82,11 +82,17 @@ class CapturePipeline private constructor(
         /**
          * Builds the real pipeline.
          *
+         * The orchestrator's interpreter is the Gemini interpreter wrapped in a
+         * [BusyRetryInterpreter], so a capture made while the model is busy waits briefly and
+         * is tried again (at most twice) instead of failing; the Gemini interpreter itself still
+         * makes one model call per attempt (ADR-030 and its amendment).
+         *
          * @param context any context; the repository takes the application context itself.
          * @param clock the pipeline's source of time; defaults to the system clock.
          * @param interpreterDecorator an observation seam, applied to the interpreter the
-         *   orchestrator is given. It exists so a test can measure how long a call took without
-         *   wiring a second pipeline of its own, and it is the identity function in production.
+         *   orchestrator is given -- outside the busy retry, so it observes the whole wait. It
+         *   exists so a test can measure how long a call took without wiring a second pipeline
+         *   of its own, and it is the identity function in production.
          *   A decorator may observe timing only: it must not read, alter, log or re-interpret
          *   anything passing through it.
          */
@@ -100,7 +106,7 @@ class CapturePipeline private constructor(
             val interpreter = GeminiNanoActivityInterpreter(capability)
             val orchestrator = CaptureInterpretationOrchestrator(
                 repository = repository,
-                interpreter = interpreterDecorator(interpreter),
+                interpreter = interpreterDecorator(BusyRetryInterpreter(interpreter)),
                 clock = clock,
             )
             return CapturePipeline(repository, capability, interpreter, clock, orchestrator)

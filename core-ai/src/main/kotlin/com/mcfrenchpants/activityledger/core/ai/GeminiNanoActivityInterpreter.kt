@@ -134,7 +134,8 @@ class GeminiNanoActivityInterpreter(
      * Reports every underlying failure as [InterpretationResult.Failure] instead of throwing:
      *
      * - the device is not ready, or no client can be obtained -> [InterpreterFailureKind.UNAVAILABLE]
-     * - ML Kit signalled a delay before a retry could work -> [InterpreterFailureKind.RETRYABLE]
+     * - ML Kit refused the request as busy (error code BUSY, whatever its retry delay), or
+     *   signalled a positive delay before a retry could work -> [InterpreterFailureKind.RETRYABLE]
      * - no candidate came back, or the one that did would not decode -> [InterpreterFailureKind.MALFORMED]
      * - anything else -> [InterpreterFailureKind.OTHER]
      *
@@ -161,10 +162,13 @@ class GeminiNanoActivityInterpreter(
             // still works, exactly as OnDeviceModelCapability.readiness does.
             throw cancellation
         } catch (genAi: GenAiException) {
-            // A positive retry delay is ML Kit saying "this could work later" -- typically the
-            // model being busy or throttled. Zero (or absent) is not a promise of anything, so
-            // it is not reported as retryable; OTHER keeps the caller from looping on it.
-            // Neither branch retries here, and neither carries the exception or its message.
+            // Two signals mean "no inference ran, and this could work later": the BUSY error
+            // code (AICore refusing a back-to-back request -- on a Pixel 10 Pro it arrives with a
+            // ZERO retry delay, so the delay alone would miss it), and any positive retry delay.
+            // Any other code with a zero (or absent) delay is not a promise of anything, so it
+            // is not reported as retryable; OTHER keeps the caller from looping on it. Neither
+            // branch retries here -- a bounded retry of RETRYABLE lives in the phone pipeline
+            // (ADR-030 amendment) -- and neither carries the exception or its message.
             return if (genAi.isWorthRetrying()) {
                 failure(InterpreterFailureKind.RETRYABLE)
             } else {
@@ -245,12 +249,15 @@ class GeminiNanoActivityInterpreter(
 }
 
 /**
- * True when ML Kit itself indicated that waiting and asking again could work.
+ * True when ML Kit itself indicated that waiting and asking again could work: the request was
+ * refused as [GenAiException.ErrorCode.BUSY] (whatever its retry delay), or it carries a
+ * positive retry delay.
  *
- * Only the duration is read -- never the error code's meaning, the message or the cause.
+ * Only the error code and the duration are read -- never the message or the cause.
  */
 private fun GenAiException.isWorthRetrying(): Boolean =
-    !retryDelay.isZero && !retryDelay.isNegative
+    errorCode == GenAiException.ErrorCode.BUSY ||
+        (!retryDelay.isZero && !retryDelay.isNegative)
 
 /**
  * Every failure this interpreter returns.

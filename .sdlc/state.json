@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-19T16:09:54.959Z",
+  "updated_at": "2026-09-19T16:19:27.430Z",
   "work_items": [
     {
       "id": "SS1",
@@ -676,22 +676,22 @@
     {
       "id": "FX1",
       "title": "Two small fixes the corpus turned up (backlog item 14)",
-      "lifecycle_state": "draft",
+      "lifecycle_state": "implementing",
       "tasks": [
         {
           "id": "FX1.1",
           "title": "AICore BUSY -> RETRYABLE, plus a short bounded wait-and-retry in the phone pipeline",
-          "status": "todo",
-          "lifecycle_state": "draft",
+          "status": "done",
+          "lifecycle_state": "ready_to_release",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/FX1.1.packet.json",
           "report_path": null,
-          "notes": "Verifier (AI path). Branch feature/small-fixes."
+          "notes": "Verifier pass. BUSY -> RETRYABLE in core-ai; BusyRetryInterpreter (2 s, 4 s) wired in CapturePipeline.create; ADR-030 amended."
         },
         {
           "id": "FX1.2",
