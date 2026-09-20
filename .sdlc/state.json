@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-19T23:13:17.000Z",
+  "updated_at": "2026-09-20T04:08:09.000Z",
   "work_items": [
     {
       "id": "SS1",
@@ -713,7 +713,7 @@
     {
       "id": "VC1",
       "title": "Phone voice capture (build-guide Step 6)",
-      "lifecycle_state": "in_progress",
+      "lifecycle_state": "ready_to_release",
       "tasks": [
         {
           "id": "VC1.1",
@@ -785,8 +785,8 @@
         {
           "id": "VC1.5",
           "title": "Device pass and documentation",
-          "status": "blocked",
-          "lifecycle_state": "in_progress",
+          "status": "done",
+          "lifecycle_state": "implemented",
           "dependencies": [
             "VC1.4"
           ],
@@ -797,7 +797,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/VC1.5.packet.json",
           "report_path": null,
-          "notes": "Documentation half done (ADR-024 amended, ADR-035 added, UX_VISUAL_SPEC/ARCHITECTURE/BACKLOG/PROGRESS updated). Device half BLOCKED: both test devices went offline mid-run. Voice capture has never met a real recognizer."
+          "notes": "Done. Device pass on the Pixel 10 Pro 2026-09-20 (RESULTS.md). Found and fixed two device-only defects: fabricated zero confidence, and a stop icon that read as a broken image."
         }
       ]
     }

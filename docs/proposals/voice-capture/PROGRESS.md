@@ -18,7 +18,7 @@ tier: spec §6 (verifier for VC1.4).
 | VC1.2 | `SpeechTranscriber` + platform adapter in `core-speech` | done | Spot-check. Payload-free failure enum; 30 JVM tests, no device needed |
 | VC1.3 | Mic button, listening state, failure card on Log | done | Spot-check. `ResultCard` restructured into `ForCapture`/`Unresolved` + `RecognitionFailed`. 21 tests |
 | VC1.4 | Wire voice through the capture pipeline | done | **Verifier pass.** One capture path shared with typing; session-identity token drops late events |
-| VC1.5 | Device pass and documentation | blocked | Docs done. **Device pass never ran** — both test devices went offline mid-run |
+| VC1.5 | Device pass and documentation | done | Device pass run 2026-09-20 on the Pixel 10 Pro; see `RESULTS.md`. Found and fixed two device-only defects |
 
 ## Session log
 
@@ -146,3 +146,39 @@ drives a scripted fake. What specifically needs a device:
    change, whether Recent's dimming reads correctly, the failure card's contrast
    in both themes, and where focus lands after *Type instead*.
 4. Real transcription quality, which is the input backlog item 6 needs.
+
+### 2026-09-20 — VC1.5 done; VC1 complete, awaiting owner merge
+
+The phone came back online and the device pass ran. Full write-up in
+[`RESULTS.md`](RESULTS.md); the short version:
+
+Voice capture works end to end on the Pixel 10 Pro. Confirmed on hardware:
+the on-device recognizer actually starts (`READY_FOR_SPEECH`, settling VC1.1's
+last open question); the installed app holds `RECORD_AUDIO` and *zero*
+occurrences of `INTERNET`, so ADR-025 survived the new permission; real spoken
+captures reach the right activities through the real model; a meaningless
+utterance ("Wow", picked up from ambient noise) was correctly refused with
+nothing logged; and silence produces the recognition-failure card with no row
+written.
+
+Two defects found that no host-side test could have caught, both fixed and
+re-verified on the device:
+
+- **The confidence score was a fabricated zero.** The engine returns an
+  all-zero score array — it does not report confidence for on-device
+  recognition — and the adapter believed it, so the ledger claimed zero
+  confidence in words transcribed perfectly. Now read as "not reported". The
+  scripted test fake had been *more generous than the real engine*, which is
+  why this was invisible off-device and is worth remembering when writing the
+  next fake.
+- **The stop button read as a broken image.** A bare filled square; redrawn as
+  a stop square inside a ring, as UX_VISUAL_SPEC §4.1 actually specified.
+
+Still open, none blocking: the confidence fix is unit-tested but not yet seen
+against a live transcription (the next real spoken capture settles it); three
+pre-fix rows keep the bogus `0.0` and were deliberately left alone, because
+raw captures are immutable; a TalkBack pass is still owed; and transcription
+quality is unmeasured (backlog item 6's input).
+
+VC1 and its five tasks are done. `lite` release mode, so this stops at the
+feature branch: `feature/voice-capture` is ready for the owner to merge.
