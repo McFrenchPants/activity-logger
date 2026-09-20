@@ -71,6 +71,33 @@ class RecognitionResultsTest {
     }
 
     @Test
+    fun `a score of exactly zero means unknown, not certainly wrong`() {
+        // Measured on a Pixel 10 Pro (2026-09-19): the platform on-device engine fills the score
+        // array with 0.0 for transcripts it recognised perfectly well. Believing that would store
+        // a fabricated number, which is exactly what the unknown-confidence rule exists to prevent.
+        val allZero = FakeResults(
+            transcripts = listOf("I just cut the grass"),
+            confidenceScores = listOf(0f),
+        )
+
+        assertNull(allZero.toFinalTranscript()?.confidence)
+    }
+
+    @Test
+    fun `a zero score does not stop the transcript or its alternatives being kept`() {
+        val results = FakeResults(
+            transcripts = listOf("add sanitizer to the hot tub", "acid sanitizer to the hot tub"),
+            confidenceScores = listOf(0f, 0f),
+        )
+
+        val final = results.toFinalTranscript()
+
+        assertEquals("add sanitizer to the hot tub", final?.text)
+        assertEquals(listOf("acid sanitizer to the hot tub"), final?.alternatives)
+        assertNull(final?.confidence)
+    }
+
+    @Test
     fun `no scores at all means unknown confidence`() {
         val results = FakeResults(transcripts = listOf("walked the dog"), confidenceScores = null)
 

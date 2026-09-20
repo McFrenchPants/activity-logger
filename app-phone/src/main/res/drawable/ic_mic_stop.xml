@@ -1,12 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Stop listening: the standard filled square stop shape. Drawn for this app (no icon library). -->
+<!--
+    Stop listening: a rounded square inside a ring (UX_VISUAL_SPEC 4.1, "stop button with rings").
+
+    Drawn for this app (no icon library). The ring matters: measured on a Pixel 10 Pro
+    (2026-09-19) a bare filled square at this size reads as a broken or missing image rather
+    than as a control. The ring gives it an obvious button shape and matches the spec.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24"
     android:tint="?attr/colorControlNormal">
+    <!-- The ring: an outer circle with an inner circle cut out by the even-odd fill rule. -->
     <path
-        android:pathData="M7,7h10a1,1 0 0,1 1,1v8a1,1 0 0,1 -1,1H7a1,1 0 0,1 -1,-1V8a1,1 0 0,1 1,-1z"
+        android:pathData="M12,1A11,11 0 1,1 12,23 11,11 0 1,1 12,1z M12,3A9,9 0 1,0 12,21 9,9 0 1,0 12,3z"
+        android:fillType="evenOdd"
+        android:fillColor="#FF000000" />
+    <!-- The stop square, sized to sit comfortably inside the ring. -->
+    <path
+        android:pathData="M9.5,8.5h5a1,1 0 0,1 1,1v5a1,1 0 0,1 -1,1h-5a1,1 0 0,1 -1,-1v-5a1,1 0 0,1 1,-1z"
         android:fillColor="#FF000000" />
 </vector>

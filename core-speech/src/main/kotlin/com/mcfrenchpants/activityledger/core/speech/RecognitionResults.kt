@@ -51,6 +51,14 @@ internal fun RecognitionResults.bestTranscriptOrNull(): String? =
  *   is the same length as the transcript list (otherwise the alignment is a guess) and the value
  *   is a real number in 0..1. Anything else becomes null, meaning "unknown". A made-up number
  *   would be worse than no number, because a later step could weigh it.
+ * - **a score of exactly 0 is treated as "not reported", not as "certainly wrong."** Measured on
+ *   a Pixel 10 Pro (2026-09-19): the platform on-device engine returns a score array of the right
+ *   length with every entry 0.0, for transcripts it clearly did recognise well. It does not report
+ *   confidence for on-device recognition and emits 0.0 as filler. Storing that 0.0 would write
+ *   exactly the fabricated number the rule above exists to prevent -- it would just have been
+ *   fabricated by the engine rather than by us. The cost of the rule is that a genuine 0.0 is
+ *   read as unknown, which is harmless: a transcript the engine has zero confidence in carries
+ *   no information a caller could act on anyway.
  */
 internal fun RecognitionResults.toFinalTranscript(): SpeechEvent.FinalTranscript? {
     val winnerIndex = transcripts.indexOfFirst { it.isNotBlank() }
@@ -72,5 +80,7 @@ private fun RecognitionResults.confidenceAt(index: Int): Float? {
     val scores = confidenceScores ?: return null
     if (scores.size != transcripts.size) return null
     val score = scores[index]
-    return if (score.isFinite() && score in 0f..1f) score else null
+    if (!score.isFinite() || score !in 0f..1f) return null
+    // Exactly 0 means "the engine did not report one" -- see toFinalTranscript's rules.
+    return if (score == 0f) null else score
 }
