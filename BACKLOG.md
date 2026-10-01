@@ -259,3 +259,9 @@ Status vocabulary:
     with no voice at all, or different watch hardware. This blocks the Wear
     milestone (build-guide Step 8) and is a genuine product decision, not a
     technical one — it changes what the watch is for.
+    **2026-10-01, owner:** avoiding the Internet is a preference, not a rule,
+    so the system dictation screen is no longer disqualified if it uses the
+    network (see the clarification in ADR-035). Proposed next step: measure
+    that dictation screen on the watch (does it work in airplane mode?) before
+    choosing. WD1 showed the phone<->watch link works, so recording on the
+    watch and transcribing on the phone is also viable.

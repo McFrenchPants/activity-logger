@@ -538,6 +538,8 @@ A Wear build of `com.google.android.tts` is installed and is the default `Recogn
 
 **What this invalidates.** The designed in-app Wear Listening screen (ADR-020, `docs/UX_VISUAL_SPEC.md` §3 D2 and §4) assumed in-app on-device recognition on the watch. It cannot be built on ADR-024's mechanism. Using the ordinary `SpeechRecognizer` instead is **not** an available fallback: it may transcribe over the network, which breaches ADR-005 and AGENTS.md #11 (no captured text leaves the device), and the privacy guarantee is the reason phone `minSdk` is 33 in the first place (ADR-021).
 
+**Owner clarification, 2026-10-01.** The owner says staying off the Internet is a *preference to avoid where possible*, not a hard rule. So a network-backed path is no longer automatically disqualified: option 1 below is reopened, and if measurement shows it needs the network it becomes a trade-off to put to the owner (visible, disclosed, never silent -- ADR-005's actual wording is "no *hidden* cloud fallback"), not a veto. Not yet amended: AGENTS.md #11 and REQUIREMENTS ("normal capture MUST work without Internet"), which still read as hard rules; reconcile them if a network path is ever chosen. Order of preference stays: on-device first.
+
 **Options, none yet chosen** — this is a product decision for the Wear work item, not something to settle here:
 
 1. **Wear's system dictation surface** (`RecognizerIntent.ACTION_RECOGNIZE_SPEECH` as an activity). One extra screen, and it is the path Wear users already know. Whether it transcribes strictly on-device is unverified and would have to be measured before it could be accepted; if it can go to the network, it is disqualified.
