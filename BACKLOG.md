@@ -201,7 +201,10 @@ Status vocabulary:
     Owner confirmed 2026-09-18: wash→Wax car, lint trap→Clean dryer vent,
     "Cleaned the dryer"→Clean dryer vent.
 
-13. **Cut down wrong confident matches** — `idea`
+13. **Cut down wrong confident matches** — `ready` (analysis written
+    2026-10-01: `docs/analysis/13-subject-action-tagging.md`; direction is
+    subject + action tagging, bootstrapped from an empty catalog; awaiting
+    owner sign-off on the plan, then a design spec)
     Added 2026-09-18 from SR1.7/SR1.8 follow-up (a). The Pixel 10 Pro still
     files 7 of 48 corpus cases under the wrong existing activity, all at HIGH
     confidence (edging→mowing, raking→mowing, water heater, smoke-detector
