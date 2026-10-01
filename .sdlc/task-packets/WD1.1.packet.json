@@ -1,0 +1,59 @@
+{
+  "task_id": "WD1.1",
+  "plan_revision": "wd1",
+  "objective": "Add the code for a hand-run Wear Data Layer round-trip probe between app-phone and app-wear. (1) Add com.google.android.gms:play-services-wearable to gradle/libs.versions.toml (use a current stable version, e.g. 19.0.0; confirm it resolves) and as a dependency of app-phone and app-wear via the catalog alias only. (2) In app-wear/src/debug/ (debug source set ONLY; also a debug-only manifest at app-wear/src/debug/AndroidManifest.xml), add a WearableListenerService that echoes any message received on path /probe/ping back to the sending node on /probe/pong with the same fixed payload, and echoes any DataItem changed at /probe/item back as a DataItem at /probe/item-echo. (3) In app-phone/src/androidTest/kotlin/com/mcfrenchpants/activityledger/wear/WearDataLayerProbeTest.kt add an instrumented measurement test (modelled on the existing PlatformSpeechRecognizerProbeTest in app-phone/src/androidTest/**) that: reads connected nodes via NodeClient and reports only whether a watch is connected (never ids/names); if none, reports 'no watch connected' as a result and passes; otherwise sends /probe/ping via MessageClient and waits (bounded, e.g. 10 s) for /probe/pong; puts a DataItem at /probe/item and waits for /probe/item-echo; prints one structured result line per check via a log tag, containing no user content or device identifiers; registers listeners dynamically and always removes them in finally. Payloads are fixed probe strings. Use kotlinx coroutines play-services await only if an alias exists; otherwise use Tasks with CountDownLatch.",
+  "non_goals": [
+    "No product UI, no changes to MainActivity in either app.",
+    "No ML Kit dependency (ADR-023); app-wear must not depend on core-ai.",
+    "No INTERNET or ACCESS_NETWORK_STATE permission in either merged manifest (ADR-025); if play-services-wearable adds one, strip it with tools:node=remove and say so.",
+    "Echo service must not exist in the release variant.",
+    "Do not modify docs/, BACKLOG.md, PROGRESS.md or .sdlc/.",
+    "Do not run anything on a device; none is connected."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "app-phone/**",
+    "app-wear/**",
+    "core-wear-protocol/**",
+    "gradle/libs.versions.toml",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "AGENTS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/DECISIONS.md"
+  ],
+  "write_paths": [
+    "gradle/libs.versions.toml",
+    "app-phone/build.gradle.kts",
+    "app-wear/build.gradle.kts",
+    "app-wear/src/debug/**",
+    "app-phone/src/androidTest/kotlin/com/mcfrenchpants/activityledger/wear/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "core-ai/**",
+    "core-data/**",
+    "core-domain/**",
+    "core-speech/**",
+    "core-testing/**",
+    "app-phone/src/main/**",
+    "app-wear/src/main/**"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew :app-phone:assembleDebug :app-wear:assembleDebug :app-phone:assembleDebugAndroidTest` succeeds and `./gradlew test` still passes.",
+    "The echo service and its manifest declaration exist only under app-wear/src/debug; the release merged manifest of app-wear has no such service (verify via processReleaseManifest or equivalent and report).",
+    "No literal versions in build files; no com.google.mlkit coordinate added; app-wear has no dependency on core-ai.",
+    "Neither merged debug manifest contains INTERNET or ACCESS_NETWORK_STATE (report the check).",
+    "The probe test handles 'no watch connected' as a passing reported result and removes all listeners in finally.",
+    "No log line contains capture text, node ids or device names (AGENTS.md #11)."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:assembleDebug :app-wear:assembleDebug :app-phone:assembleDebugAndroidTest",
+    "./gradlew test"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
