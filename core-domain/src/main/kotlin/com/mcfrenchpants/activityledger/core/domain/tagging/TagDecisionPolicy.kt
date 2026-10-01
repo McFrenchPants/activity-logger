@@ -40,11 +40,26 @@ enum class TagDecisionReason {
     /** No subject words, and no single known combination implies one. */
     SUBJECT_MISSING,
 
-    /** The subject words are close to, but not exactly, an existing subject. */
+    /**
+     * The subject words are close to, but not exactly, an existing subject -- by spelling, a
+     * shared word, or one of the tiny subject synonym groups ([TagResolver.SUBJECT_SYNONYM_GROUPS]).
+     * Also present whenever [SUBJECT_ONLY_OBJECT] offers a subject.
+     */
     SUBJECT_NEAR_EXISTING,
 
-    /** The action words are close to, but not exactly, an existing action. */
+    /**
+     * The action words are close to, but not exactly, an existing action -- by spelling, a
+     * shared object word, the same head verb, or one of the tiny verb synonym groups
+     * ([TagResolver.ACTION_SYNONYM_GROUPS]).
+     */
     ACTION_NEAR_EXISTING,
+
+    /**
+     * The subject words are only the action's object ("filter" with "change filter", or
+     * "filter" with "replace" where "replace filter" exists): the real subject was probably
+     * dropped. Never inferred silently (TG1.4b rule 4).
+     */
+    SUBJECT_ONLY_OBJECT,
 }
 
 /**
@@ -56,6 +71,9 @@ enum class TagDecisionReason {
  * @property subjectInferred True when the user gave no subject and it was filled in from the
  *   only known combination with the resolved action.
  * @property reasons Why it was not auto-saved; empty exactly when [outcome] is AUTO_SAVE.
+ * @property resplit True when the subject's trailing word(s) were moved into the action because
+ *   that made both sides exact existing tags ("furnace filter" / "change" -> "furnace" /
+ *   "change filter"; TG1.4b rule 2). [subject] and [action] are then the re-split resolutions.
  */
 data class TagDecision(
     val outcome: TagDecisionOutcome,
@@ -63,6 +81,7 @@ data class TagDecision(
     val action: TagResolution,
     val subjectInferred: Boolean,
     val reasons: Set<TagDecisionReason>,
+    val resplit: Boolean = false,
 ) {
     init {
         require(reasons.isEmpty() == (outcome == TagDecisionOutcome.AUTO_SAVE)) {
@@ -83,6 +102,29 @@ data class TagDecision(
  *    pronouns, e.g. "do", "fix it", "work on", "take care of it") -> NEEDS_REVIEW (VAGUE_ACTION).
  * 4. subject or action words contain a whole filler word ([FILLER_WORDS]) -> NEEDS_REVIEW
  *    (FILLER_WORDS).
+ *
+ * Then the words are repaired (TG1.4b; none of these ever leads to a silent save that the
+ * plain words would not also have earned with an exact match on both sides):
+ * - **Junk subject** ([isJunkSubject], rule 3): a subject that is only the action's verb
+ *   ("edging" with "edging"/"edge") or only time words ([TIME_ONLY_WORDS]: "this morning",
+ *   "Saturday") is treated as absent -- but ONLY when those words resolve to a NEW subject. A
+ *   subject that matches an existing tag exactly or closely is always kept: "June" may be the
+ *   dog, "Edging" may be a real subject.
+ * - **Re-split** (rule 2): when the action is one word, the subject has 2+ words and the two
+ *   are not already both exact, the subject's trailing word(s) are tried as the action's
+ *   object, fewest first ("furnace filter" / "change" -> "furnace" / "change filter"). The
+ *   first split that makes BOTH sides Exact is used ([TagDecision.resplit]); else nothing changes.
+ * - **Subject is only the object** (rule 4): when the subject is neither Exact nor absent and
+ *   either (a) all its words are among the action's object words ("filter" / "change filter")
+ *   or (b) the action is not Exact and "action + subject" means an existing action
+ *   ([TagResolver.equivalentActions]: "replace" + "filter", or via a verb synonym "swap" +
+ *   "filter"), the action becomes the resolution of those combined words and the subject is
+ *   never inferred silently: if the actions meant are paired with exactly one distinct subject,
+ *   the subject becomes Near(that subject) -> CONFIRM (SUBJECT_ONLY_OBJECT,
+ *   SUBJECT_NEAR_EXISTING, plus ACTION_NEAR_EXISTING if the action is Near); otherwise
+ *   NEEDS_REVIEW (SUBJECT_ONLY_OBJECT, SUBJECT_MISSING). A rule-4 subject's own words are
+ *   never saved, so they are not name-checked in step 5.
+ *
  * 5. a side resolving to [TagResolution.New] has a name that [NewActivityNameCheck] rejects
  *    -> NEEDS_REVIEW (NEW_NAME_REJECTED). Near names are not checked: they are only offered
  *    on a confirmation card, never saved silently.
@@ -90,13 +132,13 @@ data class TagDecision(
  *    with it in [TagCatalog.pairs], that subject is used (Exact via NAME, `subjectInferred`);
  *    otherwise NEEDS_REVIEW (SUBJECT_MISSING).
  * 7. either side is [TagResolution.Near] -> CONFIRM (SUBJECT_NEAR_EXISTING and/or
- *    ACTION_NEAR_EXISTING).
+ *    ACTION_NEAR_EXISTING). Synonym and head-verb matches are Near, so they always land here.
  * 8. otherwise (each side Exact or New, nothing close) -> AUTO_SAVE with no reasons.
  *
  * Model confidence is never consulted (an extraction has none, ADR-038). Time wording,
  * duration and activity state are NOT judged here: resolving and checking time stays the job
- * of `TemporalResolver` (ADR-028) and the later pipeline stage that combines both decisions.
- * Pure: no I/O, no clock, no logging.
+ * of `TemporalResolver` (ADR-028), grounding them in the sentence is `ExtractionGrounding`, and
+ * combining both decisions is a later pipeline stage. Pure: no I/O, no clock, no logging.
  */
 object TagDecisionPolicy {
 
@@ -129,38 +171,102 @@ object TagDecisionPolicy {
     /** The particle allowed after the pronoun for [SPLIT_PARTICLE_VERBS]. */
     const val SPLIT_PARTICLE: String = "out"
 
+    /**
+     * Words that only say WHEN (TG1.4b rule 3b). A subject made up entirely of these
+     * ("this morning", "Saturday", "Saturday morning", "last night") is time wording the model
+     * put in the wrong field, and is treated as absent. Compared lowercased as whole words,
+     * leading determiners removed, not singularized. Written here on purpose rather than shared
+     * with the new-name rules: that list rejects names containing a time word anywhere, this one
+     * recognises a subject that is nothing but time.
+     */
+    val TIME_ONLY_WORDS: Set<String> = setOf(
+        "today", "yesterday", "tomorrow", "tonight", "morning", "afternoon", "evening", "night", "noon",
+        "now", "just", "earlier", "recently", "ago", "this", "last", "week", "weekend",
+        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+        "january", "february", "march", "april", "may", "june", "july", "august",
+        "september", "october", "november", "december",
+    )
+
     private val VAGUE_PREFIXES: List<List<String>> =
         (VAGUE_VERBS + VAGUE_PHRASES).map { it.split(' ') }.sortedByDescending { it.size }
 
     /** Decides what to do with [extraction] given the existing tags in [catalog]. */
     fun decide(extraction: ExtractionCandidate, catalog: TagCatalog): TagDecision {
-        val subject = TagResolver.resolve(extraction.subject, TagKind.SUBJECT, catalog)
-        val action = TagResolver.resolve(extraction.action, TagKind.ACTION, catalog)
+        var subject = TagResolver.resolve(extraction.subject, TagKind.SUBJECT, catalog)
+        var action = TagResolver.resolve(extraction.action, TagKind.ACTION, catalog)
+        var resplit = false
 
-        fun review(reason: TagDecisionReason) =
-            TagDecision(TagDecisionOutcome.NEEDS_REVIEW, subject, action, false, setOf(reason))
+        fun review(vararg reasons: TagDecisionReason) =
+            TagDecision(TagDecisionOutcome.NEEDS_REVIEW, subject, action, false, reasons.toSet(), resplit)
 
         if (extraction.operation != InterpretationOperation.LOG_ACTIVITY) return review(TagDecisionReason.NOT_A_LOG)
         if (action is TagResolution.Empty) return review(TagDecisionReason.ACTION_MISSING)
         if (isVagueAction(extraction.action)) return review(TagDecisionReason.VAGUE_ACTION)
         if (hasFiller(extraction.subject) || hasFiller(extraction.action)) return review(TagDecisionReason.FILLER_WORDS)
-        if (newNameRejected(subject) || newNameRejected(action)) return review(TagDecisionReason.NEW_NAME_REJECTED)
 
-        var finalSubject = subject
+        // Rule 3: junk subjects are treated as absent -- never one that names an existing tag.
+        var subjectWords = extraction.subject
+        if (subject is TagResolution.New && isJunkSubject(subjectWords, extraction.action)) {
+            subjectWords = null
+            subject = TagResolution.Empty
+        }
+
+        // Rule 2: re-split a subject that swallowed the action's object.
+        resplitOf(subjectWords, extraction.action, subject, action, catalog)?.let { (s, a) ->
+            subject = s
+            action = a
+            resplit = true
+        }
+
+        // Rule 4: a subject that is only the action's object.
+        val objectOnly = if (resplit) null else objectOnlyOf(subjectWords, extraction.action, subject, action, catalog)
+        if (objectOnly != null) action = objectOnly.action
+
+        if ((objectOnly == null && newNameRejected(subject)) || newNameRejected(action)) {
+            return review(TagDecisionReason.NEW_NAME_REJECTED)
+        }
+
+        if (objectOnly != null) {
+            val offered = objectOnly.subjectCandidate
+                ?: return review(TagDecisionReason.SUBJECT_ONLY_OBJECT, TagDecisionReason.SUBJECT_MISSING)
+            val nearSubject = TagResolution.Near(TagNormalizer.cleanName(subjectWords) ?: offered.displayName, listOf(offered))
+            val reasons = buildSet {
+                add(TagDecisionReason.SUBJECT_ONLY_OBJECT)
+                add(TagDecisionReason.SUBJECT_NEAR_EXISTING)
+                if (action is TagResolution.Near) add(TagDecisionReason.ACTION_NEAR_EXISTING)
+            }
+            return TagDecision(TagDecisionOutcome.CONFIRM, nearSubject, action, false, reasons, resplit)
+        }
+
         var inferred = false
         if (subject is TagResolution.Empty) {
             val inferredTag = (action as? TagResolution.Exact)?.let { inferSubject(it.tag, catalog) }
                 ?: return review(TagDecisionReason.SUBJECT_MISSING)
-            finalSubject = TagResolution.Exact(inferredTag, TagMatchVia.NAME)
+            subject = TagResolution.Exact(inferredTag, TagMatchVia.NAME)
             inferred = true
         }
 
         val reasons = buildSet {
-            if (finalSubject is TagResolution.Near) add(TagDecisionReason.SUBJECT_NEAR_EXISTING)
+            if (subject is TagResolution.Near) add(TagDecisionReason.SUBJECT_NEAR_EXISTING)
             if (action is TagResolution.Near) add(TagDecisionReason.ACTION_NEAR_EXISTING)
         }
         val outcome = if (reasons.isEmpty()) TagDecisionOutcome.AUTO_SAVE else TagDecisionOutcome.CONFIRM
-        return TagDecision(outcome, finalSubject, action, inferred, reasons)
+        return TagDecision(outcome, subject, action, inferred, reasons, resplit)
+    }
+
+    /**
+     * True when [subjectWords] look like no subject at all (TG1.4b rule 3): (a) they are a single
+     * word that is the action's verb or an inflection of it ([TagNormalizer.verbsMatch]:
+     * "edging" with "edging" or "edge", "mowing" with "mow"), or (b) every word is one of
+     * [TIME_ONLY_WORDS] ("this morning", "Saturday morning"). False for blank words (already
+     * absent). Word shape only: [decide] applies it solely to a subject that resolved New.
+     */
+    fun isJunkSubject(subjectWords: String?, actionWords: String?): Boolean {
+        val raw = TagNormalizer.rawTokens(subjectWords)
+        if (raw.isEmpty()) return false
+        if (raw.all { it in TIME_ONLY_WORDS }) return true
+        val actionVerb = TagNormalizer.actionVerb(actionWords) ?: return false
+        return raw.size == 1 && TagNormalizer.verbsMatch(raw.single(), actionVerb)
     }
 
     /**
@@ -185,6 +291,56 @@ object TagDecisionPolicy {
 
     /** True when [words] contain one of [FILLER_WORDS] as a whole word. */
     fun hasFiller(words: String?): Boolean = TagNormalizer.rawTokens(words).any { it in FILLER_WORDS }
+
+    /** Rule 2: the first re-split (fewest moved words) that makes both sides Exact, or null. */
+    private fun resplitOf(
+        subjectWords: String?,
+        actionWords: String?,
+        subject: TagResolution,
+        action: TagResolution,
+        catalog: TagCatalog,
+    ): Pair<TagResolution, TagResolution>? {
+        if (subject is TagResolution.Exact && action is TagResolution.Exact) return null
+        if (TagNormalizer.tokens(actionWords).size != 1) return null
+        val actionName = TagNormalizer.cleanName(actionWords) ?: return null
+        val words = TagNormalizer.cleanName(subjectWords)?.split(' ') ?: return null
+        if (words.size < 2) return null
+        for (moved in 1 until words.size) {
+            val s = TagResolver.resolve(words.dropLast(moved).joinToString(" "), TagKind.SUBJECT, catalog)
+            val a = TagResolver.resolve(actionName + " " + words.takeLast(moved).joinToString(" "), TagKind.ACTION, catalog)
+            if (s is TagResolution.Exact && a is TagResolution.Exact) return s to a
+        }
+        return null
+    }
+
+    /** What rule 4 found: the combined action resolution and the only subject paired with it, if one. */
+    private class ObjectOnly(val action: TagResolution, val subjectCandidate: KnownTag?)
+
+    /** Rule 4, or null when it does not apply. */
+    private fun objectOnlyOf(
+        subjectWords: String?,
+        actionWords: String?,
+        subject: TagResolution,
+        action: TagResolution,
+        catalog: TagCatalog,
+    ): ObjectOnly? {
+        if (subject is TagResolution.Exact || subject is TagResolution.Empty) return null
+        val subjectTokens = TagNormalizer.tokens(subjectWords)
+        val actionTokens = TagNormalizer.tokens(actionWords)
+        if (subjectTokens.isEmpty() || actionTokens.isEmpty()) return null
+        val combined = when {
+            actionTokens.size >= 2 && actionTokens.drop(1).containsAll(subjectTokens) -> actionWords
+            action !is TagResolution.Exact ->
+                "${TagNormalizer.cleanName(actionWords)} ${TagNormalizer.cleanName(subjectWords)}"
+            else -> return null
+        }
+        val meant = TagResolver.equivalentActions(combined, catalog)
+        if (meant.isEmpty()) return null
+        val meantIds = meant.mapTo(HashSet()) { it.id }
+        val subjectIds = catalog.pairs.filter { it.actionId in meantIds }.map { it.subjectId }.distinct()
+        val offered = subjectIds.singleOrNull()?.let { catalog.tag(TagKind.SUBJECT, it) }
+        return ObjectOnly(TagResolver.resolve(combined, TagKind.ACTION, catalog), offered)
+    }
 
     private fun newNameRejected(resolution: TagResolution): Boolean =
         resolution is TagResolution.New && NewActivityNameCheck.check(resolution.name) !is NewActivityNameCheck.Result.Ok

@@ -21,8 +21,15 @@ import java.util.Locale
  * Every function is idempotent on its own output: `cleanName(cleanName(x)) == cleanName(x)`,
  * `key(key(x)) == key(x)` and `tokens(tokens(x).joinToString(" ")) == tokens(x)`.
  *
- * Deliberately naive: no dictionary, no stemming of verbs ("mowing" != "mow"), no synonyms
- * (grass != lawn). These are provisional rules, to be tuned on recordings (ADR-039).
+ * **Verb forms ([verbForms] / [verbsMatch], TG1.4b).** An action's first word (the verb) may
+ * be an inflected form of an existing action's verb ("cleaned" of "clean", "edging" of
+ * "edge"). Only INFLECTED words are reduced, to a small set of possible base forms; an
+ * uninflected word is only ever itself, so two different uninflected words ("tap"/"tape",
+ * "hose"/"hoe") never match. Subjects and object words are never verb-reduced.
+ *
+ * Deliberately naive: no dictionary and no synonyms here (grass != lawn); the tiny synonym
+ * groups live in [TagResolver] and only ever produce a "did you mean" question. These are
+ * provisional rules, tuned on recordings (ADR-039 and its TG1.4b amendment).
  */
 object TagNormalizer {
 
@@ -48,6 +55,12 @@ object TagNormalizer {
      * ("glass", "bus", "tennis", "gas").
      */
     val KEEP_S_ENDINGS: List<String> = listOf("ss", "us", "is", "as")
+
+    /**
+     * Shortest stem (in letters) left after stripping "-ing" or "-ed" for the word to count as
+     * inflected; shorter ones are compared as themselves ("bring", "shed", "used").
+     */
+    const val VERB_STEM_MIN_LENGTH: Int = 3
 
     /**
      * The display name for a new tag made from [words], or null when nothing is left after
@@ -93,6 +106,58 @@ object TagNormalizer {
         word.endsWith("s") && KEEP_S_ENDINGS.none { word.endsWith(it) } -> word.dropLast(1)
         else -> word
     }
+
+    /**
+     * The possible base forms of one lowercase verb [word] (TG1.4b rule 1), always including
+     * [word] itself. Single pass, the first rule that fits, nothing re-applied to its result:
+     * - "-ied": longer than [IES_MIN_LENGTH_EXCLUSIVE] letters -> "-y" ("emptied" -> "empty"),
+     *   else -> "-ie" ("tied" -> "tie");
+     * - "-ing" or "-ed" (not "-eed": "weed", "need", "seed" are base words) with at least
+     *   [VERB_STEM_MIN_LENGTH] letters left: the strip ("taped" -> "tap"), the strip + "e"
+     *   ("tape"), and, when the strip ends in a doubled consonant, the strip undoubled
+     *   ("mopped" -> "mop");
+     * - "-oes" -> drop "-es" ("goes" -> "go");
+     * - otherwise a plural-like "-s"/"-es" that [singularize] removes ("washes" -> "wash",
+     *   "changes" -> "change", "mows" -> "mow").
+     * A word none of these fits is uninflected and its only form is itself. The forms are a
+     * comparison aid only and are never shown to anyone.
+     */
+    fun verbForms(word: String): Set<String> {
+        val out = linkedSetOf(word)
+        when {
+            word.endsWith("ied") && word.length > IES_MIN_LENGTH_EXCLUSIVE -> out += word.dropLast(3) + "y"
+            word.endsWith("ied") -> out += word.dropLast(1)
+            word.endsWith("ing") && word.length - 3 >= VERB_STEM_MIN_LENGTH -> addBases(word.dropLast(3), out)
+            word.endsWith("ed") && !word.endsWith("eed") && word.length - 2 >= VERB_STEM_MIN_LENGTH ->
+                addBases(word.dropLast(2), out)
+            word.endsWith("oes") -> out += word.dropLast(2)
+            else -> singularize(word).takeIf { it != word && it.isNotEmpty() }?.let { out += it }
+        }
+        return out
+    }
+
+    /**
+     * True when two lowercase verbs can be the same verb: their [verbForms] share a form. Two
+     * different uninflected words never match ("tap"/"tape", "hose"/"hoe", "clean"/"cleanse");
+     * an inflected word matches its base ("taped"/"tape", "mowing"/"mow"). Ambiguity ("taped"
+     * matches both "tap" and "tape") is resolved by the caller ([TagResolver]), never here.
+     */
+    fun verbsMatch(a: String, b: String): Boolean = a == b || verbForms(a).any { it in verbForms(b) }
+
+    /** The verb of an ACTION: its first comparison word, lowercased, NOT singularized; null when none. */
+    fun actionVerb(words: String?): String? = rawTokens(words).firstOrNull()
+
+    /** The object words of an ACTION: [tokens] after the first word (singularized). */
+    fun actionObjects(words: String?): List<String> = tokens(words).drop(1)
+
+    private fun addBases(strip: String, out: MutableSet<String>) {
+        out += strip
+        out += strip + "e"
+        val n = strip.length
+        if (n >= 2 && strip[n - 1] == strip[n - 2] && isConsonant(strip[n - 1])) out += strip.dropLast(1)
+    }
+
+    private fun isConsonant(c: Char): Boolean = c in 'a'..'z' && c !in "aeiou"
 
     /**
      * Lowercase comparison words of [words] with leading determiners removed, NOT singularized.

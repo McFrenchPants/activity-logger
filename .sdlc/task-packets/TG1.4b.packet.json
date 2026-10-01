@@ -1,0 +1,64 @@
+{
+  "task_id": "TG1.4b",
+  "plan_revision": "tg1",
+  "objective": "Fix the deterministic tag resolver/policy (TG1.3, core-domain `tagging`) and add a grounding guard for time/duration words, driven by the REAL Pixel 10 Pro recording (tag-device-latest.json) scored by TagReplay (TG1.4). Background: subject+action tagging redesign; the AI extracts words, deterministic logic resolves them to tags and decides AUTO_SAVE / CONFIRM / NEEDS_REVIEW. Current device score: CORRECT 49, SAFE_MISS 5, NAME_MISMATCH 4, UNSAFE 14 (12 silent duplicate tags, 1 invented time, 1 invented duration). Because these fixes are deterministic, the existing recordings stay valid and are re-scored by replay -- no new phone run. Product rule (unchanged, owner-approved): a silent wrong save is far worse than an extra question; CONFIRM ('did you mean X?') is the safe fallback; never silently create a near-duplicate of an existing tag.\n\nOBSERVED DEVICE FAILURES (extracted subject / action -> problem):\n- inflected verbs: 'gutters / cleaning', 'gutters / cleaned', 'lawn / edging' -> New action instead of existing clean/edge.\n- subject is the action's gerund: 'edging / edging' (household: lawn+edge pair) -> New subject.\n- object noun on the wrong side: 'furnace filter / change' and 'hot tub filter / change' (owner catalog has action 'change filter') -> CONFIRM today, should resolve exactly.\n- subject is just the action's object, real subject dropped: 'filter / change filter' (real subject hot tub, owner catalog pairs change filter only with furnace) and 'filter / replace' / 'filter / swap' (household 'replace filter', real subject furnace via HVAC/air filter).\n- head verb plus extra words: 'leaves / blow off driveway' vs existing 'blow'; 'gutters / clear leaves' vs existing 'clean'.\n- synonyms: 'grass / cut' and 'lawn / cut' vs lawn/mow.\n- invented time: rawText 'Spent 40 minutes mowing the lawn' -> temporalExpression 'yesterday'. Invented duration: rawText 'Mowed about an hour ago.' -> durationExpression 'for an hour'.\n\nDECISIONS ALREADY MADE (follow them; constants named and KDoc'd, rules documented):\n(1) VERB STEMMING for action comparison: the comparison key of an ACTION stems its first token (the verb) on BOTH sides (user words and catalog names/aliases) with a small documented conservative suffix stemmer (e.g. -ing, -ed, -es/-s, -ied/-ies -> -y family, doubled final consonant 'mopped'->'mop', trailing silent -e dropped so 'edge'/'edged'/'edging' share a stem, 'change'/'changed'/'changing', 'empty'/'emptied'). Keep the TG1.3 negatives: wash, walk and wax stay distinct; 'change oil' not near 'change filter'; 'replace batteries' not near 'replace filter'. A match that is only equal after stemming counts as Exact (via NAME/ALIAS). Subjects are not verb-stemmed.\n(2) RE-SPLIT: when the action is a single verb and the subject has 2+ tokens, also try moving the subject's trailing token(s) into the action ('furnace filter / change' -> 'furnace / change filter'); if a re-split makes BOTH sides Exact, use it (record a flag `resplit = true` on TagDecision). Otherwise keep the original.\n(3) JUNK SUBJECTS: before resolving, treat the subject as absent when (a) its key equals the action verb's stem or is a gerund/inflection of it ('edging' with action 'edging'/'edge'), or (b) it consists only of time words (reuse the time-word list NewActivityNameCheck uses; if it is private, expose nothing in naming -- write a documented equivalent list in tagging, it is a different purpose), e.g. 'this morning', 'Saturday', 'Saturday morning'. Absent subject then goes through the existing single-pair inference.\n(4) SUBJECT IS THE ACTION'S OBJECT: when the subject's tokens are all contained in the action's non-verb tokens ('filter / change filter'), OR the subject + action concatenate to an existing action ('filter' + 'replace' -> 'replace filter', also via (5) synonyms: 'filter' + 'swap'), the real subject was likely dropped. Resolve the action from the combined words, then: if exactly one KnownPair has that action, the subject becomes Near(candidates = [that pair's subject]) -> CONFIRM ('did you mean furnace?'); otherwise SUBJECT_MISSING -> NEEDS_REVIEW. NEVER silently infer here (the hot tub case shows why). New reason code SUBJECT_ONLY_OBJECT on the decision.\n(5) SMALL SYNONYM GROUPS -> Near only, never Exact, never AUTO_SAVE: documented named constant sets, deliberately tiny: verbs {mow, cut}, {replace, change, swap}, {clean, clear}; subjects {lawn, grass, yard}, {furnace, hvac}. A user verb/subject in a group with an existing tag's verb/subject makes that tag a Near candidate (for actions compare the stemmed verb and require the remaining object words to be equal or empty on both). Ranking: real close matches before synonym matches.\n(6) HEAD-VERB NEAR: an action whose stemmed verb equals the stemmed verb of an existing SINGLE-WORD action and has extra words ('blow off driveway' vs 'blow') is Near that action -> CONFIRM.\n(7) GROUNDING GUARD (new file core-domain extraction/ExtractionGrounding.kt, pure): `fun ground(candidate: ExtractionCandidate, rawText: String): GroundedExtraction` returning the candidate with temporalExpression and/or durationExpression set to null when not grounded, plus flags timeDropped/durationDropped. Grounded = after lowercasing and collapsing punctuation/whitespace, the expression (for duration: minus a leading for/about/around/roughly/spent) appears as a contiguous word sequence in the raw text; additionally a duration is NOT grounded if the matched words are immediately followed by 'ago' in the raw text (that is a time, not a duration). Tests: 'Spent 40 minutes mowing the lawn' drops 'yesterday', keeps '40 minutes'/'Spent 40 minutes'; 'Mowed about an hour ago.' drops 'for an hour' and keeps time 'about an hour ago'; 'I just walked the dogs for about 30 minutes' keeps both; 'just' kept when raw has 'just'. Subject/action are NOT grounded here. TagReplay (core-testing) must apply ExtractionGrounding.ground to every answer before the policy and time/duration checks; record timeDropped/durationDropped per entry and count them in the report (codes only).\n(8) Keep TG1.3's guarantees: rule order, reasons empty iff AUTO_SAVE (add new reason codes as needed, e.g. SUBJECT_ONLY_OBJECT, ACTION_SYNONYM_OF_EXISTING / SUBJECT_SYNONYM_OF_EXISTING or reuse *_NEAR_EXISTING -- your call, documented), Near never auto-saves, pure/deterministic, no logging. Update TagResolverTest/TagDecisionPolicyTest/TagNormalizerTest for every new rule, including the negatives. TagPolicyOracleTest (49 ideal cases) must still pass with KNOWN_POLICY_GAPS empty -- you MAY update its expectations only if a new rule changes an ideal case's outcome to another ACCEPTABLE one (the test already accepts any acceptable outcome, so this should not be needed).\n(9) MEASURE: run TagRegressionGateTest and report the new per-class counts and per-case non-CORRECT ids/codes for BOTH recordings. Target on the device recording: UNSAFE 0 or close, REAL_ENTRY UNSAFE 0; no case that is CORRECT today may become UNSAFE (list any CORRECT -> other changes).\n(10) Docs/housekeeping: amend ADR-039 in docs/DECISIONS.md with a dated 'Amendment (TG1.4b)' listing rules (1)-(7) and the measured before/after device numbers; add the grounding guard to docs/SEMANTIC_CORPUS.md section 12; fix the stale KDoc in TagRecordingFilesTest.kt that says no replay/scoring exists (comment only).\n\nRULES: do not edit recordings, tag-corpus.json, corpus.json, TemporalResolver, DurationResolver, the v3 interpretation/validation path, naming package, core-ai or apps. No logging of capture or model text; failure messages use ids/codes only. Do not create tag-baseline.json.",
+  "non_goals": [
+    "No prompt change and no new device recording.",
+    "No persistence, aliases learned from corrections, or app wiring (Stages 2-3).",
+    "No large synonym dictionary or AI call in resolution.",
+    "No tag-baseline.json (orchestrator creates it after review)."
+  ],
+  "dependencies": ["TG1.3", "TG1.4"],
+  "read_paths": [
+    "core-domain/**",
+    "core-testing/**",
+    "docs/DECISIONS.md",
+    "docs/SEMANTIC_CORPUS.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/**",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/extraction/ExtractionGrounding.kt",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/extraction/ExtractionGroundingTest.kt",
+    "core-testing/src/main/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/TagReplay.kt",
+    "core-testing/src/main/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/TagReport.kt",
+    "core-testing/src/test/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/TagReplayScorerTest.kt",
+    "core-testing/src/test/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/TagReportTest.kt",
+    "core-testing/src/test/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/TagPolicyOracleTest.kt",
+    "core-testing/src/test/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/TagRecordingFilesTest.kt",
+    "docs/DECISIONS.md",
+    "docs/SEMANTIC_CORPUS.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/extraction/ExtractionTypes.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/interpretation/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/naming/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/validation/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/**",
+    "core-testing/src/main/resources/**",
+    "core-testing/src/test/resources/**",
+    "core-ai/**",
+    "core-data/**",
+    "app-phone/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "Rules (1)-(6) are implemented in the tagging package as documented named constants, each with positive and negative unit tests; TG1.3 negatives still hold; Near/synonym/object-only cases never AUTO_SAVE.",
+    "ExtractionGrounding drops ungrounded time/duration words per (7), with the listed tests; TagReplay applies it before scoring and reports drop counts (codes only).",
+    "TagPolicyOracleTest still passes with KNOWN_POLICY_GAPS empty; all core-domain and core-testing tests pass.",
+    "Device recording re-scored: REAL_ENTRY UNSAFE 0; total UNSAFE reduced from 14 (target 0-2); no case CORRECT before becomes UNSAFE; completion report lists before/after counts and every non-CORRECT case id with codes for both recordings.",
+    "ADR-039 amendment, SEMANTIC_CORPUS.md and the TagRecordingFilesTest KDoc are updated; no forbidden path changed."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test :core-testing:test",
+    "git diff --stat -- core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/naming core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/extraction/ExtractionTypes.kt core-testing/src/main/resources core-testing/src/test/resources"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

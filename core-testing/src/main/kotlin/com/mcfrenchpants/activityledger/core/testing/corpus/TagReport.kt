@@ -74,6 +74,7 @@ object TagReport {
         appendLine("- Time resolves to the expected date: ${answered.count { it.timeOk == true }} of ${answered.size} answered cases.")
         appendLine("- Duration resolves to the expected minutes: ${answered.count { it.durationOk == true }} of ${answered.size} answered cases.")
         appendLine("- Subject inferred from a known pair: ${answered.count { it.subjectInferred }} cases.")
+        appendLine("- Grounding guard: time words dropped in ${result.timeDroppedCount} cases, duration words dropped in ${result.durationDroppedCount} cases (not in the sentence).")
         val latencies = result.entries.mapNotNull { it.latencyMs }.sorted()
         if (latencies.isEmpty()) {
             appendLine("- Latency: not recorded.")
@@ -103,6 +104,11 @@ object TagReport {
         }
         val failing = result.unsafeCheckCounts.filterValues { it > 0 }
         if (failing.isNotEmpty()) appendLine("  unsafe checks: " + failing.entries.joinToString(", ") { "${it.key}=${it.value}" })
+        appendLine("  grounding: TIME_DROPPED=${result.timeDroppedCount}, DURATION_DROPPED=${result.durationDroppedCount}")
+        result.entries.filter { it.timeDropped || it.durationDropped }.forEach { e ->
+            val codes = listOfNotNull("TIME_DROPPED".takeIf { e.timeDropped }, "DURATION_DROPPED".takeIf { e.durationDropped })
+            appendLine("  GROUNDING ${e.caseId}: ${codes.joinToString(",")}")
+        }
         listOf(TagReplayClass.UNSAFE, TagReplayClass.NAME_MISMATCH, TagReplayClass.SAFE_MISS, TagReplayClass.FAILED).forEach { c ->
             result.of(c).forEach { appendLine("  $c ${it.caseId}: ${it.outcome ?: "-"} ${it.reasonCodes.joinToString(",").ifEmpty { "-" }}") }
         }

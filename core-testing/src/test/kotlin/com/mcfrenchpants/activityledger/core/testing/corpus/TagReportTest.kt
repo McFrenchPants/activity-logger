@@ -18,8 +18,9 @@ class TagReportTest {
     /**
      * Answers carrying the sentinel in every free-text field, chosen to land in every class that
      * gets a report row: NAME_MISMATCH (a new tag named from the sentinel), UNSAFE (duplicate tag,
-     * wrong time, wrong duration, silent save on a review case), SAFE_MISS (a near name built
-     * from the sentinel) -- plus a FAILED entry.
+     * wrong duration, silent save on a review case), SAFE_MISS (a near name built from the
+     * sentinel) -- plus a FAILED entry. The sentinel time and duration words are not in their
+     * sentences, so the grounding guard drops them (reported as counts and codes only).
      */
     private val recording: TagRecording = run {
         val base = TagRecordings.withAnswers(
@@ -74,6 +75,7 @@ class TagReportTest {
         // The committed corpus sentence is allowed in the Markdown.
         assertTrue(markdown.contains(corpus.case("real-changed-furnace-filter")!!.rawText.replace("|", "\\|")))
         assertTrue(markdown.contains("`subj-furnace`"))
+        assertTrue(markdown.contains("- Grounding guard: time words dropped in 1 cases, duration words dropped in 1 cases"))
     }
 
     @Test
@@ -82,6 +84,9 @@ class TagReportTest {
         assertTrue(console.startsWith("Tag replay [STAND_IN] STAND-IN MODEL -- NOT THE OFFICIAL RESULT"))
         assertTrue(console.contains("UNSAFE real-changed-furnace-filter: AUTO_SAVE SUBJECT_DUPLICATE_TAG"))
         assertTrue(console.contains("FAILED real-reboot-wifi: - MALFORMED"))
+        assertTrue(console.contains("grounding: TIME_DROPPED=1, DURATION_DROPPED=1"))
+        assertTrue(console.contains("GROUNDING real-changed-hot-tub-filter: TIME_DROPPED"))
+        assertTrue(console.contains("GROUNDING real-weeded-garden-half-hour: DURATION_DROPPED"))
         corpus.cases.forEach { assertFalse(console.contains(it.rawText), "console contains a corpus sentence (${it.id})") }
     }
 

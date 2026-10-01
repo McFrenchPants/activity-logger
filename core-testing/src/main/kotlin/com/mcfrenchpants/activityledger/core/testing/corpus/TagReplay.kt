@@ -1,5 +1,6 @@
 package com.mcfrenchpants.activityledger.core.testing.corpus
 
+import com.mcfrenchpants.activityledger.core.domain.extraction.ExtractionGrounding
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterFailureKind
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagDecisionOutcome
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagDecisionPolicy
@@ -12,7 +13,9 @@ import java.time.LocalDate
 /*
  * JVM replay of a TAG recording (TagRecording) through the REAL deterministic tag logic.
  *
- * For each tag corpus case the recorded extraction is fed to the production TagDecisionPolicy
+ * For each tag corpus case the recorded extraction is first passed through the production
+ * ExtractionGrounding guard (time/duration words the sentence does not contain are dropped, and
+ * the drop is recorded as a flag), then fed to the production TagDecisionPolicy
  * against the case's catalog fixture (TagCorpusCatalogs.toTagCatalog), its time words to the
  * production TemporalResolver at the case's capture instant and zone, and its duration words to
  * the production DurationResolver. The scorer only READS those decisions and compares them with
@@ -96,6 +99,8 @@ enum class TagNameMismatch {
  *   for a FAILED entry.
  * @property durationOk The duration resolves to the expected minutes (both absent counts as
  *   equal); null for a FAILED entry.
+ * @property timeDropped The grounding guard removed the recorded time words (not in the sentence).
+ * @property durationDropped The grounding guard removed the recorded duration words.
  */
 data class TagReplayEntry(
     val caseId: String,
@@ -112,6 +117,8 @@ data class TagReplayEntry(
     val durationOk: Boolean?,
     val failureKind: InterpreterFailureKind?,
     val latencyMs: Long?,
+    val timeDropped: Boolean = false,
+    val durationDropped: Boolean = false,
 ) {
     /** Short codes for reports: unsafe checks, else name mismatches, else decision reasons, else failure kind. */
     val reasonCodes: List<String>
@@ -178,10 +185,23 @@ data class TagReplayResult(
     /** Number of entries failing each unsafe check (every check present, zero included). */
     val unsafeCheckCounts: Map<TagUnsafeCheck, Int>
         get() = TagUnsafeCheck.entries.associateWith { u -> entries.count { u in it.unsafeChecks } }
+
+    /** Number of entries whose time words the grounding guard dropped. */
+    val timeDroppedCount: Int
+        get() = entries.count { it.timeDropped }
+
+    /** Number of entries whose duration words the grounding guard dropped. */
+    val durationDroppedCount: Int
+        get() = entries.count { it.durationDropped }
 }
 
 /**
  * Replays tag recordings against [corpus].
+ *
+ * **Grounding** (TG1.4b): every answer is first passed through `ExtractionGrounding.ground`
+ * with the case's sentence; the grounded extraction is what the policy, the time check and the
+ * duration check see. Drops are recorded per entry ([TagReplayEntry.timeDropped] /
+ * [TagReplayEntry.durationDropped]).
  *
  * **Classification** of one answered case, with `decision = TagDecisionPolicy.decide(...)`:
  * 1. AUTO_SAVE with any [TagUnsafeCheck] -> UNSAFE. The checks (silent saves only):
@@ -255,13 +275,15 @@ class TagReplay(private val corpus: TagCorpus) {
 
         val fixture = corpus.catalogs[case.catalog]
             ?: error("tag replay harness error for case '${case.id}': catalog fixture missing")
-        val decision = TagDecisionPolicy.decide(answer.toCandidate(), TagCorpusCatalogs.toTagCatalog(fixture))
+        val grounded = ExtractionGrounding.ground(answer.toCandidate(), case.rawText)
+        val candidate = grounded.candidate
+        val decision = TagDecisionPolicy.decide(candidate, TagCorpusCatalogs.toTagCatalog(fixture))
         val outcome = TagOutcome.valueOf(decision.outcome.name)
         val expected = case.expected
 
-        val timeOk = resolvedLocalDate(answer.temporalExpression, case) ==
+        val timeOk = resolvedLocalDate(candidate.temporalExpression, case) ==
             (expected.expectedLocalDate ?: case.capturedInstant.atZone(case.zone).toLocalDate())
-        val durationOk = DurationResolver.resolve(answer.durationExpression) == expected.durationMinutes
+        val durationOk = DurationResolver.resolve(candidate.durationExpression) == expected.durationMinutes
 
         val unsafe = mutableListOf<TagUnsafeCheck>()
         val mismatches = mutableListOf<TagNameMismatch>()
@@ -295,6 +317,8 @@ class TagReplay(private val corpus: TagCorpus) {
             durationOk = durationOk,
             failureKind = null,
             latencyMs = entry.latencyMs,
+            timeDropped = grounded.timeDropped,
+            durationDropped = grounded.durationDropped,
         )
     }
 

@@ -14,7 +14,8 @@ import kotlin.test.assertEquals
  * Each file that exists must decode, match the current tag corpus hash, carry the source its name
  * promises, and hold exactly one entry per tag corpus case. A missing file skips its test.
  *
- * Structure only: there is no replay, scoring, report or gate for the tag corpus yet (TG1.4).
+ * Structure only. Replay, scoring, reports and the gate for these recordings live in
+ * [TagReplay], [TagReport] and [TagRegressionGateTest] (TG1.4, grounding guard TG1.4b).
  */
 class TagRecordingFilesTest {
 

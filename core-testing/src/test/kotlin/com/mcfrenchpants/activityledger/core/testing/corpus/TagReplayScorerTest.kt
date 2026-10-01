@@ -119,7 +119,8 @@ class TagReplayScorerTest {
 
     @Test
     fun `a silent save on a review case is SILENT_WHEN_NOT_ACCEPTABLE`() {
-        val e = scored("p-ambiguous-worked-on-the-yard", log("yard", "rake"))
+        // "yard" is now a synonym of the existing "lawn" (a confirmation card), so use a new subject.
+        val e = scored("p-ambiguous-worked-on-the-yard", log("shed", "rake"))
         assertEquals(TagReplayClass.UNSAFE, e.replayClass)
         assertEquals(listOf(TagUnsafeCheck.SILENT_WHEN_NOT_ACCEPTABLE), e.unsafeChecks)
     }
@@ -146,55 +147,103 @@ class TagReplayScorerTest {
 
     @Test
     fun `a time on another day than expected is WRONG_TIME`() {
-        val e = scored("real-changed-hot-tub-filter", log("hot tub", "change filter", time = "yesterday"))
-        assertEquals(listOf(TagUnsafeCheck.WRONG_TIME), e.unsafeChecks)
-        assertEquals(false, e.timeOk)
         assertEquals(TagReplayClass.CORRECT, scored("p-time-mowed-yesterday", log("lawn", "mow", time = "yesterday")).replayClass)
-        assertEquals(
-            listOf(TagUnsafeCheck.WRONG_TIME),
-            scored("p-time-mowed-yesterday", log("lawn", "mow", time = null)).unsafeChecks,
-        )
+        val missing = scored("p-time-mowed-yesterday", log("lawn", "mow", time = null))
+        assertEquals(listOf(TagUnsafeCheck.WRONG_TIME), missing.unsafeChecks)
+        assertEquals(false, missing.timeOk)
+        assertFalse(missing.timeDropped)
+        // Grounded words (in the sentence) that resolve to another day than expected.
+        val otherDay = scored("p-time-mowed-saturday-morning", log("lawn", "mow", time = "morning"))
+        assertEquals(listOf(TagUnsafeCheck.WRONG_TIME), otherDay.unsafeChecks)
+        assertFalse(otherDay.timeDropped)
     }
 
     @Test
-    fun `an invented other-day time where none was said is WRONG_TIME, today is fine`() {
-        val bad = scored("real-weeded-garden-half-hour", log("garden", "weed", time = "two days ago", duration = "for half an hour"))
-        assertEquals(listOf(TagUnsafeCheck.WRONG_TIME), bad.unsafeChecks)
+    fun `an invented time the sentence does not contain is dropped before scoring`() {
+        val otherDay = scored("real-weeded-garden-half-hour", log("garden", "weed", time = "two days ago", duration = "for half an hour"))
+        assertEquals(TagReplayClass.CORRECT, otherDay.replayClass)
+        assertTrue(otherDay.timeDropped)
+        assertFalse(otherDay.durationDropped)
+        assertEquals(true, otherDay.timeOk)
         val today = scored("real-weeded-garden-half-hour", log("garden", "weed", time = "this evening", duration = "for half an hour"))
         assertEquals(TagReplayClass.CORRECT, today.replayClass)
+        assertTrue(today.timeDropped)
+        val placeholder = scored("real-changed-hot-tub-filter", log("hot tub", "change filter", time = "n/a"))
+        assertEquals(TagReplayClass.CORRECT, placeholder.replayClass)
+        assertTrue(placeholder.timeDropped)
     }
 
     @Test
     fun `unreadable time words count as a wrong time on a silent save`() {
-        val e = scored("real-changed-hot-tub-filter", log("hot tub", "change filter", time = "n/a"))
+        // Grounded (the sentence contains it) but unreadable on its own: "last" points at some other day.
+        val e = scored("p-time-took-out-the-trash-last-night", log("trash", "take out", time = "last"))
         assertEquals(listOf(TagUnsafeCheck.WRONG_TIME), e.unsafeChecks)
+        assertFalse(e.timeDropped)
     }
 
     @Test
     fun `duration is checked through DurationResolver`() {
-        val ok = scored("real-weeded-garden-half-hour", log("garden", "weed", duration = "30 minutes"))
+        val ok = scored("real-weeded-garden-half-hour", log("garden", "weed", duration = "half an hour"))
         assertEquals(TagReplayClass.CORRECT, ok.replayClass)
         assertEquals(true, ok.durationOk)
+        // "30 minutes" is not in the sentence: dropped, so the expected 30 minutes are lost.
+        val ungrounded = scored("real-weeded-garden-half-hour", log("garden", "weed", duration = "30 minutes"))
+        assertTrue(ungrounded.durationDropped)
+        assertEquals(listOf(TagUnsafeCheck.WRONG_DURATION), ungrounded.unsafeChecks)
         val wrong = scored("real-weeded-garden-half-hour", log("garden", "weed", duration = "an hour"))
         assertEquals(listOf(TagUnsafeCheck.WRONG_DURATION), wrong.unsafeChecks)
         // Duration words misplaced into the time field: today's date, but the duration is lost.
         val misplaced = scored("real-weeded-garden-half-hour", log("garden", "weed", time = "for half an hour"))
         assertEquals(listOf(TagUnsafeCheck.WRONG_DURATION), misplaced.unsafeChecks)
+        // An invented duration is dropped by the grounding guard before scoring.
         val invented = scored("real-changed-hot-tub-filter", log("hot tub", "change filter", time = "just", duration = "an hour"))
-        assertEquals(listOf(TagUnsafeCheck.WRONG_DURATION), invented.unsafeChecks)
+        assertEquals(TagReplayClass.CORRECT, invented.replayClass)
+        assertTrue(invented.durationDropped)
+        assertFalse(invented.timeDropped)
+        // "an hour" followed by "ago" in the sentence is a time, not a duration.
+        val ago = scored("p-time-mowed-about-an-hour-ago", log("lawn", "mow", time = "about an hour ago", duration = "for an hour"))
+        assertEquals(TagReplayClass.CORRECT, ago.replayClass)
+        assertTrue(ago.durationDropped)
+        assertFalse(ago.timeDropped)
+    }
+
+    @Test
+    fun `drop counts are reported on the result`() {
+        val result = replay.replay(
+            TagRecordings.withAnswers(
+                corpus,
+                mapOf(
+                    "real-mowed-lawn-40-minutes" to log("lawn", "mow", time = "yesterday", duration = "for 40 minutes"),
+                    "p-time-mowed-about-an-hour-ago" to log("lawn", "mow", time = "about an hour ago", duration = "for an hour"),
+                ),
+            ),
+        )
+        assertEquals(1, result.timeDroppedCount)
+        assertEquals(1, result.durationDroppedCount)
+        val forty = result.entries.single { it.caseId == "real-mowed-lawn-40-minutes" }
+        assertEquals(TagReplayClass.CORRECT, forty.replayClass)
+        assertTrue(forty.timeDropped)
+        assertFalse(forty.durationDropped)
     }
 
     @Test
     fun `time and duration problems on a non-silent decision are not unsafe`() {
-        // "hot tob" is one letter from "hot tub": a confirmation card, nothing saved silently.
-        val e = scored("real-changed-hot-tub-filter", log("hot tob", "change filter", time = "yesterday", duration = "an hour"))
+        // "gardne" is one swap from "garden": a confirmation card, nothing saved silently. The
+        // duration words are in the sentence (grounded, not dropped) but wrong.
+        val e = scored("real-weeded-garden-half-hour", log("gardne", "weed", duration = "an hour"))
         assertEquals(TagOutcome.CONFIRM, e.outcome)
         assertEquals(TagReplayClass.SAFE_MISS, e.replayClass)
         assertEquals(TagReplay.NEAR, e.subjectTag)
         assertEquals(listOf("SUBJECT_NEAR_EXISTING"), e.reasonCodes)
         assertTrue(e.unsafeChecks.isEmpty())
-        assertFalse(e.timeOk!!)
         assertFalse(e.durationOk!!)
+        assertFalse(e.durationDropped)
+        // Same for grounded but wrong time words ("trassh" is one letter from "trash").
+        val t = scored("p-time-took-out-the-trash-last-night", log("trassh", "take out", time = "last"))
+        assertEquals(TagOutcome.CONFIRM, t.outcome)
+        assertTrue(t.unsafeChecks.isEmpty())
+        assertFalse(t.timeOk!!)
+        assertFalse(t.timeDropped)
     }
 
     @Test

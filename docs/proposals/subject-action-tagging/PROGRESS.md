@@ -15,10 +15,31 @@ Registered in `.sdlc/state.json` as TG1.
 | TG1.3 | Tag resolver + decision policy in core-domain | done | Verifier pass on attempt 2; oracle 49/49, no gaps |
 | TG1.4a | On-phone debug-only runner, APK via owner's Google Drive | done | APK in G:/My Drive/ActivityLogger; awaiting owner's run |
 | TG1.4 | Replay, score, report, gate; Pixel 10 Pro recording | done | Device recording via in-app runner; tag-baseline.json set after TG1.4b |
-| TG1.4b | Resolver/policy fixes from the device findings | todo | verifier required; STOP after this with the Stage 1 report |
+| TG1.4b | Resolver/policy fixes from the device findings | done | Verifier pass (attempt 2); device UNSAFE 14 -> 0; tag-baseline.json set. STAGE 1 COMPLETE |
 | TG1.5+ | Stages 2-4 | todo | detail written after the Stage 1 report |
 
 ## Session log
+
+### 2026-10-01 — TG1.4b done; STAGE 1 COMPLETE (stop for owner go/no-go)
+Rules: candidate-set verb matching (only inflected forms reduced; Exact only if exactly one
+existing action matches, else Near), subject/action re-split (only when both sides Exact),
+junk subjects (verb gerund / time-only words) dropped only when the subject resolves New,
+subject-is-only-the-action's-object -> CONFIRM with the single paired subject or review (never
+silent inference), tiny synonym groups and head-verb -> Near only, ExtractionGrounding drops
+time/duration words not in the sentence (duration also not when followed by "ago"). Attempt 1
+failed the verifier: junk-subject rule discarded Exact subjects ("Walked June" -> dogs) and the
+stemmer over-merged base verbs (hose/hoe, tap/tape). Fixed in attempt 2, verifier pass.
+Device (Pixel 10 Pro, prompt v4): CORRECT 62, SAFE_MISS 6, NAME_MISMATCH 4, UNSAFE 0, FAILED 0
+(before: 49/5/4/14/0; v3 device baseline: 10 of 48 unsafe, 9 of 15 real entries wrong).
+REAL_ENTRY 11 correct, 1 NAME_MISMATCH (Durango -> "headlight"). Stand-in: 53/7/8/3/1 (3 unsafe:
+"edg" truncation, HVAC/air filter x2 -- stand-in only). `tag-baseline.json` committed: 62
+mustStayCorrect, maxUnsafe 0, maxUnsafeRealEntry 0; TagRegressionGateTest now gates.
+Follow-ups (not blocking): (a) Stage 3: a time dropped by grounding should go to a confirm
+card, not default to capture time; (b) "taped" -> Exact "tap" when only "tap" exists (silent-e
+base vs short CVC verb) -- consider keeping only the "+e" form for short CVC stems; (c) short
+garbled verbs (<5 letters) are never close to an existing verb; (d) Durango-style speech errors
+lose the real subject -- NAME_MISMATCH, consider CONFIRM for brand-new subject when the raw text
+has an unused capitalised word. Next: owner go/no-go for Stage 2 (data).
 
 ### 2026-10-01 — TG1.4 done (scorer, report, gate, DurationResolver)
 `TagReplay`/`TagReport`/`TagGate` + `TagRegressionGateTest` (reports `tag-device.md`,
