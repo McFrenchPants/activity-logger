@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
-import com.mcfrenchpants.activityledger.core.speech.OfflineAssurance
 import com.mcfrenchpants.activityledger.wear.R
 
 /**
@@ -41,7 +40,6 @@ import com.mcfrenchpants.activityledger.wear.R
 @Composable
 fun CaptureScreen(
     state: CaptureUiState,
-    assurance: OfflineAssurance,
     ambient: Boolean,
     onRetry: () -> Unit,
 ) {
@@ -68,9 +66,6 @@ fun CaptureScreen(
             )
             Message(stringResource(R.string.capture_listening), textColor, 18)
             state.partial?.takeIf { it.isNotBlank() }?.let { Message(it, textColor, 14) }
-            if (assurance == OfflineAssurance.NOT_CONFIRMED) {
-                Message(stringResource(R.string.capture_offline_not_confirmed), textColor, 11)
-            }
         } else {
             Message(messageFor(state), textColor, 20)
         }

@@ -47,7 +47,7 @@ The following are hard constraints unless superseded by an explicit decision rec
 - The phone performs semantic interpretation.
 - Wear OS does not run semantic inference.
 - MVP is local-first.
-- MVP does not require an Internet connection for normal capture.
+- Internet use by speech recognition is fine and not to be flagged (ADR-036).
 - Gemini Nano is the primary semantic interpreter.
 - AI output must be structured and validated before persistence.
 - Raw user input must be preserved.
@@ -172,7 +172,7 @@ Avoid oversized ViewModels containing business logic.
 
 ## 11. Privacy
 
-Do not transmit captured activity text off-device in MVP.
+Speech recognition may use the internet (ADR-036); do not build offline/online notices or guards. Do not otherwise add features that send captured activity text to external services.
 
 Do not add telemetry containing raw utterances.
 

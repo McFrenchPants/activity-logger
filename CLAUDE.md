@@ -98,7 +98,7 @@ target exists (see the note in `.sdlc/project.yaml`).
 - An implementer that finds it needs to go outside its packet's declared
   paths reports `status: scope_change_requested` rather than doing the
   out-of-scope work quietly.
-- Never transmit raw captured activity text off-device, and never add
-  telemetry/logging containing user content by default (AGENTS.md #11) —
+- Never add telemetry/logging containing user content by default
+  (AGENTS.md #11). Network use by speech recognition is fine (ADR-036) —
   this applies to any diagnostics tooling built as part of this framework's
   own work, not only product features.

@@ -13,8 +13,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import androidx.wear.compose.material3.MaterialTheme
-import com.mcfrenchpants.activityledger.core.speech.OfflineAssurance
-import com.mcfrenchpants.activityledger.core.speech.OfflineSpeechCheck
 import com.mcfrenchpants.activityledger.core.speech.PlatformSpeechTranscriber
 import com.mcfrenchpants.activityledger.wear.capture.CaptureScreen
 import com.mcfrenchpants.activityledger.wear.capture.CaptureSessionController
@@ -24,7 +22,6 @@ import com.mcfrenchpants.activityledger.wear.capture.PlaceholderCaptureSink
 import com.mcfrenchpants.activityledger.wear.capture.UnavailableReason
 import com.mcfrenchpants.activityledger.wear.capture.VibratorHapticPlayer
 import com.mcfrenchpants.activityledger.wear.capture.hapticOnTransition
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
@@ -37,9 +34,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var controller: CaptureSessionController
     private lateinit var haptics: HapticPlayer
-    private var assurance by mutableStateOf(OfflineAssurance.NOT_CONFIRMED)
     private var permissionDenied by mutableStateOf(false)
-    private var assuranceJob: Job? = null
     private var started = false
 
     // No Fragment on the classpath, so the lint rule about old Fragment versions is a false positive.
@@ -79,7 +74,6 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 CaptureScreen(
                     state = shown,
-                    assurance = assurance,
                     ambient = false,
                     onRetry = controller::retry,
                 )
@@ -99,17 +93,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         started = false
-        assuranceJob?.cancel()
         controller.stop()
         super.onStop()
     }
 
     private fun beginSession() {
-        assurance = OfflineAssurance.NOT_CONFIRMED
-        assuranceJob?.cancel()
-        assuranceJob = lifecycleScope.launch {
-            assurance = OfflineSpeechCheck(this@MainActivity).check()
-        }
         controller.start()
     }
 }

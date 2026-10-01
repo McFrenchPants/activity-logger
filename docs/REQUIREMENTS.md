@@ -394,7 +394,7 @@ Interpretation/correction provenance MUST be retained.
 
 ### OFF-001 — Core capture offline
 
-Normal supported-device capture MUST work without Internet access.
+Normal supported-device capture MUST work without Internet access. (Relaxed for speech recognition by ADR-036: the platform speech engine may use the network, and nothing flags it.)
 
 ### OFF-002 — Query offline
 

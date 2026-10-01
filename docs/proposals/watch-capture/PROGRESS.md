@@ -15,12 +15,15 @@ sdlc-tracked as `WC1`.
 | WC1.2 | Watch outbox (durable queue + retry) | done | Verifier pass, no blocking issues. Pure JVM in core-wear-protocol/outbox: FileOutboxStore (atomic temp+move), Outbox, OutboxPolicy (5s,30s,2m,10m,30m,1h cap, never permanent), cap 200 no eviction. 18 new tests. Follow-ups for WC1.4/1.5: PHONE_RECEIVED is never due, so a lost SAVED/NEEDS_REVIEW ack leaves a stuck pending item (no data loss; add staleness resend with same captureId); markSendStarted result must be checked by the sender; UI must let owner discard FAILED (they count toward cap) |
 | WC1.3 | Repository: caller-supplied capture id (idempotent receive) | done | Verifier pass. NewRawCapture.id (nullable); Room does exists-check+insert in one transaction; no schema change; InMemory mirrors. Watch captureId becomes the raw capture id |
 | WC1.3b | Phone receiver (WearableListenerService, idempotent processing, ack) | done | Verifier pass. WatchCaptureReceiver (pure, mutex-serialised) + WatchCaptureListenerService + manifest filter on /capture/. Acks RECEIVED then SAVED/NEEDS_REVIEW/FAILED_RETRYABLE; InterpreterUnavailable acks NEEDS_REVIEW (capture stored on phone). Unverified on a real device until WC1.6 |
-| WC1.4a | Watch speech adapter (ordinary recognizer, prefer-offline) + offline assurance check | done | Spot-check. `PlatformSpeechTranscriber.preferringOffline(context)`, `OfflineSpeechCheck` (ON_DEVICE_CONFIRMED only if the language model is installed; any doubt = NOT_CONFIRMED), 7 JVM tests. Platform path unverified on the watch until WC1.6 |
-| WC1.4b | Watch capture UI states, session controller, haptics, permission | done | Spot-check. 20 JVM tests. PlaceholderCaptureSink discards transcripts: WC1.5 must replace it with the outbox and call controller.onAck. UI/haptics only compile-checked; ambient hook deferred to WC1.6 (no androidx.wear dependency yet). New copy: Listening…, Allow microphone to capture., Voice capture isn't available on this watch., Offline speech not confirmed |
+| WC1.4a | Watch speech adapter (ordinary recognizer, prefer-offline); offline check later removed (ADR-036) | done | Spot-check. `PlatformSpeechTranscriber.preferringOffline(context)`, `OfflineSpeechCheck` (ON_DEVICE_CONFIRMED only if the language model is installed; any doubt = NOT_CONFIRMED), 7 JVM tests. Platform path unverified on the watch until WC1.6 |
+| WC1.4b | Watch capture UI states, session controller, haptics, permission | done | Spot-check. 20 JVM tests. PlaceholderCaptureSink discards transcripts: WC1.5 must replace it with the outbox and call controller.onAck. UI/haptics only compile-checked; ambient hook deferred to WC1.6 (no androidx.wear dependency yet). New copy: Listening…, Allow microphone to capture., Voice capture isn't available on this watch. |
 | WC1.5 | Wire UI to outbox and transport; end-to-end fake test | todo | |
 | WC1.6 | Device pass and documentation | todo | Needs phone + watch online |
 
 ## Session log
+
+### 2026-10-01 - Offline concern dropped (ADR-036)
+Owner: internet use by speech is fine, no notices. Removed OfflineSpeechCheck and the watch notice; recorded ADR-036; softened AGENTS.md/CLAUDE.md/REQUIREMENTS wording. WC1.6 should not test for offline behaviour.
 
 ### 2026-10-01 - WC1.4b done
 Watch screens, controller, haptics, mic permission built (nothing sent yet). Next: WC1.5 wires the outbox and transport to the screen and the phone acks back.

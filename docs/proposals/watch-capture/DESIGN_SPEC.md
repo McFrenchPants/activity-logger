@@ -36,9 +36,7 @@ capture pipeline that typed and spoken text share (VC1).
   the watch shows Queued / Saved / Needs review / Failure with the copy,
   haptics and ambient rendering of UX_VISUAL_SPEC §4.6 / WATCH_SPEC §11, and
   retries retryable failures without blocking the capture screen.
-- **G6. No silent network fallback (ADR-035's open risk).** The watch
-  recognizer is set to prefer offline; the adapter must detect or visibly
-  surface a non-offline recognition rather than let it happen silently.
+- **G6. (Dropped 2026-10-01, ADR-036: network use is fine, no guard or notice.) Was: no silent network fallback.**
 
 ## 3. Non-goals
 

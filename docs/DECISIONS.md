@@ -554,3 +554,18 @@ A Wear build of `com.google.android.tts` is installed and is the default `Recogn
 **Reason:** recorded as its own decision rather than folded into ADR-024 because the measurement is durable and the consequence is not: a future Wear OS or recognizer update could change the answer, and whoever revisits it needs to know exactly what was measured, on what, and when.
 
 ---
+
+## ADR-036 — Speech recognition may use the internet; offline is a preference, not a rule
+
+**Status:** Accepted (owner, 2026-10-01)
+
+The owner's original wish was "do as much as possible offline". That grew, across ADR-005, ADR-024, ADR-025 and ADR-035, into a near-ban on network use plus warnings about it. The owner has clarified they do not care whether speech recognition uses the internet, and does not want to be told when it does.
+
+**Decision.**
+- Speech-to-text (phone and watch) may use whatever engine the platform provides, including a network one. `EXTRA_PREFER_OFFLINE` stays set as a harmless default, nothing more.
+- No offline-vs-online indicator, notice, or detection is built. The watch's "Offline speech not confirmed" notice and `OfflineSpeechCheck` were removed.
+- Nothing needs to detect or guard against network use; ADR-035's "open risk" is closed by this decision.
+
+**Unchanged.** Interpretation stays on the phone's on-device model (Gemini Nano) — that is an architecture choice, not a privacy rule. Core capture must still work when there is no connection where the platform engine allows it, but a failure for lack of a network is an ordinary failure, not a policy matter. The `INTERNET` permission stripping (ADR-025) is left as is: the app itself makes no network calls; the system speech service does its own. If a feature ever needs the app to use the network directly, that is a new decision. No telemetry or logging of captured text is added (a separate engineering habit, not a privacy ban).
+
+**Supersedes** the privacy wording in ADR-005/ADR-024/ADR-025/ADR-035 and AGENTS.md "Do not transmit captured activity text off-device" as far as speech recognition is concerned.

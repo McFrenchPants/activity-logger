@@ -79,8 +79,7 @@ class PlatformSpeechTranscriber internal constructor(
          * It exists because the watch has no `createOnDeviceSpeechRecognizer()` (the
          * constructor above reports [SpeechFailure.NO_ON_DEVICE_ENGINE] there), yet has an
          * ordinary recognition service. `EXTRA_PREFER_OFFLINE` is only a hint: this recognizer
-         * can still reach a network engine. That is why [OfflineSpeechCheck] exists -- callers
-         * that must be honest about being offline ask it first. The session rules are exactly
+         * may use a network engine, which is acceptable (ADR-036). The session rules are exactly
          * those of the on-device path; only the way the recognizer is obtained differs.
          */
         fun preferringOffline(context: Context): PlatformSpeechTranscriber =
@@ -236,8 +235,7 @@ private class PlatformRecognizerFactory(private val context: Context) : Recogniz
 
 /**
  * Creates ordinary (not on-device) platform recognizers, for devices such as the watch that have
- * no on-device factory (ADR-035). The recognizer may still use a network engine; see
- * [OfflineSpeechCheck].
+ * no on-device factory (ADR-035). The recognizer may use a network engine (ADR-036).
  */
 internal class OrdinaryRecognizerFactory(private val context: Context) : RecognizerFactory {
 
