@@ -1,0 +1,3675 @@
+{
+  "schemaVersion": 1,
+  "description": "Tag corpus for the subject + action redesign. Each case expects a subject tag, an action tag, an optional duration and a policy outcome. Expected values are the correct product behaviour, not what any model or resolver currently does. Test infrastructure only.",
+  "catalogs": {
+    "empty": {
+      "description": "No subject or action tags at all (first use of the app).",
+      "subjects": [],
+      "actions": [],
+      "pairs": []
+    },
+    "household": {
+      "description": "Tag form of corpus.json's household catalog: nine subjects, nine actions and the ten known subject+action pairs (the old activities).",
+      "subjects": [
+        {
+          "id": "subj-lawn",
+          "displayName": "lawn",
+          "aliases": []
+        },
+        {
+          "id": "subj-furnace",
+          "displayName": "furnace",
+          "aliases": []
+        },
+        {
+          "id": "subj-gutters",
+          "displayName": "gutters",
+          "aliases": []
+        },
+        {
+          "id": "subj-dryer-vent",
+          "displayName": "dryer vent",
+          "aliases": []
+        },
+        {
+          "id": "subj-leaves",
+          "displayName": "leaves",
+          "aliases": []
+        },
+        {
+          "id": "subj-car",
+          "displayName": "car",
+          "aliases": []
+        },
+        {
+          "id": "subj-fridge",
+          "displayName": "fridge",
+          "aliases": []
+        },
+        {
+          "id": "subj-garden",
+          "displayName": "garden",
+          "aliases": []
+        },
+        {
+          "id": "subj-trash",
+          "displayName": "trash",
+          "aliases": []
+        }
+      ],
+      "actions": [
+        {
+          "id": "act-mow",
+          "displayName": "mow",
+          "aliases": []
+        },
+        {
+          "id": "act-edge",
+          "displayName": "edge",
+          "aliases": []
+        },
+        {
+          "id": "act-replace-filter",
+          "displayName": "replace filter",
+          "aliases": []
+        },
+        {
+          "id": "act-clean",
+          "displayName": "clean",
+          "aliases": []
+        },
+        {
+          "id": "act-blow",
+          "displayName": "blow",
+          "aliases": [
+            "leaf blowing"
+          ]
+        },
+        {
+          "id": "act-wax",
+          "displayName": "wax",
+          "aliases": []
+        },
+        {
+          "id": "act-replace-water-filter",
+          "displayName": "replace water filter",
+          "aliases": [
+            "change water filter"
+          ]
+        },
+        {
+          "id": "act-water",
+          "displayName": "water",
+          "aliases": []
+        },
+        {
+          "id": "act-take-out",
+          "displayName": "take out",
+          "aliases": []
+        }
+      ],
+      "pairs": [
+        {
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "displayName": "Mow lawn"
+        },
+        {
+          "subjectId": "subj-lawn",
+          "actionId": "act-edge",
+          "displayName": "Edge lawn"
+        },
+        {
+          "subjectId": "subj-furnace",
+          "actionId": "act-replace-filter",
+          "displayName": "Replace furnace filter"
+        },
+        {
+          "subjectId": "subj-gutters",
+          "actionId": "act-clean",
+          "displayName": "Clean gutters"
+        },
+        {
+          "subjectId": "subj-dryer-vent",
+          "actionId": "act-clean",
+          "displayName": "Clean dryer vent"
+        },
+        {
+          "subjectId": "subj-leaves",
+          "actionId": "act-blow",
+          "displayName": "Blow leaves"
+        },
+        {
+          "subjectId": "subj-car",
+          "actionId": "act-wax",
+          "displayName": "Wax car"
+        },
+        {
+          "subjectId": "subj-fridge",
+          "actionId": "act-replace-water-filter",
+          "displayName": "Replace fridge water filter"
+        },
+        {
+          "subjectId": "subj-garden",
+          "actionId": "act-water",
+          "displayName": "Water garden"
+        },
+        {
+          "subjectId": "subj-trash",
+          "actionId": "act-take-out",
+          "displayName": "Take out trash"
+        }
+      ]
+    },
+    "household-no-edge": {
+      "description": "The household fixture without the action edge and the pair Edge lawn: edging has no equivalent and mow is the tempting wrong action.",
+      "subjects": [
+        {
+          "id": "subj-lawn",
+          "displayName": "lawn",
+          "aliases": []
+        },
+        {
+          "id": "subj-furnace",
+          "displayName": "furnace",
+          "aliases": []
+        },
+        {
+          "id": "subj-gutters",
+          "displayName": "gutters",
+          "aliases": []
+        },
+        {
+          "id": "subj-dryer-vent",
+          "displayName": "dryer vent",
+          "aliases": []
+        },
+        {
+          "id": "subj-leaves",
+          "displayName": "leaves",
+          "aliases": []
+        },
+        {
+          "id": "subj-car",
+          "displayName": "car",
+          "aliases": []
+        },
+        {
+          "id": "subj-fridge",
+          "displayName": "fridge",
+          "aliases": []
+        },
+        {
+          "id": "subj-garden",
+          "displayName": "garden",
+          "aliases": []
+        },
+        {
+          "id": "subj-trash",
+          "displayName": "trash",
+          "aliases": []
+        }
+      ],
+      "actions": [
+        {
+          "id": "act-mow",
+          "displayName": "mow",
+          "aliases": []
+        },
+        {
+          "id": "act-replace-filter",
+          "displayName": "replace filter",
+          "aliases": []
+        },
+        {
+          "id": "act-clean",
+          "displayName": "clean",
+          "aliases": []
+        },
+        {
+          "id": "act-blow",
+          "displayName": "blow",
+          "aliases": [
+            "leaf blowing"
+          ]
+        },
+        {
+          "id": "act-wax",
+          "displayName": "wax",
+          "aliases": []
+        },
+        {
+          "id": "act-replace-water-filter",
+          "displayName": "replace water filter",
+          "aliases": [
+            "change water filter"
+          ]
+        },
+        {
+          "id": "act-water",
+          "displayName": "water",
+          "aliases": []
+        },
+        {
+          "id": "act-take-out",
+          "displayName": "take out",
+          "aliases": []
+        }
+      ],
+      "pairs": [
+        {
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "displayName": "Mow lawn"
+        },
+        {
+          "subjectId": "subj-furnace",
+          "actionId": "act-replace-filter",
+          "displayName": "Replace furnace filter"
+        },
+        {
+          "subjectId": "subj-gutters",
+          "actionId": "act-clean",
+          "displayName": "Clean gutters"
+        },
+        {
+          "subjectId": "subj-dryer-vent",
+          "actionId": "act-clean",
+          "displayName": "Clean dryer vent"
+        },
+        {
+          "subjectId": "subj-leaves",
+          "actionId": "act-blow",
+          "displayName": "Blow leaves"
+        },
+        {
+          "subjectId": "subj-car",
+          "actionId": "act-wax",
+          "displayName": "Wax car"
+        },
+        {
+          "subjectId": "subj-fridge",
+          "actionId": "act-replace-water-filter",
+          "displayName": "Replace fridge water filter"
+        },
+        {
+          "subjectId": "subj-garden",
+          "actionId": "act-water",
+          "displayName": "Water garden"
+        },
+        {
+          "subjectId": "subj-trash",
+          "actionId": "act-take-out",
+          "displayName": "Take out trash"
+        }
+      ]
+    },
+    "owner-2026-10-01": {
+      "description": "Tag form of the owner's real catalog when the real entries were recorded (Mow lawn, Trim hedges, Dishes, Hot tub, Walk dogs, Furnace maintenance, Reboot WiFi, Weed garden). No aliases.",
+      "subjects": [
+        {
+          "id": "subj-lawn",
+          "displayName": "lawn",
+          "aliases": []
+        },
+        {
+          "id": "subj-hedges",
+          "displayName": "hedges",
+          "aliases": []
+        },
+        {
+          "id": "subj-dishes",
+          "displayName": "dishes",
+          "aliases": []
+        },
+        {
+          "id": "subj-hot-tub",
+          "displayName": "hot tub",
+          "aliases": []
+        },
+        {
+          "id": "subj-dogs",
+          "displayName": "dogs",
+          "aliases": []
+        },
+        {
+          "id": "subj-furnace",
+          "displayName": "furnace",
+          "aliases": []
+        },
+        {
+          "id": "subj-wifi",
+          "displayName": "WiFi",
+          "aliases": []
+        },
+        {
+          "id": "subj-garden",
+          "displayName": "garden",
+          "aliases": []
+        }
+      ],
+      "actions": [
+        {
+          "id": "act-mow",
+          "displayName": "mow",
+          "aliases": []
+        },
+        {
+          "id": "act-trim",
+          "displayName": "trim",
+          "aliases": []
+        },
+        {
+          "id": "act-wash",
+          "displayName": "wash",
+          "aliases": []
+        },
+        {
+          "id": "act-clean",
+          "displayName": "clean",
+          "aliases": []
+        },
+        {
+          "id": "act-walk",
+          "displayName": "walk",
+          "aliases": []
+        },
+        {
+          "id": "act-change-filter",
+          "displayName": "change filter",
+          "aliases": []
+        },
+        {
+          "id": "act-reboot",
+          "displayName": "reboot",
+          "aliases": []
+        },
+        {
+          "id": "act-weed",
+          "displayName": "weed",
+          "aliases": []
+        }
+      ],
+      "pairs": [
+        {
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "displayName": "Mow lawn"
+        },
+        {
+          "subjectId": "subj-hedges",
+          "actionId": "act-trim",
+          "displayName": "Trim hedges"
+        },
+        {
+          "subjectId": "subj-dishes",
+          "actionId": "act-wash",
+          "displayName": "Dishes"
+        },
+        {
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-clean",
+          "displayName": "Hot tub"
+        },
+        {
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "displayName": "Walk dogs"
+        },
+        {
+          "subjectId": "subj-furnace",
+          "actionId": "act-change-filter",
+          "displayName": "Furnace maintenance"
+        },
+        {
+          "subjectId": "subj-wifi",
+          "actionId": "act-reboot",
+          "displayName": "Reboot WiFi"
+        },
+        {
+          "subjectId": "subj-garden",
+          "actionId": "act-weed",
+          "displayName": "Weed garden"
+        }
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "p-mow-i-mowed-the-lawn",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "I mowed the lawn.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-edge"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "sourceCaseId": "mow-i-mowed-the-lawn"
+    },
+    {
+      "id": "p-mow-i-cut-the-grass",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "I cut the grass.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-edge"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Tag reading: the grass is the lawn subject and cutting it is the mow action. The user's words differ from the existing tag names; asking (CONFIRM) is acceptable, silently creating a duplicate tag is not.",
+      "sourceCaseId": "mow-i-cut-the-grass"
+    },
+    {
+      "id": "p-mow-finished-mowing",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Finished mowing.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-edge"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "The sentence names no subject; the action's only known pair implies the lawn, so an empty subject (filled in from that pair) is also correct.",
+      "sourceCaseId": "mow-finished-mowing"
+    },
+    {
+      "id": "p-mow-just-mowed",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Just mowed.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-edge"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "just",
+        "allowedTemporalExpressions": [
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "The sentence names no subject; the action's only known pair implies the lawn, so an empty subject (filled in from that pair) is also correct. 'just' is the time wording; leaving it empty is equally correct.",
+      "sourceCaseId": "mow-just-mowed"
+    },
+    {
+      "id": "p-mow-i-did-the-grass",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "I did the grass.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-edge"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Tag reading: 'doing the grass' is mowing the lawn. The user's words differ from the existing tag names; asking (CONFIRM) is acceptable, silently creating a duplicate tag is not.",
+      "sourceCaseId": "mow-i-did-the-grass"
+    },
+    {
+      "id": "p-mow-the-lawn-is-cut",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "The lawn is cut.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-edge"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Tag reading: 'cut' is the mow action. The user's words differ from the existing tag names; asking (CONFIRM) is acceptable, silently creating a duplicate tag is not.",
+      "sourceCaseId": "mow-the-lawn-is-cut"
+    },
+    {
+      "id": "p-edge-i-edged-the-lawn",
+      "group": "PORTED",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household",
+      "rawText": "I edged the lawn.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-edge",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-mow"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Edging is not mowing.",
+      "sourceCaseId": "edge-i-edged-the-lawn"
+    },
+    {
+      "id": "p-edge-finished-edging",
+      "group": "PORTED",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household",
+      "rawText": "Finished edging.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-edge",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-mow"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "The sentence names no subject; the action's only known pair implies the lawn, so an empty subject (filled in from that pair) is also correct.",
+      "sourceCaseId": "edge-finished-edging"
+    },
+    {
+      "id": "p-edge-did-the-lawn-edges",
+      "group": "PORTED",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household",
+      "rawText": "Did the lawn edges.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-edge",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-mow"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Tag reading: 'did the lawn edges' is the edge action on the lawn. The user's words differ from the existing tag names; asking (CONFIRM) is acceptable, silently creating a duplicate tag is not.",
+      "sourceCaseId": "edge-did-the-lawn-edges"
+    },
+    {
+      "id": "p-edge-no-edge-catalog-i-edged-the-lawn",
+      "group": "PORTED",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household-no-edge",
+      "rawText": "I edged the lawn.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "edge",
+          "allowedNewNames": [
+            "edging"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-mow"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "No edge action exists in this fixture; mow is related, not equivalent, so the action is a new tag while the lawn subject is reused.",
+      "sourceCaseId": "edge-no-edge-catalog-i-edged-the-lawn"
+    },
+    {
+      "id": "p-edge-no-edge-catalog-finished-edging",
+      "group": "PORTED",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household-no-edge",
+      "rawText": "Finished edging.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "edge",
+          "allowedNewNames": [
+            "edging"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-mow"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "No edge action exists here, so the action is a new tag. The sentence names no subject and no pair implies one; the lawn (the obvious subject of edging) or an empty subject are both correct.",
+      "sourceCaseId": "edge-no-edge-catalog-finished-edging"
+    },
+    {
+      "id": "p-furnace-changed-the-furnace-filter",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Changed the furnace filter.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-furnace",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-fridge"
+          ]
+        },
+        "action": {
+          "existingId": "act-replace-filter",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-replace-water-filter"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Tag reading: 'changed' is the replace filter action. The user's words differ from the existing tag names; asking (CONFIRM) is acceptable, silently creating a duplicate tag is not.",
+      "sourceCaseId": "furnace-changed-the-furnace-filter"
+    },
+    {
+      "id": "p-furnace-replaced-the-hvac-filter",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Replaced the HVAC filter.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-furnace",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-fridge"
+          ]
+        },
+        "action": {
+          "existingId": "act-replace-filter",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-replace-water-filter"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Tag reading: the HVAC is the furnace subject. The user's words differ from the existing tag names; asking (CONFIRM) is acceptable, silently creating a duplicate tag is not.",
+      "sourceCaseId": "furnace-replaced-the-hvac-filter"
+    },
+    {
+      "id": "p-furnace-put-a-new-filter-in-the-furnace",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Put a new filter in the furnace.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-furnace",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-fridge"
+          ]
+        },
+        "action": {
+          "existingId": "act-replace-filter",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-replace-water-filter"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Tag reading: putting in a new filter is the replace filter action. The user's words differ from the existing tag names; asking (CONFIRM) is acceptable, silently creating a duplicate tag is not.",
+      "sourceCaseId": "furnace-put-a-new-filter-in-the-furnace"
+    },
+    {
+      "id": "p-furnace-swapped-the-air-filter",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Swapped the air filter.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-furnace",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": [
+            "subj-fridge"
+          ]
+        },
+        "action": {
+          "existingId": "act-replace-filter",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-replace-water-filter"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "In a house the air filter is the furnace/HVAC filter; the fridge filter is a water filter. The subject is only implied (the replace filter action's only pair is the furnace), so an empty subject is also correct. The user's words differ from the existing tag names; asking (CONFIRM) is acceptable, silently creating a duplicate tag is not.",
+      "sourceCaseId": "furnace-swapped-the-air-filter"
+    },
+    {
+      "id": "p-gutters-cleaned-the-gutters",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Cleaned the gutters.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-gutters",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-clean",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "sourceCaseId": "gutters-cleaned-the-gutters"
+    },
+    {
+      "id": "p-gutters-cleared-leaves-out-of-the-gutters",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Cleared leaves out of the gutters.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-gutters",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-leaves"
+          ]
+        },
+        "action": {
+          "existingId": "act-clean",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-blow"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Mentions leaves, but the subject is the gutters and clearing them is the clean action, not leaf blowing. The user's words differ from the existing tag names; asking (CONFIRM) is acceptable, silently creating a duplicate tag is not.",
+      "sourceCaseId": "gutters-cleared-leaves-out-of-the-gutters"
+    },
+    {
+      "id": "p-gutters-did-the-gutters",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Did the gutters.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-gutters",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-clean",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "'Did' names no action; the gutters' only known pair implies clean, so an empty action (filled in from that pair) is also correct. The user's words differ from the existing tag names; asking (CONFIRM) is acceptable, silently creating a duplicate tag is not.",
+      "sourceCaseId": "gutters-did-the-gutters"
+    },
+    {
+      "id": "p-dryer-vent-cleaned-the-dryer-vent",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Cleaned the dryer vent.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-dryer-vent",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-clean",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "sourceCaseId": "dryer-vent-cleaned-the-dryer-vent"
+    },
+    {
+      "id": "p-dryer-vent-cleared-lint-out-of-the-dryer-pipe",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Cleared lint out of the dryer pipe.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-dryer-vent",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-clean",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "The dryer pipe is the vent duct. The user's words differ from the existing tag names; asking (CONFIRM) is acceptable, silently creating a duplicate tag is not.",
+      "sourceCaseId": "dryer-vent-cleared-lint-out-of-the-dryer-pipe"
+    },
+    {
+      "id": "p-dryer-generic-cleaned-the-dryer",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Cleaned the dryer.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-dryer-vent",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-clean",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM",
+          "NEEDS_REVIEW"
+        ]
+      },
+      "note": "Generic dryer phrasing. The owner (2026-09-18) accepts the dryer vent as the match for this sentence; asking, or sending it to review, is still acceptable.",
+      "sourceCaseId": "dryer-generic-cleaned-the-dryer"
+    },
+    {
+      "id": "p-dryer-emptied-the-lint-trap",
+      "group": "PORTED",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household",
+      "rawText": "Emptied the dryer lint trap.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [
+            "subj-dryer-vent"
+          ],
+          "newName": "lint trap",
+          "allowedNewNames": [
+            "dryer lint trap"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [
+            "act-clean"
+          ],
+          "newName": "empty",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "The owner (2026-09-18) accepts the dryer vent / clean as a match (lint trap and vent logged together). A new lint trap subject and a new empty action are also correct.",
+      "sourceCaseId": "dryer-emptied-the-lint-trap"
+    },
+    {
+      "id": "p-leaves-raked-the-leaves",
+      "group": "PORTED",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household",
+      "rawText": "Raked the leaves.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-leaves",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "rake",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-blow"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Raking is not leaf blowing: the leaves subject exists, the rake action does not.",
+      "sourceCaseId": "leaves-raked-the-leaves"
+    },
+    {
+      "id": "p-leaves-blew-leaves-off-the-driveway",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Blew leaves off the driveway.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-leaves",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-blow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Positive control for the raking case. The driveway is where, not the subject.",
+      "sourceCaseId": "leaves-blew-leaves-off-the-driveway"
+    },
+    {
+      "id": "p-car-washed-the-car",
+      "group": "PORTED",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "household",
+      "rawText": "Washed the car.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-car",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "wash",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-wax"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Tag reading: washing and waxing are different actions on the same car subject. The owner's 2026-09-18 ruling accepted Wax car only because a whole activity could not be split; with separate action tags, wash is a new action, never wax.",
+      "sourceCaseId": "car-washed-the-car"
+    },
+    {
+      "id": "p-car-waxed-the-car",
+      "group": "PORTED",
+      "category": "SYNONYM",
+      "catalog": "household",
+      "rawText": "Waxed the car.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-car",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-wax",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Positive control for the washing case.",
+      "sourceCaseId": "car-waxed-the-car"
+    },
+    {
+      "id": "p-new-flushed-the-water-heater",
+      "group": "PORTED",
+      "category": "NEW_ACTIVITY",
+      "catalog": "household",
+      "rawText": "Flushed the water heater.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "water heater",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "flush",
+          "allowedNewNames": [
+            "drain"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Both tags are new.",
+      "sourceCaseId": "new-flushed-the-water-heater"
+    },
+    {
+      "id": "p-new-replaced-smoke-detector-batteries",
+      "group": "PORTED",
+      "category": "NEW_ACTIVITY",
+      "catalog": "household",
+      "rawText": "Replaced the smoke detector batteries.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "smoke detector",
+          "allowedNewNames": [
+            "smoke alarm",
+            "smoke detector batteries",
+            "smoke alarm batteries"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "replace batteries",
+          "allowedNewNames": [
+            "change batteries",
+            "replace"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-replace-filter",
+            "act-replace-water-filter"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Both tags are new; replacing batteries is not replacing a filter. Splitting it as smoke detector batteries / replace is also correct.",
+      "sourceCaseId": "new-replaced-smoke-detector-batteries"
+    },
+    {
+      "id": "p-new-empty-catalog-changed-the-furnace-filter",
+      "group": "PORTED",
+      "category": "NEW_ACTIVITY",
+      "catalog": "empty",
+      "rawText": "Changed the furnace filter.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "furnace",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "change filter",
+          "allowedNewNames": [
+            "replace filter"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Empty catalog: both tags are new.",
+      "sourceCaseId": "new-empty-catalog-changed-the-furnace-filter"
+    },
+    {
+      "id": "p-new-empty-catalog-mowed-the-lawn",
+      "group": "PORTED",
+      "category": "NEW_ACTIVITY",
+      "catalog": "empty",
+      "rawText": "Mowed the lawn.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "lawn",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "mow",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Empty catalog: both tags are new.",
+      "sourceCaseId": "new-empty-catalog-mowed-the-lawn"
+    },
+    {
+      "id": "p-time-mowed-yesterday",
+      "group": "PORTED",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Mowed yesterday.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-edge"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "yesterday",
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": "2026-09-14",
+        "precision": "DATE_ONLY",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "The sentence names no subject; the action's only known pair implies the lawn, so an empty subject (filled in from that pair) is also correct.",
+      "sourceCaseId": "time-mowed-yesterday"
+    },
+    {
+      "id": "p-time-mowed-this-morning",
+      "group": "PORTED",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Mowed this morning.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-edge"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "this morning",
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "APPROXIMATE",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "The sentence names no subject; the action's only known pair implies the lawn, so an empty subject (filled in from that pair) is also correct.",
+      "sourceCaseId": "time-mowed-this-morning"
+    },
+    {
+      "id": "p-time-mowed-saturday",
+      "group": "PORTED",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Mowed Saturday.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-edge"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "Saturday",
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": "2026-09-12",
+        "precision": "DATE_ONLY",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Capture is Tuesday 2026-09-15; the most recent Saturday is 2026-09-12. The sentence names no subject; the action's only known pair implies the lawn, so an empty subject (filled in from that pair) is also correct.",
+      "sourceCaseId": "time-mowed-saturday"
+    },
+    {
+      "id": "p-time-mowed-about-an-hour-ago",
+      "group": "PORTED",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Mowed about an hour ago.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-edge"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "about an hour ago",
+        "allowedTemporalExpressions": [
+          "an hour ago"
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "APPROXIMATE",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "'about' makes it approximate; never EXACT. The sentence names no subject; the action's only known pair implies the lawn, so an empty subject (filled in from that pair) is also correct.",
+      "sourceCaseId": "time-mowed-about-an-hour-ago"
+    },
+    {
+      "id": "p-time-just-finished-mowing",
+      "group": "PORTED",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Just finished mowing.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-edge"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "just",
+        "allowedTemporalExpressions": [
+          "just finished",
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "The sentence names no subject; the action's only known pair implies the lawn, so an empty subject (filled in from that pair) is also correct.",
+      "sourceCaseId": "time-just-finished-mowing"
+    },
+    {
+      "id": "p-time-mowed-on-september-1st",
+      "group": "PORTED",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Mowed on September 1st.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-edge"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "on September 1st",
+        "allowedTemporalExpressions": [
+          "September 1st"
+        ],
+        "resolvedLocalDate": "2026-09-01",
+        "precision": "DATE_ONLY",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "The sentence names no subject; the action's only known pair implies the lawn, so an empty subject (filled in from that pair) is also correct.",
+      "sourceCaseId": "time-mowed-on-september-1st"
+    },
+    {
+      "id": "p-time-changed-the-furnace-filter-yesterday",
+      "group": "PORTED",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Changed the furnace filter yesterday.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-furnace",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-fridge"
+          ]
+        },
+        "action": {
+          "existingId": "act-replace-filter",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-replace-water-filter"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "yesterday",
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": "2026-09-14",
+        "precision": "DATE_ONLY",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Must record yesterday, not today. Tag reading: 'changed' is the replace filter action. The user's words differ from the existing tag names; asking (CONFIRM) is acceptable, silently creating a duplicate tag is not.",
+      "sourceCaseId": "time-changed-the-furnace-filter-yesterday"
+    },
+    {
+      "id": "p-time-cleaned-the-gutters-two-days-ago",
+      "group": "PORTED",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Cleaned the gutters two days ago.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-gutters",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-clean",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "two days ago",
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": "2026-09-13",
+        "precision": "DATE_ONLY",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "sourceCaseId": "time-cleaned-the-gutters-two-days-ago"
+    },
+    {
+      "id": "p-time-took-out-the-trash-last-night",
+      "group": "PORTED",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Took out the trash last night.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-trash",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-take-out",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "last night",
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": "2026-09-14",
+        "precision": "APPROXIMATE",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "sourceCaseId": "time-took-out-the-trash-last-night"
+    },
+    {
+      "id": "p-time-watered-the-garden-at-7pm",
+      "group": "PORTED",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Watered the garden at 7pm.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-garden",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-water",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "at 7pm",
+        "allowedTemporalExpressions": [
+          "7pm"
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "EXACT",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "An explicit clock time is the only EXACT precision.",
+      "sourceCaseId": "time-watered-the-garden-at-7pm"
+    },
+    {
+      "id": "p-time-mowed-saturday-morning",
+      "group": "PORTED",
+      "category": "TEMPORAL",
+      "catalog": "household",
+      "rawText": "Mowed Saturday morning.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-edge"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "Saturday morning",
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": "2026-09-12",
+        "precision": "APPROXIMATE",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Saturday 2026-09-12, approximate (a part of day). The sentence names no subject; the action's only known pair implies the lawn, so an empty subject (filled in from that pair) is also correct.",
+      "sourceCaseId": "time-mowed-saturday-morning"
+    },
+    {
+      "id": "p-ambiguous-worked-on-the-yard",
+      "group": "PORTED",
+      "category": "AMBIGUITY",
+      "catalog": "household",
+      "rawText": "Worked on the yard.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": [
+            "subj-lawn",
+            "subj-leaves",
+            "subj-garden"
+          ]
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": [
+            "act-mow",
+            "act-edge",
+            "act-blow",
+            "act-water"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED",
+          null
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "NEEDS_REVIEW",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Not clear enough to log. A quick question (CONFIRM) is acceptable since nothing is saved silently; mustNotMatch lists tags that must never be logged for it.",
+      "sourceCaseId": "ambiguous-worked-on-the-yard"
+    },
+    {
+      "id": "p-ambiguous-did-the-furnace-thing",
+      "group": "PORTED",
+      "category": "AMBIGUITY",
+      "catalog": "household",
+      "rawText": "Did the furnace thing.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-furnace",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": [
+            "act-replace-filter"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED",
+          null
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "NEEDS_REVIEW",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "The subject is clearly the furnace (or may be left empty), but 'the furnace thing' does not say what was done, so no action may be logged; review expected, a question acceptable.",
+      "sourceCaseId": "ambiguous-did-the-furnace-thing"
+    },
+    {
+      "id": "p-ambiguous-handled-the-filter",
+      "group": "PORTED",
+      "category": "AMBIGUITY",
+      "catalog": "household",
+      "rawText": "Handled the filter.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": [
+            "subj-furnace",
+            "subj-fridge"
+          ]
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": [
+            "act-replace-filter",
+            "act-replace-water-filter"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED",
+          null
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "NEEDS_REVIEW",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Two filters exist and 'handled' does not say replaced; review expected, a question acceptable.",
+      "sourceCaseId": "ambiguous-handled-the-filter"
+    },
+    {
+      "id": "p-ambiguous-fixed-that-thing-outside",
+      "group": "PORTED",
+      "category": "AMBIGUITY",
+      "catalog": "household",
+      "rawText": "Fixed that thing outside.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": [
+            "subj-lawn",
+            "subj-furnace",
+            "subj-gutters",
+            "subj-dryer-vent",
+            "subj-leaves",
+            "subj-car",
+            "subj-fridge",
+            "subj-garden",
+            "subj-trash"
+          ]
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": [
+            "act-mow",
+            "act-edge",
+            "act-replace-filter",
+            "act-clean",
+            "act-blow",
+            "act-wax",
+            "act-replace-water-filter",
+            "act-water",
+            "act-take-out"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED",
+          null
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "NEEDS_REVIEW",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Nothing in the catalog is a fix and no subject is named; no existing tag may be logged.",
+      "sourceCaseId": "ambiguous-fixed-that-thing-outside"
+    },
+    {
+      "id": "p-state-im-mowing-now",
+      "group": "PORTED",
+      "category": "STATE",
+      "catalog": "household",
+      "rawText": "I'm mowing now.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": true,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-edge"
+          ]
+        },
+        "allowedStates": [
+          "IN_PROGRESS"
+        ],
+        "temporalExpression": "now",
+        "allowedTemporalExpressions": [
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "The sentence names no subject; the action's only known pair implies the lawn, so an empty subject (filled in from that pair) is also correct.",
+      "sourceCaseId": "state-im-mowing-now"
+    },
+    {
+      "id": "p-state-cleaning-the-gutters-right-now",
+      "group": "PORTED",
+      "category": "STATE",
+      "catalog": "household",
+      "rawText": "Cleaning the gutters right now.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-gutters",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-clean",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "IN_PROGRESS"
+        ],
+        "temporalExpression": "right now",
+        "allowedTemporalExpressions": [
+          "now",
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "sourceCaseId": "state-cleaning-the-gutters-right-now"
+    },
+    {
+      "id": "p-state-just-finished-edging-the-lawn",
+      "group": "PORTED",
+      "category": "STATE",
+      "catalog": "household",
+      "rawText": "Just finished edging the lawn.",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-edge",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-mow"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "just",
+        "allowedTemporalExpressions": [
+          "just finished",
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "sourceCaseId": "state-just-finished-edging-the-lawn"
+    },
+    {
+      "id": "real-changed-furnace-filter",
+      "group": "REAL_ENTRY",
+      "category": "SYNONYM",
+      "catalog": "owner-2026-10-01",
+      "rawText": "I just changed the furnace filter",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-furnace",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-change-filter",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "just",
+        "allowedTemporalExpressions": [
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Real watch transcription (owner-provided), speech errors kept. Both tags exist with these exact names.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "real-changed-hot-tub-filter",
+      "group": "REAL_ENTRY",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "owner-2026-10-01",
+      "rawText": "I just changed the hot tub filter",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-hot-tub",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-furnace"
+          ]
+        },
+        "action": {
+          "existingId": "act-change-filter",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "just",
+        "allowedTemporalExpressions": [
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Real watch transcription (owner-provided), speech errors kept. Was filed under Furnace maintenance; the furnace is the tempting wrong subject because change filter is only paired with it.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "real-tractor-oil-change",
+      "group": "REAL_ENTRY",
+      "category": "NEW_ACTIVITY",
+      "catalog": "owner-2026-10-01",
+      "rawText": "Yesterday I changed the oil in the tractor",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "tractor",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-hot-tub"
+          ]
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "change oil",
+          "allowedNewNames": [
+            "oil change"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-change-filter"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "Yesterday",
+        "allowedTemporalExpressions": [
+          "yesterday"
+        ],
+        "resolvedLocalDate": "2026-09-14",
+        "precision": "DATE_ONLY",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Real watch transcription (owner-provided), speech errors kept. Was filed under Hot tub. Both tags are new; changing oil is not changing a filter.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "real-lawn-mower-gas",
+      "group": "REAL_ENTRY",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "owner-2026-10-01",
+      "rawText": "It just went and got gas for the lawn mower",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "lawn mower",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-lawn"
+          ]
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "get gas",
+          "allowedNewNames": [
+            "add gas",
+            "buy gas"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-mow"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "just",
+        "allowedTemporalExpressions": [
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Real watch transcription (owner-provided), speech errors kept. 'It' is a speech error for 'I'. Was filed under Mow lawn. The lawn mower is a new subject, not the lawn; lawn vs lawn mower is close, so asking is acceptable.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "real-weeded-garden-half-hour",
+      "group": "REAL_ENTRY",
+      "category": "SYNONYM",
+      "catalog": "owner-2026-10-01",
+      "rawText": "I weeded the garden for half an hour",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-garden",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-lawn"
+          ]
+        },
+        "action": {
+          "existingId": "act-weed",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-mow"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": "for half an hour",
+        "allowedDurationExpressions": [
+          "half an hour"
+        ],
+        "durationMinutes": 30,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Real watch transcription (owner-provided), speech errors kept. Was filed under Mow lawn. Both tags exist (category SYNONYM; mustNotMatch pins the wrong filing). 'for half an hour' is a duration, not a time: the time stays empty (capture instant).",
+      "sourceCaseId": null
+    },
+    {
+      "id": "real-durango-headlight",
+      "group": "REAL_ENTRY",
+      "category": "NEW_ACTIVITY",
+      "catalog": "owner-2026-10-01",
+      "rawText": "Yesterday I replaced the headlight on James Durango",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "Durango",
+          "allowedNewNames": [
+            "Dodge Durango"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-lawn"
+          ]
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "replace headlight",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-mow"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "Yesterday",
+        "allowedTemporalExpressions": [
+          "yesterday"
+        ],
+        "resolvedLocalDate": "2026-09-14",
+        "precision": "DATE_ONLY",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Real watch transcription (owner-provided), speech errors kept. 'James' is a speech-recognition error, not part of the vehicle's name. Was filed under Mow lawn. Both tags are new; asking is acceptable given the garbled name.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "real-walked-dogs-30-minutes",
+      "group": "REAL_ENTRY",
+      "category": "SYNONYM",
+      "catalog": "owner-2026-10-01",
+      "rawText": "I just walked the dogs for about 30 minutes",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-dogs",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-lawn"
+          ]
+        },
+        "action": {
+          "existingId": "act-walk",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-mow"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "just",
+        "allowedTemporalExpressions": [
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "durationExpression": "for about 30 minutes",
+        "allowedDurationExpressions": [
+          "about 30 minutes"
+        ],
+        "durationMinutes": 30,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Real watch transcription (owner-provided), speech errors kept. Was filed under Mow lawn. Both tags exist (category SYNONYM; mustNotMatch pins the wrong filing). 'just' is the time; 'for about 30 minutes' is the duration.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "real-reboot-wifi",
+      "group": "REAL_ENTRY",
+      "category": "SYNONYM",
+      "catalog": "owner-2026-10-01",
+      "rawText": "Add to reboot the Wi-Fi",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-wifi",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-reboot",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Real watch transcription (owner-provided), speech errors kept. 'Add to' is a speech error for 'Had to' (not an add action). Wi-Fi must merge with the existing WiFi subject, not create a duplicate.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "real-cleaned-hot-tub",
+      "group": "REAL_ENTRY",
+      "category": "SYNONYM",
+      "catalog": "owner-2026-10-01",
+      "rawText": "I just cleaned the hot tub",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-hot-tub",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-dishes"
+          ]
+        },
+        "action": {
+          "existingId": "act-clean",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-wash"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "just",
+        "allowedTemporalExpressions": [
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Real watch transcription (owner-provided), speech errors kept. Was filed under Dishes. Both tags exist (category SYNONYM; mustNotMatch pins the wrong filing).",
+      "sourceCaseId": null
+    },
+    {
+      "id": "real-mowed-lawn-40-minutes",
+      "group": "REAL_ENTRY",
+      "category": "SYNONYM",
+      "catalog": "owner-2026-10-01",
+      "rawText": "Spent 40 minutes mowing the lawn",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-lawn",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-mow",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": "40 minutes",
+        "allowedDurationExpressions": [
+          "Spent 40 minutes"
+        ],
+        "durationMinutes": 40,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Real watch transcription (owner-provided), speech errors kept. '40 minutes' is a duration, not a time: the time stays empty (capture instant).",
+      "sourceCaseId": null
+    },
+    {
+      "id": "real-put-dishes-away",
+      "group": "REAL_ENTRY",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "owner-2026-10-01",
+      "rawText": "I just put all the dishes away",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-dishes",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "put away",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-wash"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "just",
+        "allowedTemporalExpressions": [
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Real watch transcription (owner-provided), speech errors kept. The dishes subject exists; putting away is a new action, not washing (the Dishes pair is the tempting wrong match).",
+      "sourceCaseId": null
+    },
+    {
+      "id": "real-hot-tub-sanitizer",
+      "group": "REAL_ENTRY",
+      "category": "NEW_ACTIVITY",
+      "catalog": "owner-2026-10-01",
+      "rawText": "Add sanitizer to the hot tub",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-hot-tub",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-dishes",
+            "subj-lawn"
+          ]
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "add sanitizer",
+          "allowedNewNames": [
+            "sanitize"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Real watch transcription (owner-provided), speech errors kept. The hot tub subject exists; adding sanitizer is a new action.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "sib-drained-the-hot-tub",
+      "group": "SIBLING",
+      "category": "NEW_ACTIVITY",
+      "catalog": "owner-2026-10-01",
+      "rawText": "Drained the hot tub",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-hot-tub",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "drain",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Existing subject, new action.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "sib-changed-filter-in-hot-tub",
+      "group": "SIBLING",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "owner-2026-10-01",
+      "rawText": "Changed the filter in the hot tub",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-hot-tub",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-furnace"
+          ]
+        },
+        "action": {
+          "existingId": "act-change-filter",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Both tags exist though never paired; the furnace is the tempting wrong subject.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "sib-changed-oil-in-lawn-mower",
+      "group": "SIBLING",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "owner-2026-10-01",
+      "rawText": "Changed the oil in the lawn mower",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "lawn mower",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-lawn"
+          ]
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "change oil",
+          "allowedNewNames": [
+            "oil change"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "act-change-filter"
+          ]
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "Both tags new; lawn vs lawn mower is close, so asking is acceptable.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "sib-washed-the-dogs",
+      "group": "SIBLING",
+      "category": "SYNONYM",
+      "catalog": "owner-2026-10-01",
+      "rawText": "Washed the dogs",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-dogs",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": "act-wash",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Both tags exist though never paired: a new combination of existing tags.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "sib-cleaned-the-furnace",
+      "group": "SIBLING",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "owner-2026-10-01",
+      "rawText": "Cleaned the furnace",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-furnace",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-hot-tub"
+          ]
+        },
+        "action": {
+          "existingId": "act-clean",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Both tags exist though never paired; clean is only paired with the hot tub, the tempting wrong subject.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "sib-rebooted-the-router",
+      "group": "SIBLING",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "owner-2026-10-01",
+      "rawText": "Rebooted the router",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "router",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-wifi"
+          ]
+        },
+        "action": {
+          "existingId": "act-reboot",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "The router is a new subject, distinct from the WiFi; asking is acceptable.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "sib-weeded-the-flower-bed",
+      "group": "SIBLING",
+      "category": "NEAR_NEIGHBOUR",
+      "catalog": "owner-2026-10-01",
+      "rawText": "Weeded the flower bed",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "flower bed",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": [
+            "subj-garden"
+          ]
+        },
+        "action": {
+          "existingId": "act-weed",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": [
+          "CONFIRM"
+        ]
+      },
+      "note": "The flower bed is a new subject, distinct from the garden; asking is acceptable.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "sib-added-chlorine-to-hot-tub",
+      "group": "SIBLING",
+      "category": "NEW_ACTIVITY",
+      "catalog": "owner-2026-10-01",
+      "rawText": "Added chlorine to the hot tub",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": "subj-hot-tub",
+          "allowedExistingIds": [],
+          "newName": null,
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "add chlorine",
+          "allowedNewNames": [
+            "chlorinate"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Existing subject, new action.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "empty-changed-furnace-filter",
+      "group": "EMPTY_START",
+      "category": "NEW_ACTIVITY",
+      "catalog": "empty",
+      "rawText": "I just changed the furnace filter",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "furnace",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "change filter",
+          "allowedNewNames": [
+            "replace filter"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "just",
+        "allowedTemporalExpressions": [
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Same sentence as the matching real entry, against an empty catalog: every tag is new.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "empty-durango-headlight",
+      "group": "EMPTY_START",
+      "category": "NEW_ACTIVITY",
+      "catalog": "empty",
+      "rawText": "Yesterday I replaced the headlight on James Durango",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "Durango",
+          "allowedNewNames": [
+            "Dodge Durango"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "replace headlight",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "Yesterday",
+        "allowedTemporalExpressions": [
+          "yesterday"
+        ],
+        "resolvedLocalDate": "2026-09-14",
+        "precision": "DATE_ONLY",
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Same sentence as the matching real entry, against an empty catalog: every tag is new.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "empty-walked-dogs-30-minutes",
+      "group": "EMPTY_START",
+      "category": "NEW_ACTIVITY",
+      "catalog": "empty",
+      "rawText": "I just walked the dogs for about 30 minutes",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "dogs",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "walk",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": "just",
+        "allowedTemporalExpressions": [
+          null
+        ],
+        "resolvedLocalDate": "2026-09-15",
+        "precision": "INFERRED_NOW",
+        "durationExpression": "for about 30 minutes",
+        "allowedDurationExpressions": [
+          "about 30 minutes"
+        ],
+        "durationMinutes": 30,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Same sentence as the matching real entry, against an empty catalog: every tag is new.",
+      "sourceCaseId": null
+    },
+    {
+      "id": "empty-reboot-wifi",
+      "group": "EMPTY_START",
+      "category": "NEW_ACTIVITY",
+      "catalog": "empty",
+      "rawText": "Add to reboot the Wi-Fi",
+      "capturedAt": "2026-09-15T20:00:00-04:00",
+      "zoneId": "America/Detroit",
+      "expected": {
+        "subject": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "Wi-Fi",
+          "allowedNewNames": [
+            "WiFi"
+          ],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "action": {
+          "existingId": null,
+          "allowedExistingIds": [],
+          "newName": "reboot",
+          "allowedNewNames": [],
+          "mayBeEmpty": false,
+          "mustNotMatch": []
+        },
+        "allowedStates": [
+          "COMPLETED"
+        ],
+        "temporalExpression": null,
+        "allowedTemporalExpressions": [],
+        "resolvedLocalDate": null,
+        "precision": null,
+        "durationExpression": null,
+        "allowedDurationExpressions": [],
+        "durationMinutes": null,
+        "outcome": "AUTO_SAVE",
+        "allowedOutcomes": []
+      },
+      "note": "Same sentence as the matching real entry, against an empty catalog: every tag is new.",
+      "sourceCaseId": null
+    }
+  ]
+}

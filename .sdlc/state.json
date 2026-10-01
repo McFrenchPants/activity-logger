@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-20T04:08:09.000Z",
+  "updated_at": "2026-10-01T12:00:00.000Z",
   "work_items": [
     {
       "id": "SS1",
@@ -1053,6 +1053,80 @@
           "task_packet_path": ".sdlc/task-packets/TM1.1.packet.json",
           "report_path": null,
           "notes": "Verifier pass. Resolver: just=now, unknown time=today date-only with review safety net; prompt v3. Known leak: other-day phrases outside word list."
+        }
+      ]
+    },
+    {
+      "id": "TG1",
+      "title": "Subject + action tagging (backlog 13)",
+      "lifecycle_state": "approved",
+      "tasks": [
+        {
+          "id": "TG1.1",
+          "title": "Tag corpus: new cases from real watch entries + port of the 48 cases",
+          "status": "done",
+          "lifecycle_state": "implementing",
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/TG1.1.packet.json",
+          "report_path": null,
+          "notes": "Separate tag-corpus.json (72 cases: 48 ported, 12 real, 8 sibling, 4 empty-start); corpus.json untouched. Car wash now new action 'wash' (old Wax-car ruling superseded by tags). SEMANTIC_CORPUS \u00a710 amended for owner-approved real sentences."
+        },
+        {
+          "id": "TG1.2",
+          "title": "Extraction interpreter (prompt v4) + recorders",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "TG1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "TG1.3",
+          "title": "Tag resolver + decision policy in core-domain",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "TG1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "TG1.4",
+          "title": "Replay, score, report; Pixel 10 Pro recording",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "TG1.2",
+            "TG1.3"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
         }
       ]
     }

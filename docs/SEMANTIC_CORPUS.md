@@ -173,7 +173,7 @@ Read unsafe misses first. The console prints a shorter summary: source, counts, 
 
 ## 10. Privacy
 
-- The corpus is **synthetic text only**. Never put a real capture, or anything derived from one, into it.
+- `corpus.json` is **synthetic text only**. Never put a real capture, or anything derived from one, into it. The tag corpus (§12) is the one exception: its REAL_ENTRY and EMPTY_START sentences are real captures the owner chose and approved by quoting them in the TG1 implementation plan. Never copy a capture into any corpus without that explicit, per-sentence owner approval, and never extract one automatically from a device database.
 - No corpus text or model output in logs or on the console. The recorders log counts, timings and the output path only; the console summary carries ids, counts and reason codes only; error messages name case ids and fields. The recording format has no field for the model's raw text output. The Markdown report may show the committed synthetic sentence, never model text such as a proposed name.
 - The stand-in client talks to loopback only: a base URL whose host is not `127.0.0.1`, `::1` or `localhost` is refused, no proxy is used and redirects are not followed, so corpus text never leaves the machine.
 
@@ -184,3 +184,25 @@ The only recording is the stand-in run of 2026-09-18 (`gemma3n:e4b` via Ollama, 
 First device recording, 2026-09-18 (Pixel 10 Pro, Gemini Nano, prompt version `2`): 48 of 48 answered, 0 malformed; CORRECT 32, SAFE_MISS 6, UNSAFE_MISS 10. All 10 unsafe misses were HIGH confidence -- mostly a new or ambiguous activity matched to an existing near-neighbour -- so HIGH confidence alone does not make an answer safe to auto-accept. `baseline.json` lists the 32 correct cases. Details and the stand-in comparison: [`proposals/semantic-regression/RESULTS.md`](proposals/semantic-regression/RESULTS.md).
 
 The phone throttles back-to-back requests (AICore `BUSY`, after about 20 calls in a row); the device recorder waits and retries such fast refusals and records the retry count in the recording's `notes`.
+
+## 12. Tag corpus (subject + action), TG1
+
+A second, separate test set for the subject + action tagging redesign. Instead of matching a capture to one activity, every entry gets a **subject** tag (what it was done to: furnace, hot tub, lawn mower), an **action** tag (what was done: change filter, add gas, mow) and an optional **duration**. The AI is expected to extract the user's own words; deterministic logic then resolves them against existing tags (exact name, then alias, then close match) and a policy decides the outcome. corpus.json is untouched, so its hash and recordings stay valid.
+
+| What | Where |
+|---|---|
+| Tag corpus | `core-testing/src/main/resources/semantic-corpus/tag-corpus.json` (UTF-8, LF only) |
+| Model and loader | same package as the corpus model -- `TagCorpusModel.kt`, `TagCorpus.kt` (`TagCorpus.load()`, `parse(bytes)`, `case(id)`, `sha256`) |
+| Tests | `TagCorpusIntegrityTest` (structure, faithful ports, exact real-entry sentences, pinned counts, LF only), `TagCorpusTemporalTest` (time words through the real `TemporalResolver`; no gaps today) |
+
+Shape: `{ schemaVersion: 1, description, catalogs, cases }`. Decoding is strict exactly as for corpus.json (unknown keys rejected, every field without a default required, including nullable ones).
+
+- **Fixtures** (`catalogs`): each has `subjects` and `actions` (`{ id, displayName, aliases }`, ids prefixed `subj-` / `act-`) and `pairs` (`{ subjectId, actionId, displayName }`: a known combination, i.e. an old "activity", used to infer an omitted subject or action). Four fixtures: `empty`; `household` (tag form of corpus.json's household catalog, ten pairs); `household-no-edge` (without the edge action and Edge lawn); `owner-2026-10-01` (tag form of the owner's real catalog when the real entries were recorded: Mow lawn, Trim hedges, Dishes, Hot tub, Walk dogs, Furnace maintenance, Reboot WiFi, Weed garden).
+- **Case fields**: `id`, `group`, `category` (the corpus.json categories), `catalog`, `rawText`, `capturedAt`, `zoneId` (all `2026-09-15T20:00:00-04:00`, `America/Detroit`), `expected`, optional `note`, `knownResolverGap`, `sourceCaseId`.
+- **`expected`**: `subject` and `action` (each an expected tag: `existingId` *or* `newName`, plus `allowedExistingIds`, `allowedNewNames` -- compared case-insensitively after trimming -- `mayBeEmpty` and `mustNotMatch`), `allowedStates`, the same time fields as corpus.json, `durationExpression` / `allowedDurationExpressions` / `durationMinutes` (a duration is never a time: "for half an hour" leaves the time empty), `outcome` and `allowedOutcomes`. An `existingId` means creating a new tag would be a duplicate; `mustNotMatch` pins wrong tags, including the ones the real entries were actually filed under.
+- **Groups** (72 cases): `PORTED` 48 -- one per corpus.json case (`p-<source id>`, `sourceCaseId` set), same sentence, context, category, states and time expectations, with the product-correct tag reading; `REAL_ENTRY` 12 -- the owner's real watch transcriptions, verbatim with speech errors, against `owner-2026-10-01`; `SIBLING` 8 -- synthetic variations on the real entries' tags; `EMPTY_START` 4 -- four real-entry sentences against the empty catalog (every tag new).
+- **Outcomes** (`TagOutcome`): `AUTO_SAVE` (logged silently), `CONFIRM` (a quick "did you mean X?" card; nothing saved silently), `NEEDS_REVIEW` (nothing logged). Today 68 cases prefer AUTO_SAVE and 4 NEEDS_REVIEW; CONFIRM appears only as an acceptable alternative where the words differ from an existing tag or a new tag is close to an existing one.
+
+Privacy: unlike corpus.json, the `REAL_ENTRY` and `EMPTY_START` sentences are real captures the owner supplied for this purpose. Do not add any other real capture. The §10 logging rules apply unchanged.
+
+There is **no recorder, replay, scorer, report or gate** for the tag corpus yet (planned as TG1.2-TG1.4); today it is test data plus its structural and time-resolution tests only.
