@@ -18,6 +18,24 @@ Registered in `.sdlc/state.json` as TG1.
 
 ## Session log
 
+### 2026-10-01 — first stand-in tag recording (unofficial)
+Owner's Pixel is their primary phone and rarely free; no emulator can run Gemini Nano. Ran
+`run-standin-corpus.sh --tags` (gemma3n:e4b, prompt v4): 71/72 answered, 1 transport failure.
+Throwaway orchestrator scorer (not committed; TG1.4 builds the real one) through
+TagDecisionPolicy: CORRECT 39, NAMING 8 (new tag, odd name), SAFE_MISS 7, UNSAFE 17, FAILED 1.
+REAL_ENTRY: 0 unsafe (v3 on device mis-filed 9 of 15). PORTED: 15 of 48 unsafe (v3 stand-in 8,
+device 10) -- all silent duplicates, no wrong existing tag. Causes, most fixable without the
+phone: (1) model often leaves verbs inflected ("mowed", "cleaned", "cleaning", "washed",
+"changed", even "edg") -> needs verb stemming on action keys; (2) object noun lands in the
+subject ("furnace filter / change", "filter / changed") -> try re-splitting subject tail into
+the action and prefer an all-Exact split; (3) junk subjects ("mowing", "this morning",
+"Saturday", "edging") -> treat time words / gerund of the action as no subject, then infer;
+(4) true synonyms (grass/lawn, HVAC/air filter/furnace, cut/mow, swap/replace, yard) -- needs
+a decision (aliases via corrections, a small synonym list, or ask when the catalog is
+non-empty and both tags are new). Recording committed as `tag-standin-latest.json`.
+Owner asked about installing a build from Google Drive; proposed an in-app debug-only test
+runner that shares its recording file to Drive (pending owner OK).
+
 ### 2026-10-01 — TG1.3 done
 New `core-domain` `tagging` package: `TagCatalog`/`KnownTag`/`KnownPair`, `TagNormalizer`
 (cleanName, key, tokens; Wi-Fi=WiFi, lawn mower=lawnmower, naive singular), `TagResolver`

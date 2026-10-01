@@ -1,0 +1,943 @@
+{
+    "formatVersion": 1,
+    "source": "STAND_IN",
+    "modelLabel": "ollama:gemma3n:e4b @15cb39fd9394fd2549f6df9081cfc84dd134ecf2c9c5be911e5629920489ac32",
+    "deviceModel": null,
+    "interpreterVersion": "gemini-nano-extract-1",
+    "promptVersion": "4",
+    "schemaVersion": 1,
+    "tagCorpusSha256": "4ee8df67e9310a2a30619479baa3f122fd65ae18e03e0bbd255cebb68a491f18",
+    "recordedAt": "2026-10-01T18:21:48Z",
+    "notes": "Stand-in model served locally by Ollama, NOT Gemini Nano: not the official result. Same extraction system instruction, prompt text, generation settings and decoder as the device; the schema rendering appended to the prompt approximates ML Kit's includeSchemaInPrompt text.",
+    "entries": [
+        {
+            "caseId": "p-mow-i-mowed-the-lawn",
+            "answer": null,
+            "failureKind": "OTHER",
+            "latencyMs": 32333
+        },
+        {
+            "caseId": "p-mow-i-cut-the-grass",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "grass",
+                "action": "cut",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 48476
+        },
+        {
+            "caseId": "p-mow-finished-mowing",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "mowing",
+                "action": "mow",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7247
+        },
+        {
+            "caseId": "p-mow-just-mowed",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "lawn",
+                "action": "mowed",
+                "activityState": "COMPLETED",
+                "temporalExpression": "Just",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7150
+        },
+        {
+            "caseId": "p-mow-i-did-the-grass",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "grass",
+                "action": "do",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7121
+        },
+        {
+            "caseId": "p-mow-the-lawn-is-cut",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "lawn",
+                "action": "cut",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7073
+        },
+        {
+            "caseId": "p-edge-i-edged-the-lawn",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "lawn",
+                "action": "edg",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7122
+        },
+        {
+            "caseId": "p-edge-finished-edging",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "edging",
+                "action": "edg",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7302
+        },
+        {
+            "caseId": "p-edge-did-the-lawn-edges",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "lawn edges",
+                "action": "edg",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7191
+        },
+        {
+            "caseId": "p-edge-no-edge-catalog-i-edged-the-lawn",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "lawn",
+                "action": "edg",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7130
+        },
+        {
+            "caseId": "p-edge-no-edge-catalog-finished-edging",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "edging",
+                "action": "edg",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7150
+        },
+        {
+            "caseId": "p-furnace-changed-the-furnace-filter",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "furnace filter",
+                "action": "change",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7257
+        },
+        {
+            "caseId": "p-furnace-replaced-the-hvac-filter",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "HVAC filter",
+                "action": "replace",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7282
+        },
+        {
+            "caseId": "p-furnace-put-a-new-filter-in-the-furnace",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "furnace filter",
+                "action": "put filter",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7330
+        },
+        {
+            "caseId": "p-furnace-swapped-the-air-filter",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "air filter",
+                "action": "swap",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7206
+        },
+        {
+            "caseId": "p-gutters-cleaned-the-gutters",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "gutters",
+                "action": "clean",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7110
+        },
+        {
+            "caseId": "p-gutters-cleared-leaves-out-of-the-gutters",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "gutters",
+                "action": "clear leaves",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7341
+        },
+        {
+            "caseId": "p-gutters-did-the-gutters",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "gutters",
+                "action": "did",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7206
+        },
+        {
+            "caseId": "p-dryer-vent-cleaned-the-dryer-vent",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "dryer vent",
+                "action": "clean",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7216
+        },
+        {
+            "caseId": "p-dryer-vent-cleared-lint-out-of-the-dryer-pipe",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "dryer pipe",
+                "action": "clear lint",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7169
+        },
+        {
+            "caseId": "p-dryer-generic-cleaned-the-dryer",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "dryer",
+                "action": "clean",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7131
+        },
+        {
+            "caseId": "p-dryer-emptied-the-lint-trap",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "dryer lint trap",
+                "action": "emptied",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7271
+        },
+        {
+            "caseId": "p-leaves-raked-the-leaves",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "leaves",
+                "action": "rake",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this afternoon",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7058
+        },
+        {
+            "caseId": "p-leaves-blew-leaves-off-the-driveway",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "driveway",
+                "action": "blow leaves",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this afternoon",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7315
+        },
+        {
+            "caseId": "p-car-washed-the-car",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "car",
+                "action": "wash",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7168
+        },
+        {
+            "caseId": "p-car-waxed-the-car",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "car",
+                "action": "wax",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7028
+        },
+        {
+            "caseId": "p-new-flushed-the-water-heater",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "water heater",
+                "action": "flush",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this afternoon",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7047
+        },
+        {
+            "caseId": "p-new-replaced-smoke-detector-batteries",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "smoke detector batteries",
+                "action": "replace",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7225
+        },
+        {
+            "caseId": "p-new-empty-catalog-changed-the-furnace-filter",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "furnace filter",
+                "action": "change",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7082
+        },
+        {
+            "caseId": "p-new-empty-catalog-mowed-the-lawn",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "lawn",
+                "action": "mow",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this afternoon",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7146
+        },
+        {
+            "caseId": "p-time-mowed-yesterday",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "yard",
+                "action": "mow",
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7178
+        },
+        {
+            "caseId": "p-time-mowed-this-morning",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "this morning",
+                "action": "mow",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this morning",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7239
+        },
+        {
+            "caseId": "p-time-mowed-saturday",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "Saturday",
+                "action": "mow",
+                "activityState": "COMPLETED",
+                "temporalExpression": "Saturday",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7075
+        },
+        {
+            "caseId": "p-time-mowed-about-an-hour-ago",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "lawn",
+                "action": "mow",
+                "activityState": "COMPLETED",
+                "temporalExpression": "about an hour ago",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7177
+        },
+        {
+            "caseId": "p-time-just-finished-mowing",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "mowing",
+                "action": "mow",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7082
+        },
+        {
+            "caseId": "p-time-mowed-on-september-1st",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "lawn",
+                "action": "mow",
+                "activityState": "COMPLETED",
+                "temporalExpression": "September 1st",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7308
+        },
+        {
+            "caseId": "p-time-changed-the-furnace-filter-yesterday",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "furnace filter",
+                "action": "change",
+                "activityState": "COMPLETED",
+                "temporalExpression": "yesterday",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7186
+        },
+        {
+            "caseId": "p-time-cleaned-the-gutters-two-days-ago",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "gutters",
+                "action": "cleaned",
+                "activityState": "COMPLETED",
+                "temporalExpression": "two days ago",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7297
+        },
+        {
+            "caseId": "p-time-took-out-the-trash-last-night",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "trash",
+                "action": "take out",
+                "activityState": "COMPLETED",
+                "temporalExpression": "last night",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7181
+        },
+        {
+            "caseId": "p-time-watered-the-garden-at-7pm",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "garden",
+                "action": "water",
+                "activityState": "COMPLETED",
+                "temporalExpression": "at 7pm",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7301
+        },
+        {
+            "caseId": "p-time-mowed-saturday-morning",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "Saturday morning",
+                "action": "mow",
+                "activityState": "COMPLETED",
+                "temporalExpression": "Saturday morning",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7595
+        },
+        {
+            "caseId": "p-ambiguous-worked-on-the-yard",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "yard",
+                "action": "work",
+                "activityState": null,
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 6632
+        },
+        {
+            "caseId": "p-ambiguous-did-the-furnace-thing",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "furnace",
+                "action": "do",
+                "activityState": null,
+                "temporalExpression": null,
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 6695
+        },
+        {
+            "caseId": "p-ambiguous-handled-the-filter",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "filter",
+                "action": "handle",
+                "activityState": null,
+                "temporalExpression": null,
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 6615
+        },
+        {
+            "caseId": "p-ambiguous-fixed-that-thing-outside",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "thing",
+                "action": "fix",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7054
+        },
+        {
+            "caseId": "p-state-im-mowing-now",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "lawn",
+                "action": "mow",
+                "activityState": "IN_PROGRESS",
+                "temporalExpression": "now",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7024
+        },
+        {
+            "caseId": "p-state-cleaning-the-gutters-right-now",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "gutters",
+                "action": "cleaning",
+                "activityState": "IN_PROGRESS",
+                "temporalExpression": "right now",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7162
+        },
+        {
+            "caseId": "p-state-just-finished-edging-the-lawn",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "lawn",
+                "action": "edge",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this afternoon",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7118
+        },
+        {
+            "caseId": "real-changed-furnace-filter",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "furnace filter",
+                "action": "change",
+                "activityState": "COMPLETED",
+                "temporalExpression": "just",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7249
+        },
+        {
+            "caseId": "real-changed-hot-tub-filter",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "hot tub filter",
+                "action": "change",
+                "activityState": "COMPLETED",
+                "temporalExpression": "just",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 6966
+        },
+        {
+            "caseId": "real-tractor-oil-change",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "tractor oil",
+                "action": "change oil",
+                "activityState": "COMPLETED",
+                "temporalExpression": "Yesterday",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7316
+        },
+        {
+            "caseId": "real-lawn-mower-gas",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "lawn mower",
+                "action": "get gas",
+                "activityState": "COMPLETED",
+                "temporalExpression": "just",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7087
+        },
+        {
+            "caseId": "real-weeded-garden-half-hour",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "garden",
+                "action": "weed",
+                "activityState": "COMPLETED",
+                "temporalExpression": "half an hour",
+                "durationExpression": "for half an hour"
+            },
+            "failureKind": null,
+            "latencyMs": 7508
+        },
+        {
+            "caseId": "real-durango-headlight",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "headlight",
+                "action": "replace",
+                "activityState": "COMPLETED",
+                "temporalExpression": "Yesterday",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7240
+        },
+        {
+            "caseId": "real-walked-dogs-30-minutes",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "dogs",
+                "action": "walk",
+                "activityState": "COMPLETED",
+                "temporalExpression": "about",
+                "durationExpression": "for 30 minutes"
+            },
+            "failureKind": null,
+            "latencyMs": 7432
+        },
+        {
+            "caseId": "real-reboot-wifi",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "Wi-Fi",
+                "action": "reboot",
+                "activityState": null,
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 6833
+        },
+        {
+            "caseId": "real-cleaned-hot-tub",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "hot tub",
+                "action": "clean",
+                "activityState": "COMPLETED",
+                "temporalExpression": "just",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 6996
+        },
+        {
+            "caseId": "real-mowed-lawn-40-minutes",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "lawn",
+                "action": "mow",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this afternoon",
+                "durationExpression": "for 40 minutes"
+            },
+            "failureKind": null,
+            "latencyMs": 7567
+        },
+        {
+            "caseId": "real-put-dishes-away",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "dishes",
+                "action": "put away",
+                "activityState": "COMPLETED",
+                "temporalExpression": "just",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7010
+        },
+        {
+            "caseId": "real-hot-tub-sanitizer",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "hot tub",
+                "action": "add sanitizer",
+                "activityState": null,
+                "temporalExpression": null,
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 6754
+        },
+        {
+            "caseId": "sib-drained-the-hot-tub",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "hot tub",
+                "action": "drained",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this afternoon",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7307
+        },
+        {
+            "caseId": "sib-changed-filter-in-hot-tub",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "filter",
+                "action": "changed",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this afternoon",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7173
+        },
+        {
+            "caseId": "sib-changed-oil-in-lawn-mower",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "lawn mower",
+                "action": "change oil",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this afternoon",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7216
+        },
+        {
+            "caseId": "sib-washed-the-dogs",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "dogs",
+                "action": "washed",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7132
+        },
+        {
+            "caseId": "sib-cleaned-the-furnace",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "furnace",
+                "action": "clean",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7207
+        },
+        {
+            "caseId": "sib-rebooted-the-router",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "router",
+                "action": "reboot",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this afternoon",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7208
+        },
+        {
+            "caseId": "sib-weeded-the-flower-bed",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "flower bed",
+                "action": "weed",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this afternoon",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7245
+        },
+        {
+            "caseId": "sib-added-chlorine-to-hot-tub",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "hot tub",
+                "action": "added chlorine",
+                "activityState": "COMPLETED",
+                "temporalExpression": "this afternoon",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7227
+        },
+        {
+            "caseId": "empty-changed-furnace-filter",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "furnace filter",
+                "action": "change",
+                "activityState": "COMPLETED",
+                "temporalExpression": "just",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7188
+        },
+        {
+            "caseId": "empty-durango-headlight",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "headlight",
+                "action": "replace",
+                "activityState": "COMPLETED",
+                "temporalExpression": "Yesterday",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 7162
+        },
+        {
+            "caseId": "empty-walked-dogs-30-minutes",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "dogs",
+                "action": "walk",
+                "activityState": "COMPLETED",
+                "temporalExpression": "about",
+                "durationExpression": "for 30 minutes"
+            },
+            "failureKind": null,
+            "latencyMs": 7386
+        },
+        {
+            "caseId": "empty-reboot-wifi",
+            "answer": {
+                "operation": "LOG_ACTIVITY",
+                "subject": "Wi-Fi",
+                "action": "reboot",
+                "activityState": null,
+                "temporalExpression": "this",
+                "durationExpression": null
+            },
+            "failureKind": null,
+            "latencyMs": 6807
+        }
+    ]
+}
