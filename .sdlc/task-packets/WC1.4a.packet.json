@@ -1,0 +1,54 @@
+{
+  "task_id": "WC1.4a",
+  "plan_revision": "wc1",
+  "objective": "Give core-speech what the watch needs for a speech session that is both usable and honest about being offline (ADR-035, design spec G6). The watch has no createOnDeviceSpeechRecognizer(); it must use the ordinary SpeechRecognizer with EXTRA_PREFER_OFFLINE, which is only a hint. (A) In core-speech add a public way to build a PlatformSpeechTranscriber backed by the ORDINARY recognizer: e.g. `PlatformSpeechTranscriber.Companion.preferringOffline(context: Context): PlatformSpeechTranscriber` (keep the existing `PlatformSpeechTranscriber(context)` on-device constructor and its behaviour unchanged). Implement an internal `OrdinaryRecognizerFactory(context) : RecognizerFactory` whose create() returns null when `SpeechRecognizer.isRecognitionAvailable(context)` is false, else wraps `SpeechRecognizer.createSpeechRecognizer(context)` in the SAME handle/listener/intent code the on-device path already uses (make the currently-private PlatformRecognizerHandle / recognitionIntent `internal` rather than copying them; the intent already sets EXTRA_PREFER_OFFLINE and EXTRA_PARTIAL_RESULTS). KDoc must explain why this exists (ADR-035) and that it can still reach a network engine, which is why OfflineSpeechCheck exists. (B) Add `enum class OfflineAssurance { ON_DEVICE_CONFIRMED, NOT_CONFIRMED }` and `class OfflineSpeechCheck(context: Context)` with `suspend fun check(): OfflineAssurance`. It asks the platform whether an on-device model for the configured language is installed, without starting a session: on the main thread create an ordinary recognizer, call `checkRecognitionSupport(intent, executor, RecognitionSupportCallback)` (API 33; the intent carries EXTRA_LANGUAGE_MODEL free-form and the device language tag already computed by `languageTagOf`), bridge the callback with suspendCancellableCoroutine, and always destroy the recognizer on the main thread on every exit path. ON_DEVICE_CONFIRMED only if the language is in `installedOnDeviceLanguages`; ANYTHING else (not installed, onError, exception, no recognizer, or no answer within 3 seconds via withTimeoutOrNull) is NOT_CONFIRMED. Never throw except CancellationException. Put the decision in a pure internal function `offlineAssuranceOf(installedOnDeviceLanguages: List<String>, languageTag: String?): OfflineAssurance` (case-insensitive; a tag matches an installed entry on exact match or on the primary-language subtag, e.g. installed `en-US` satisfies `en-AU`? NO -- only exact match ignoring case, or an installed bare language `en` satisfying `en-XX`; document the rule) and unit-test it on the JVM. Use the existing MainThreadRunner seam for main-thread work. No logging, no network permission, no new dependency, no catalog edit. Do not change SpeechFailure or SpeechEvent (adding an enum member would break exhaustive `when`s in app-phone).",
+  "non_goals": [
+    "No watch UI, no app-wear change, no app-phone change.",
+    "No change to the existing on-device PlatformSpeechTranscriber(context) behaviour or its tests' expectations.",
+    "No new SpeechFailure member and no network-detection permission (app-wear strips ACCESS_NETWORK_STATE, ADR-025).",
+    "No logging of any kind; no transcript in any exception message (AGENTS.md #11)."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "core-speech/**",
+    "app-wear/src/debug/**",
+    "gradle/libs.versions.toml",
+    "AGENTS.md",
+    "docs/WATCH_SPEC.md",
+    "docs/proposals/watch-capture/DESIGN_SPEC.md"
+  ],
+  "write_paths": [
+    "core-speech/src/main/**",
+    "core-speech/src/test/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-wear/**",
+    "app-phone/**",
+    "core-ai/**",
+    "core-data/**",
+    "core-domain/**",
+    "core-testing/**",
+    "core-wear-protocol/**",
+    "gradle/libs.versions.toml",
+    "core-speech/build.gradle.kts"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew test` passes (all modules); all existing core-speech tests still pass unchanged.",
+    "`PlatformSpeechTranscriber.preferringOffline(context)` (or equivalent public factory) exists and is backed by createSpeechRecognizer, not createOnDeviceSpeechRecognizer; the original constructor path is untouched.",
+    "The session rules (one terminal event, partials never promoted, cancel then destroy on main thread) are reused, not reimplemented.",
+    "`OfflineSpeechCheck.check()` returns NOT_CONFIRMED on any error, exception, missing recognizer or timeout, destroys the recognizer on every path, and rethrows only cancellation.",
+    "`offlineAssuranceOf` is pure, has JVM unit tests covering exact match, case difference, bare-language match, no match, empty list and null tag.",
+    "No logging call, no new permission, no new dependency, no catalog change, no new SpeechFailure member."
+  ],
+  "verification_commands": [
+    "./gradlew :core-speech:test",
+    "./gradlew test",
+    "./gradlew :app-wear:assembleDebug :app-phone:assembleDebug"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

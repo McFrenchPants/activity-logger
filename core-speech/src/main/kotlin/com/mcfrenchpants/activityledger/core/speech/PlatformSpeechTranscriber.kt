@@ -70,6 +70,26 @@ class PlatformSpeechTranscriber internal constructor(
         LooperMainThreadRunner(),
     )
 
+    companion object {
+
+        /**
+         * A transcriber backed by the ORDINARY platform recognizer
+         * ([SpeechRecognizer.createSpeechRecognizer]) with `EXTRA_PREFER_OFFLINE` set (ADR-035).
+         *
+         * It exists because the watch has no `createOnDeviceSpeechRecognizer()` (the
+         * constructor above reports [SpeechFailure.NO_ON_DEVICE_ENGINE] there), yet has an
+         * ordinary recognition service. `EXTRA_PREFER_OFFLINE` is only a hint: this recognizer
+         * can still reach a network engine. That is why [OfflineSpeechCheck] exists -- callers
+         * that must be honest about being offline ask it first. The session rules are exactly
+         * those of the on-device path; only the way the recognizer is obtained differs.
+         */
+        fun preferringOffline(context: Context): PlatformSpeechTranscriber =
+            PlatformSpeechTranscriber(
+                OrdinaryRecognizerFactory(context.applicationContext),
+                LooperMainThreadRunner(),
+            )
+    }
+
     override fun listen(): Flow<SpeechEvent> = callbackFlow {
         // The live recognizer, if one was created. Read by the teardown below, which may run
         // on a different thread than the one that set it.
@@ -214,8 +234,22 @@ private class PlatformRecognizerFactory(private val context: Context) : Recogniz
     }
 }
 
+/**
+ * Creates ordinary (not on-device) platform recognizers, for devices such as the watch that have
+ * no on-device factory (ADR-035). The recognizer may still use a network engine; see
+ * [OfflineSpeechCheck].
+ */
+internal class OrdinaryRecognizerFactory(private val context: Context) : RecognizerFactory {
+
+    override fun create(): RecognizerHandle? {
+        if (!SpeechRecognizer.isRecognitionAvailable(context)) return null
+        val recognizer = SpeechRecognizer.createSpeechRecognizer(context)
+        return PlatformRecognizerHandle(recognizer, languageTagOf(context))
+    }
+}
+
 /** The thin wrapper over one platform recognizer. Contains no decisions. */
-private class PlatformRecognizerHandle(
+internal class PlatformRecognizerHandle(
     private val recognizer: SpeechRecognizer,
     private val languageTag: String?,
 ) : RecognizerHandle {
@@ -231,7 +265,7 @@ private class PlatformRecognizerHandle(
 }
 
 /** The one request shape this module ever sends to a recognizer. */
-private fun recognitionIntent(languageTag: String?): Intent =
+internal fun recognitionIntent(languageTag: String?): Intent =
     Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
         // Free-form dictation: people describe what they did in ordinary sentences, not in
         // commands from a fixed grammar.
