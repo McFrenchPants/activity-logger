@@ -804,13 +804,13 @@
     {
       "id": "WD1",
       "title": "Wear Data Layer round-trip probe (backlog item 16)",
-      "lifecycle_state": "planned",
+      "lifecycle_state": "implemented",
       "tasks": [
         {
           "id": "WD1.1",
           "title": "Data Layer probe code",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "implemented",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -819,7 +819,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/WD1.1.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done, spot-check. Built, unit tests green, not run on hardware."
         },
         {
           "id": "WD1.2",

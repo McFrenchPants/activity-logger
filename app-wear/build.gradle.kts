@@ -51,6 +51,7 @@ dependencies {
     implementation(project(":core-domain"))
     implementation(project(":core-wear-protocol"))
     implementation(project(":core-speech"))
+    implementation(libs.play.services.wearable)
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.wear.compose.material3)
