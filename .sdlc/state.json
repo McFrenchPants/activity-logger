@@ -804,7 +804,7 @@
     {
       "id": "WD1",
       "title": "Wear Data Layer round-trip probe (backlog item 16)",
-      "lifecycle_state": "ready_to_release",
+      "lifecycle_state": "planned",
       "tasks": [
         {
           "id": "WD1.1",
@@ -837,6 +837,23 @@
           "task_packet_path": null,
           "report_path": null,
           "notes": "Done. Device run passed; see RESULTS.md."
+        },
+        {
+          "id": "WD1.3",
+          "title": "Debug-only dictation probe on the watch (owner request)",
+          "status": "in-progress",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "WD1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/WD1.3.packet.json",
+          "report_path": null,
+          "notes": "Added 2026-10-01 after owner clarified Internet avoidance is a preference; measures Wear dictation offline (backlog item 17)."
         }
       ]
     }

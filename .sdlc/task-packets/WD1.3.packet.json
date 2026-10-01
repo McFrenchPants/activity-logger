@@ -1,0 +1,52 @@
+{
+  "task_id": "WD1.3",
+  "plan_revision": "wd1",
+  "objective": "Add a DEBUG-ONLY, hand-run dictation probe to app-wear so the owner can test on the OnePlus Watch 3 whether Wear's speech-to-text works with the network off. Put everything under app-wear/src/debug/ (kotlin + the debug manifest app-wear/src/debug/AndroidManifest.xml, which already exists and declares an echo service -- keep that service untouched; add to it). Add `DictationProbeActivity` (Compose, using the wear compose material3 already a dependency, readable high-contrast text on a dark background, scrollable, large touch targets) with its own LAUNCHER intent filter and label 'Dictation Probe' so it appears as a separate icon from the placeholder app. It has two buttons. Button A 'System dictation': launches the standard Wear dictation screen with an ACTION_RECOGNIZE_SPEECH intent via ActivityResultContracts.StartActivityForResult (EXTRA_LANGUAGE_MODEL free form, EXTRA_PREFER_OFFLINE true) and shows the first result string, or 'cancelled / nothing returned' with the result code. Button B 'In-app recognizer': uses SpeechRecognizer.createSpeechRecognizer(context) (NOT the on-device factory) with EXTRA_PREFER_OFFLINE true and partial results, on the main thread, requesting RECORD_AUDIO at runtime first (it is already declared in the main manifest); shows partial and final text and, on failure, the SpeechRecognizer.ERROR_* code name; always cancel+destroy the recognizer when done or when the activity stops. Both buttons also show elapsed milliseconds from launch/start to first text so latency is visible. Show text ONLY on screen -- never log transcripts, partials or results anywhere (AGENTS.md #11); log at most fixed tokens and error code names. This is a measurement tool for the owner, not product UI; keep it small and self-contained. Do not add INTERNET or ACCESS_NETWORK_STATE; verify via the merged debug manifest and merged release manifest that (a) the probe activity exists only in debug, (b) no network permissions were added.",
+  "non_goals": [
+    "Do not modify app-wear/src/main/** (the placeholder MainActivity stays as is).",
+    "No dependency on core-ai; no ML Kit coordinate; no new network permission.",
+    "Do not touch docs/, BACKLOG.md, PROGRESS.md or .sdlc/.",
+    "Do not run anything on a device; the orchestrator installs and runs it."
+  ],
+  "dependencies": [
+    "WD1.1"
+  ],
+  "read_paths": [
+    "app-wear/**",
+    "app-phone/src/androidTest/**",
+    "core-speech/**",
+    "gradle/libs.versions.toml",
+    "AGENTS.md",
+    "docs/DECISIONS.md"
+  ],
+  "write_paths": [
+    "app-wear/src/debug/**",
+    "app-wear/build.gradle.kts"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-wear/src/main/**",
+    "app-phone/**",
+    "core-ai/**",
+    "core-data/**",
+    "core-domain/**",
+    "core-testing/**",
+    "gradle/libs.versions.toml"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew :app-wear:assembleDebug :app-wear:processReleaseManifest` succeeds and `./gradlew test` still passes.",
+    "DictationProbeActivity and its manifest entry exist only under app-wear/src/debug; the merged release manifest does not contain it (report the check).",
+    "Neither merged manifest of app-wear contains INTERNET or ACCESS_NETWORK_STATE (report the check).",
+    "No transcript, partial or result text is passed to any logging call; the recognizer is cancelled and destroyed on every exit path.",
+    "The echo service declaration in the debug manifest is unchanged."
+  ],
+  "verification_commands": [
+    "./gradlew :app-wear:assembleDebug :app-wear:processReleaseManifest",
+    "./gradlew test"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
