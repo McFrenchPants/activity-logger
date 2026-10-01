@@ -16,11 +16,14 @@ sdlc-tracked as `WC1`.
 | WC1.3 | Repository: caller-supplied capture id (idempotent receive) | done | Verifier pass. NewRawCapture.id (nullable); Room does exists-check+insert in one transaction; no schema change; InMemory mirrors. Watch captureId becomes the raw capture id |
 | WC1.3b | Phone receiver (WearableListenerService, idempotent processing, ack) | done | Verifier pass. WatchCaptureReceiver (pure, mutex-serialised) + WatchCaptureListenerService + manifest filter on /capture/. Acks RECEIVED then SAVED/NEEDS_REVIEW/FAILED_RETRYABLE; InterpreterUnavailable acks NEEDS_REVIEW (capture stored on phone). Unverified on a real device until WC1.6 |
 | WC1.4a | Watch speech adapter (ordinary recognizer, prefer-offline) + offline assurance check | done | Spot-check. `PlatformSpeechTranscriber.preferringOffline(context)`, `OfflineSpeechCheck` (ON_DEVICE_CONFIRMED only if the language model is installed; any doubt = NOT_CONFIRMED), 7 JVM tests. Platform path unverified on the watch until WC1.6 |
-| WC1.4b | Watch capture UI states, session controller, haptics, permission | todo | Screens show a notice when assurance is NOT_CONFIRMED (new copy). Ambient hook deferred to WC1.6 |
+| WC1.4b | Watch capture UI states, session controller, haptics, permission | done | Spot-check. 20 JVM tests. PlaceholderCaptureSink discards transcripts: WC1.5 must replace it with the outbox and call controller.onAck. UI/haptics only compile-checked; ambient hook deferred to WC1.6 (no androidx.wear dependency yet). New copy: Listening…, Allow microphone to capture., Voice capture isn't available on this watch., Offline speech not confirmed |
 | WC1.5 | Wire UI to outbox and transport; end-to-end fake test | todo | |
 | WC1.6 | Device pass and documentation | todo | Needs phone + watch online |
 
 ## Session log
+
+### 2026-10-01 - WC1.4b done
+Watch screens, controller, haptics, mic permission built (nothing sent yet). Next: WC1.5 wires the outbox and transport to the screen and the phone acks back.
 
 ### 2026-10-01 - WC1.4a done
 Split WC1.4 in two. Speech adapter and offline check built (core-speech). Next: WC1.4b watch screens.

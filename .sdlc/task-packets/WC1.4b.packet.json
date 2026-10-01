@@ -1,0 +1,60 @@
+{
+  "task_id": "WC1.4b",
+  "plan_revision": "wc1",
+  "objective": "Build the watch capture screen and the logic behind it in app-wear, package com.mcfrenchpants.activityledger.wear.capture. Nothing is sent anywhere yet (WC1.5 wires the outbox and transport). (1) Pure Kotlin (JVM-testable, no Android types): `CaptureUiState` sealed interface: Listening(partial: String?), Queued, Saved(activityName: String?), NeedsReview, Failure, Unavailable(reason: UnavailableReason{PERMISSION_MISSING, NO_ENGINE}). `WatchTranscript(text, confidence: Float?, alternatives: List<String>)`. `interface CaptureSink { suspend fun enqueue(transcript: WatchTranscript): String }` (returns the new captureId; WC1.5 implements it over the outbox). `class CaptureSessionController(transcriber: SpeechTranscriber, sink: CaptureSink, scope: CoroutineScope)` exposing `val state: StateFlow<CaptureUiState>` plus `start()`, `stop()`, `retry()`, `onAck(ack: CaptureAck)`. start() collects `transcriber.listen()` in one job: PartialTranscript -> Listening(partial) (display only); FinalTranscript -> if text is blank => Failure, writes nothing; else sink.enqueue(...) then Queued and remember the captureId; Failed(kind) -> PERMISSION_MISSING => Unavailable(PERMISSION_MISSING), NO_ON_DEVICE_ENGINE => Unavailable(NO_ENGINE), CANCELLED => no state change, anything else (NOTHING_HEARD, RECOGNIZER_BUSY, ENGINE_ERROR) => Failure. If enqueue throws (not CancellationException) => Failure. stop() cancels the job so the recognizer is released (cold flow) and is safe to call repeatedly. start() while already listening is a no-op. retry() restarts a session from Failure only (Unavailable states are not retried by tap). onAck(ack) applies only when ack.captureId equals the remembered id: SAVED => Saved(ack.canonicalActivityName), NEEDS_REVIEW => NeedsReview, FAILED_RETRYABLE/FAILED_FINAL => Failure, RECEIVED => no change; a non-matching id is ignored. Acks are idempotent. NO logging, no transcript in any exception message, and no transcript text in any state other than Listening.partial; nothing persisted. (2) Haptics: pure `enum HapticPattern { NONE, TICK, DOUBLE_TICK, LONG_PULSE }` and `hapticFor(state)` per UX_VISUAL_SPEC 4.6: Listening NONE; Queued TICK; Saved and NeedsReview DOUBLE_TICK; Failure LONG_PULSE; Unavailable NONE. Fire only on a state TRANSITION into that state (not on partial updates or repeats) -- put that rule in a pure testable function. `interface HapticPlayer { fun play(p: HapticPattern) }` and an Android `VibratorHapticPlayer(context)` using the system Vibrator/VibrationEffect (short ticks, one longer pulse; defensively no-op on any exception). Add the VIBRATE permission (android.permission.VIBRATE, a normal permission) to the watch manifest; keep INTERNET and ACCESS_NETWORK_STATE removed. (3) Copy: strings in res/values/strings.xml, verbatim from WATCH_SPEC 11: Queued 'Queued for phone'; Saved '✓ %1$s' (and '✓ Saved' when no name); NeedsReview 'Saved — review on phone'; Failure \"Couldn't capture. Tap to retry.\". New copy where the spec has none: Listening label 'Listening…'; Unavailable PERMISSION_MISSING 'Allow microphone to capture.'; Unavailable NO_ENGINE \"Voice capture isn't available on this watch.\"; offline-not-confirmed notice 'Offline speech not confirmed' (shown small under the Listening indicator when OfflineAssurance is NOT_CONFIRMED). (4) UI: Wear Compose Material3 `CaptureScreen(state, assurance: OfflineAssurance, ambient: Boolean, onRetry: () -> Unit)`: one glanceable message per state, a large microphone/listening indicator in Listening (draw a simple vector/Canvas mic unless an icon is already available without a new dependency), whole-screen tap = onRetry in Failure, text in sp, polite live region semantics, contentDescription on the indicator. Ambient (ambient=true): black background, outline-only glyphs, dimmed text, no fills. Do NOT add the androidx.wear ambient dependency; the real ambient callback is deferred to WC1.6 -- just support the parameter, and have MainActivity pass false with a KDoc note saying the hook is deferred. (5) MainActivity: opens straight into Listening. Requests RECORD_AUDIO via ActivityResultContracts.RequestPermission if not granted (on denial -> Unavailable(PERMISSION_MISSING), no re-request loop), builds `PlatformSpeechTranscriber.preferringOffline(this)` and `OfflineSpeechCheck(this)` (check once per start in a coroutine; assurance defaults to NOT_CONFIRMED until answered), a `PlaceholderCaptureSink` that returns a fresh UUID and stores nothing (KDoc: replaced by the outbox in WC1.5), starts the controller in onStart and stops it in onStop, plays haptics on transitions. If a coroutines or lifecycle artifact must be declared, use ONLY an existing gradle/libs.versions.toml alias and declare it in app-wear/build.gradle.kts. app-wear must still never depend on core-ai. (6) Tests (JVM, app-wear/src/test): add testImplementation for junit4 and kotlinx-coroutines-test (existing catalog aliases; check their names) to app-wear/build.gradle.kts. Cover with a fake SpeechTranscriber and fake sink: partial then final => Listening then Queued with the sink called once with the exact text/confidence/alternatives; blank final => Failure and sink NOT called; each SpeechFailure kind maps as above; CANCELLED leaves state unchanged; enqueue throwing => Failure with no text in the state; stop() cancels the underlying flow (assert the fake's collection was cancelled); start() twice listens once; retry from Failure starts a new session; onAck matching/non-matching/duplicate/RECEIVED; hapticFor mapping and transition-only firing; no partial text survives past Listening. Keep the debug-only probes (src/debug) untouched and out of release.",
+  "non_goals": [
+    "No outbox, no Data Layer, no sending, no ack receiving over the network (WC1.5).",
+    "No androidx.wear ambient dependency and no complication/tile (deferred).",
+    "No history, undo, edit or review UI on the watch; no settings screen.",
+    "No inference, no core-ai dependency; no INTERNET; no logging of any kind; no audio retention.",
+    "No change to core-speech, core-wear-protocol, app-phone, or the version catalog."
+  ],
+  "dependencies": ["WC1.4a", "WC1.1"],
+  "read_paths": [
+    "app-wear/**",
+    "core-speech/src/main/**",
+    "core-wear-protocol/src/main/**",
+    "gradle/libs.versions.toml",
+    "AGENTS.md",
+    "docs/WATCH_SPEC.md",
+    "docs/UX_VISUAL_SPEC.md",
+    "docs/proposals/watch-capture/DESIGN_SPEC.md"
+  ],
+  "write_paths": [
+    "app-wear/src/main/**",
+    "app-wear/src/test/**",
+    "app-wear/build.gradle.kts"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-wear/src/debug/**",
+    "app-wear/src/androidTest/**",
+    "app-phone/**",
+    "core-ai/**",
+    "core-data/**",
+    "core-domain/**",
+    "core-testing/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "gradle/libs.versions.toml"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew test` passes (all modules); `./gradlew :app-wear:assembleDebug :app-wear:assembleRelease :app-phone:assembleDebug` succeeds.",
+    "Merged watch manifest contains VIBRATE and RECORD_AUDIO and does NOT contain INTERNET or ACCESS_NETWORK_STATE; no new permission beyond VIBRATE.",
+    "Controller behaviour exactly as specified: blank final never reaches the sink; partials are display-only; stop() releases the session; start() is idempotent; onAck ignores a foreign captureId.",
+    "Haptics fire only on transition into Queued/Saved/NeedsReview/Failure with the patterns TICK/DOUBLE_TICK/DOUBLE_TICK/LONG_PULSE; Listening none.",
+    "Copy matches WATCH_SPEC 11 verbatim for Queued/Success/NeedsReview/Failure.",
+    "app-wear has no dependency on core-ai (directly or transitively); no logging call; no transcript in any exception message.",
+    "app-wear/src/debug is untouched and the debug probes are not in the release variant."
+  ],
+  "verification_commands": [
+    "./gradlew :app-wear:testDebugUnitTest",
+    "./gradlew test",
+    "./gradlew :app-wear:assembleDebug :app-wear:assembleRelease :app-phone:assembleDebug"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

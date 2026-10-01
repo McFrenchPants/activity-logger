@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Scaffold placeholder resource: no product meaning beyond naming the app. -->
 <resources>
     <string name="app_name">Activity Ledger</string>
+
+    <!-- Verbatim from WATCH_SPEC 11. -->
+    <string name="capture_queued">Queued for phone</string>
+    <string name="capture_saved_named">✓ %1$s</string>
+    <string name="capture_saved">✓ Saved</string>
+    <string name="capture_needs_review">Saved — review on phone</string>
+    <string name="capture_failure">Couldn\'t capture. Tap to retry.</string>
+
+    <!-- New copy; the spec has none. -->
+    <string name="capture_listening">Listening…</string>
+    <string name="capture_listening_indicator">Microphone, listening</string>
+    <string name="capture_permission_missing">Allow microphone to capture.</string>
+    <string name="capture_no_engine">Voice capture isn\'t available on this watch.</string>
+    <string name="capture_offline_not_confirmed">Offline speech not confirmed</string>
 </resources>

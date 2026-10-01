@@ -55,6 +55,10 @@ dependencies {
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.wear.compose.material3)
+    implementation(libs.kotlinx.coroutines.core)
+
+    testImplementation(libs.junit4)
+    testImplementation(libs.kotlinx.coroutines.test)
 
     // On-device test only, and only what the recognizer probe actually uses: the runner that
     // executes it, the AndroidJUnit4 runner class, ApplicationProvider/InstrumentationRegistry

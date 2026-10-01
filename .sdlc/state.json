@@ -946,8 +946,8 @@
         {
           "id": "WC1.4b",
           "title": "Watch capture UI states, session controller, haptics, permission",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "implemented",
           "dependencies": [
             "WC1.4a",
             "WC1.1"
@@ -959,7 +959,7 @@
           },
           "task_packet_path": null,
           "report_path": null,
-          "notes": ""
+          "notes": "Spot-check. Controller, haptics, CaptureScreen, MainActivity, 20 JVM tests. Placeholder sink discards transcripts until WC1.5; nothing calls onAck yet; UI/haptics compile-checked only."
         },
         {
           "id": "WC1.5",
