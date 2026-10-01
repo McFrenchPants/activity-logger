@@ -6,7 +6,7 @@ ADR-035 (watch transcribes offline) and WD1 (phone<->watch link works).
 Branch: `feature/watch-capture`, stacked on `feature/wear-data-layer`
 (itself on unmerged `feature/voice-capture`).
 
-**Approval.** Scope awaiting owner sign-off (§8).
+**Approval.** Owner signed off scope 2026-10-01: launcher entry first, complication as a follow-up item (Q1); watch copy as written in WATCH_SPEC §11 (Q2).
 
 ## 1. Problem
 

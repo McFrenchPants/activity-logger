@@ -1,0 +1,56 @@
+{
+  "task_id": "WC1.1",
+  "plan_revision": "wc1",
+  "objective": "Replace core-wear-protocol's ScaffoldPlaceholder with the real phone/watch contract, as pure Kotlin/JVM (no Android, no other project module -- see the module's own build.gradle.kts header). Deliver: (1) `CaptureEnvelope`: protocolVersion Int, captureId String (UUID text), rawText String, capturedAtEpochMillis Long, source String (constant equal to the name of core-domain's CaptureSource.WATCH_VOICE, WITHOUT depending on core-domain), sourceSurface String, optional speechConfidence Double, optional alternatives List<String>. (2) `CaptureAck`: protocolVersion, captureId, status enum {RECEIVED, SAVED, NEEDS_REVIEW, FAILED_RETRYABLE, FAILED_FINAL}, optional canonicalActivityName, optional occurredAtEpochMillis, needsReview Boolean. (3) Path constants: a capture DataItem path prefix (one item per captureId, e.g. /capture/<captureId>) and an ack message path (e.g. /capture-ack). (4) Compact JSON encode/decode via kotlinx.serialization (catalog aliases libs.kotlinx.serialization.json and plugin alias libs.plugins.kotlin.serialization; add them to this module's build file, no literal versions). Decoding is strict and total: it returns a result type, never throws to the caller; failures are a payload-free kind enum (UNSUPPORTED_VERSION, MALFORMED, BLANK_TEXT, TEXT_TOO_LARGE, INVALID_ID) -- a failure must be structurally unable to carry the payload text (AGENTS.md #11). Define a sensible max rawText size constant and document it. Encoding validates too (blank/oversize text refused). (5) `OutboxState` (CREATED, QUEUED, SENDING, PHONE_RECEIVED, PROCESSED, ACKNOWLEDGED, RETRYABLE, FAILED) and a pure transition function over events (queued, sendStarted, sendFailedTransient, sendFailedPermanent, ackReceived(status)) per WATCH_SPEC section 4: legal edges succeed, illegal edges return a typed refusal, a duplicate/late ack in a terminal state is idempotent (no state change, not an error), RETRYABLE may return to SENDING, ack statuses map to PHONE_RECEIVED/PROCESSED/ACKNOWLEDGED/RETRYABLE/FAILED sensibly (document the mapping in KDoc). Delete ScaffoldPlaceholder.kt and ScaffoldPlaceholderTest.kt. Write JVM tests for all of it.",
+  "non_goals": [
+    "No Android or Play Services dependency; no dependency on any project module.",
+    "No persistence, no Data Layer calls, no UI -- those are WC1.2-WC1.5.",
+    "Do not touch app-phone, app-wear, core-domain, core-data, core-speech or docs.",
+    "Do not edit gradle/libs.versions.toml (aliases for serialization already exist); no literal versions in the build file.",
+    "No logging of any kind."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "core-wear-protocol/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/model/CaptureSource.kt",
+    "core-ai/build.gradle.kts",
+    "gradle/libs.versions.toml",
+    "build.gradle.kts",
+    "settings.gradle.kts",
+    "AGENTS.md",
+    "docs/WATCH_SPEC.md",
+    "docs/ARCHITECTURE.md"
+  ],
+  "write_paths": [
+    "core-wear-protocol/build.gradle.kts",
+    "core-wear-protocol/src/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-phone/**",
+    "app-wear/**",
+    "core-ai/**",
+    "core-data/**",
+    "core-domain/**",
+    "core-speech/**",
+    "core-testing/**",
+    "gradle/libs.versions.toml"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew :core-wear-protocol:test` and `./gradlew test` pass.",
+    "core-wear-protocol has no Android dependency and no project-module dependency; no literal versions in its build file.",
+    "Round-trip tests for CaptureEnvelope and CaptureAck; rejection tests for unsupported version, blank text, oversize text, malformed JSON, invalid captureId.",
+    "Decode/encode failures are a payload-free kind enum; no failure type can hold the raw text.",
+    "Transition tests cover every legal edge, illegal edges are refused with a typed result, a duplicate ack in a terminal state is idempotent, RETRYABLE can resume SENDING.",
+    "ScaffoldPlaceholder.kt and its test are deleted; no logging call exists in the module."
+  ],
+  "verification_commands": [
+    "./gradlew :core-wear-protocol:test",
+    "./gradlew test"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

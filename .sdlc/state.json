@@ -324,7 +324,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/DS1.6.packet.json",
           "report_path": null,
-          "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE \u00c3\u201a\u00c2\u00a75/\u00c3\u201a\u00c2\u00a76/\u00c3\u201a\u00c2\u00a715/\u00c3\u201a\u00c2\u00a716, AI_INTERPRETATION_SPEC \u00c3\u201a\u00c2\u00a710/\u00c3\u201a\u00c2\u00a711/\u00c3\u201a\u00c2\u00a717, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
+          "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE Ã‚Â§5/Ã‚Â§6/Ã‚Â§15/Ã‚Â§16, AI_INTERPRETATION_SPEC Ã‚Â§10/Ã‚Â§11/Ã‚Â§17, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
         }
       ]
     },
@@ -854,6 +854,115 @@
           "task_packet_path": ".sdlc/task-packets/WD1.3.packet.json",
           "report_path": null,
           "notes": "Built and unit tests green; not yet run on the watch (watch dropped off ADB)."
+        }
+      ]
+    },
+    {
+      "id": "WC1",
+      "title": "Watch capture (build-guide Step 8)",
+      "lifecycle_state": "planned",
+      "tasks": [
+        {
+          "id": "WC1.1",
+          "title": "Protocol module",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/WC1.1.packet.json",
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "WC1.2",
+          "title": "Watch outbox",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "WC1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "WC1.3",
+          "title": "Phone receiver",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "WC1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "WC1.4",
+          "title": "Watch recognizer adapter + UI",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "WC1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "WC1.5",
+          "title": "Wire UI to outbox and transport",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "WC1.2",
+            "WC1.3",
+            "WC1.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "WC1.6",
+          "title": "Device pass and documentation",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "WC1.5"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": null,
+          "report_path": null,
+          "notes": ""
         }
       ]
     }
