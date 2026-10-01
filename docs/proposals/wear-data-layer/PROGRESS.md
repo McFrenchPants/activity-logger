@@ -1,4 +1,4 @@
-# Progress â€” Wear Data Layer round-trip probe
+# Progress — Wear Data Layer round-trip probe
 
 Task status vocabulary: `todo`, `in-progress`, `blocked`, `done`.
 
@@ -21,5 +21,5 @@ Device run passed. Pairing took several attempts: the phone's pairing popup clos
 ### 2026-09-30 — WD1.1 done; WD1.2 blocked on devices
 Probe code written and compiled: `WearDataLayerProbeTest` (phone androidTest) sends a message and a data item and waits for the watch's debug-only echo service to answer; 'no watch connected' is a reported, passing result. play-services-wearable 19.0.0 added via the catalog. Run by hand when both devices are online: install debug `app-wear` on the watch, then `./gradlew :app-phone:connectedDebugAndroidTest --tests '*WearDataLayerProbeTest'` and read `adb logcat -d -s WearDataLayerProbe`.
 
-### 2026-09-30 â€” WD1 scaffolded
+### 2026-09-30 — WD1 scaffolded
 Owner chose backlog item 16 after VC1 finished. No devices were connected at start.
