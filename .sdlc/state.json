@@ -841,8 +841,8 @@
         {
           "id": "WD1.3",
           "title": "Debug-only dictation probe on the watch (owner request)",
-          "status": "in-progress",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "implemented",
           "dependencies": [
             "WD1.1"
           ],
@@ -853,7 +853,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/WD1.3.packet.json",
           "report_path": null,
-          "notes": "Added 2026-10-01 after owner clarified Internet avoidance is a preference; measures Wear dictation offline (backlog item 17)."
+          "notes": "Built and unit tests green; not yet run on the watch (watch dropped off ADB)."
         }
       ]
     }

@@ -1,7 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Debug-only: the Wear Data Layer probe echo service. Not present in release builds. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Package visibility for the dictation probe: lets it see speech recognition providers. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+    </queries>
+
     <application>
+        <!-- Debug-only, hand-run dictation probe: separate launcher icon. -->
+        <activity
+            android:name="com.mcfrenchpants.activityledger.wear.probe.DictationProbeActivity"
+            android:exported="true"
+            android:label="Dictation Probe">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name="com.mcfrenchpants.activityledger.wear.probe.WearDataLayerEchoService"
             android:exported="true">
