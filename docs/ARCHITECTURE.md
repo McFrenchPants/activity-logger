@@ -546,7 +546,7 @@ Any state other than `READY` makes interpretation fail as `UNAVAILABLE` without 
 
 Speech capability is implemented as `SpeechCapability` in `core-speech` (§14, VC1.2): whether this device has an on-device recognition engine, and the language tag the transcriber asks for. It starts no recognizer and downloads nothing. On a device with no engine, voice capture must be presented as unavailable rather than broken, and typing must stay fully available — the Log screen enforces that today (VC1.3). Measured answers: the Pixel 10 Pro has an engine, the OnePlus Watch 3 does not (ADR-035).
 
-Wear Data Layer capability detection is not built yet.
+Wear Data Layer capability detection is not built yet. Measured 2026-10-01 (WD1): the Pixel 10 Pro and OnePlus Watch 3 exchange both a message and a DataItem with the shared `applicationId` and debug signing key; see `docs/proposals/wear-data-layer/RESULTS.md`.
 
 ## 22. Supported platform baseline
 

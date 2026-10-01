@@ -237,7 +237,10 @@ Status vocabulary:
     offline before it could run, so voice capture has never been exercised
     against a real recognizer — only against a scripted fake in tests.
 
-16. **Wear Data Layer round-trip** — `idea`
+16. **Wear Data Layer round-trip** — `done` (WD1, 2026-10-01; on branch
+    `feature/wear-data-layer`, not yet merged). Measured: message and DataItem
+    both round-trip phone<->watch (~1.2 s and ~0.2 s). See
+    `docs/proposals/wear-data-layer/RESULTS.md`.
     Added 2026-09-19, split out of item 7. That item bundled two unrelated
     checks; its speech half is now answered (ADR-035) but the Data Layer half
     never ran. Before the watch app depends on it: a trivial phone-to-watch and
