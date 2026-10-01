@@ -13,8 +13,9 @@
 # With --tags as the first argument it records the TAG corpus (subject + action, 72 sentences)
 # through the extraction prompt instead: it runs TagCorpusRecorderTest with tagCorpus=true, pulls
 # .../files/semantic-corpus/tag-device-recording.json, does the same checks before overwriting,
-# writes recordings/tag-device-latest.json, then runs ONLY the structural check
-# TagRecordingFilesTest (the tag corpus has no gate or report yet). Without --tags nothing
+# writes recordings/tag-device-latest.json, then runs the structural check TagRecordingFilesTest
+# and the tag scorer/gate TagRegressionGateTest (report core-testing/build/reports/semantic-corpus/
+# tag-device.md; gated by recordings/tag-baseline.json once that exists). Without --tags nothing
 # changes.
 #
 # Never downloads the on-device model (if it is not ready the recorder skips and this script
@@ -25,7 +26,7 @@
 # Exit codes: 0 recorded and gate passed; 1 setup/run problem (nothing overwritten);
 #             2 model not ready, recorder skipped (nothing overwritten);
 #             3 recording saved but the regression gate FAILED
-#               (with --tags: saved but its structural check FAILED).
+#               (with --tags: saved but its structural check or the tag gate FAILED).
 set -euo pipefail
 
 # Optional first argument: --tags records the tag corpus instead (see the header).
@@ -49,12 +50,13 @@ OPT_IN_ARG="semanticCorpus"
 LOG_TAG="SemanticCorpusRecorder"
 if [ "$TAG_MODE" -eq 1 ]; then
     RECORDER_CLASS="com.mcfrenchpants.activityledger.semantic.TagCorpusRecorderTest"
-    # No tag gate or report exists yet: only the structural check of the recording files runs.
+    # Structural check of the recording files first, then the tag scorer/gate.
     GATE_CLASS="com.mcfrenchpants.activityledger.core.testing.corpus.TagRecordingFilesTest"
+    TAG_GATE_CLASS="com.mcfrenchpants.activityledger.core.testing.corpus.TagRegressionGateTest"
     # The recorder writes to context.getExternalFilesDir(null)/semantic-corpus/tag-device-recording.json.
     DEVICE_FILE="/sdcard/Android/data/${PACKAGE}/files/semantic-corpus/tag-device-recording.json"
     DEST_FILE="core-testing/src/test/resources/semantic-corpus/recordings/tag-device-latest.json"
-    REPORT_FILE=""
+    REPORT_FILE="core-testing/build/reports/semantic-corpus/tag-device.md"
     PULLED_FILE="${WORK_DIR}/tag-device-recording.pulled.json"
     OPT_IN_ARG="tagCorpus"
     LOG_TAG="TagCorpusRecorder"
@@ -75,8 +77,8 @@ say "  - build the app and its test package and install them on ONE connected ph
 say "    (the app is NOT uninstalled afterwards and its data is left alone),"
 say "  - run every tag corpus sentence (72) through the phone's on-device model,"
 say "    at roughly 6-7 seconds each: about 8 minutes, plus a few minutes of build/install,"
-say "  - bring the recording back into the repository and check its structure"
-say "    (there is no score or gate for the tag corpus yet)."
+say "  - bring the recording back into the repository, check its structure and score it"
+say "    (report tag-device.md; gated once tag-baseline.json exists)."
 else
 say "== Semantic corpus: on-device recording =="
 say "This will:"
@@ -252,10 +254,10 @@ say "Recording checked with $VALIDATED: $ENTRY_COUNT entries."
 cp "$PULLED_FILE" "$DEST_FILE"
 say "Saved to $DEST_FILE"
 
-# --- tag corpus: structural check only ------------------------------------------------------
+# --- tag corpus: structural check, then score and gate --------------------------------------
 if [ "$TAG_MODE" -eq 1 ]; then
     say ""
-    say "== Checking the tag recording (structure only; there is no tag score or gate yet) =="
+    say "== Checking the tag recording's structure =="
     set +e
     ./gradlew :core-testing:test --tests "$GATE_CLASS"
     CHECK_STATUS=$?
@@ -267,8 +269,27 @@ if [ "$TAG_MODE" -eq 1 ]; then
         say "Details: core-testing/build/reports/tests/test/index.html"
         exit 3
     fi
-    say "Done. Tag recording from ${MODEL_NAME:-the phone} saved and structurally checked."
-    say "Scoring the tag corpus is not built yet, so no report was produced."
+    say ""
+    say "== Scoring the tag recording (tag regression gate) =="
+    set +e
+    ./gradlew :core-testing:test --tests "$TAG_GATE_CLASS"
+    GATE_STATUS=$?
+    set -e
+    say ""
+    if [ "$GATE_STATUS" -ne 0 ]; then
+        say "TAG GATE FAILED (Gradle exit $GATE_STATUS): the new tag recording regressed against"
+        say "tag-baseline.json, or could not be replayed. The recording itself was kept at $DEST_FILE."
+        [ -f "$REPORT_FILE" ] && say "Report: $REPORT_FILE"
+        say "Details: core-testing/build/reports/tests/test/index.html"
+        exit 3
+    fi
+    say "Done. Tag recording from ${MODEL_NAME:-the phone} saved, checked and scored."
+    say "(Gated only once recordings/tag-baseline.json exists; until then the report is informational.)"
+    if [ -f "$REPORT_FILE" ]; then
+        say "Report: $REPORT_FILE"
+    else
+        say "Note: expected report $REPORT_FILE was not found."
+    fi
     exit 0
 fi
 

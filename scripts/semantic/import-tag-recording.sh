@@ -15,16 +15,18 @@
 #   3. only if that passes, keeps a backup of the current
 #      core-testing/src/test/resources/semantic-corpus/recordings/tag-device-latest.json (if any)
 #      in the scratch folder and overwrites it with the new recording,
-#   4. runs ONLY the structural check TagRecordingFilesTest (decodes strictly, matches the
-#      current tag corpus hash, one entry per case) and reports.
+#   4. runs the structural check TagRecordingFilesTest (decodes strictly, matches the current tag
+#      corpus hash, one entry per case), then the tag scorer/gate TagRegressionGateTest, which
+#      writes core-testing/build/reports/semantic-corpus/tag-device.md and, once
+#      recordings/tag-baseline.json exists, gates on it.
 #
 # No phone, adb or network is involved. The only repository file it overwrites is
 # tag-device-latest.json. Works in Git Bash on Windows and on macOS/Linux.
 #
 # Exit codes: 0 imported and structural check passed;
 #             1 usage/setup problem or the file failed the cheap check (nothing overwritten);
-#             3 imported but the structural check FAILED (the new file is kept; the previous
-#               one, if any, is in the backup named in the output).
+#             3 imported but the structural check or the tag gate FAILED (the new file is kept;
+#               the previous one, if any, is in the backup named in the output).
 set -euo pipefail
 
 say() { printf '%s\n' "$*"; }
@@ -36,6 +38,8 @@ SOURCE_ARG="$1"
 [ -s "$SOURCE_ARG" ] || die "The file is empty: $SOURCE_ARG. Nothing in the repository was changed."
 
 CHECK_CLASS="com.mcfrenchpants.activityledger.core.testing.corpus.TagRecordingFilesTest"
+TAG_GATE_CLASS="com.mcfrenchpants.activityledger.core.testing.corpus.TagRegressionGateTest"
+REPORT_FILE="core-testing/build/reports/semantic-corpus/tag-device.md"
 DEST_FILE="core-testing/src/test/resources/semantic-corpus/recordings/tag-device-latest.json"
 WORK_DIR="build/tag-recording-import"
 STAGED_FILE="${WORK_DIR}/tag-device-recording.imported.json"
@@ -118,9 +122,9 @@ fi
 cp "$STAGED_FILE" "$DEST_FILE"
 say "Saved to $DEST_FILE"
 
-# --- structural check only (there is no tag score or gate yet) -------------------------------------
+# --- structural check, then score and gate ---------------------------------------------------------
 say ""
-say "== Checking the tag recording (structure only) =="
+say "== Checking the tag recording's structure =="
 set +e
 ./gradlew :core-testing:test --tests "$CHECK_CLASS"
 CHECK_STATUS=$?
@@ -134,5 +138,26 @@ if [ "$CHECK_STATUS" -ne 0 ]; then
     say "Details: core-testing/build/reports/tests/test/index.html"
     exit 3
 fi
-say "Done. Phone recording imported and structurally checked."
-say "Scoring the tag corpus is not built yet, so no report was produced."
+
+say ""
+say "== Scoring the tag recording (tag regression gate) =="
+set +e
+./gradlew :core-testing:test --tests "$TAG_GATE_CLASS"
+GATE_STATUS=$?
+set -e
+say ""
+if [ "$GATE_STATUS" -ne 0 ]; then
+    say "TAG GATE FAILED (Gradle exit $GATE_STATUS): the new tag recording regressed against"
+    say "tag-baseline.json, or could not be replayed. The new recording was kept at $DEST_FILE."
+    [ -f "$BACKUP_FILE" ] && say "The previous one is at $BACKUP_FILE (copy it back to undo)."
+    [ -f "$REPORT_FILE" ] && say "Report: $REPORT_FILE"
+    say "Details: core-testing/build/reports/tests/test/index.html"
+    exit 3
+fi
+say "Done. Phone recording imported, checked and scored."
+say "(Gated only once recordings/tag-baseline.json exists; until then the report is informational.)"
+if [ -f "$REPORT_FILE" ]; then
+    say "Report: $REPORT_FILE"
+else
+    say "Note: expected report $REPORT_FILE was not found."
+fi

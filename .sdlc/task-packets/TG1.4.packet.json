@@ -1,0 +1,70 @@
+{
+  "task_id": "TG1.4",
+  "plan_revision": "tg1",
+  "objective": "Build the JVM REPLAY, SCORER, REPORT and GATE for tag recordings (TagRecording, TG1.2) against the tag corpus (TG1.1) through the deterministic tag policy (TG1.3), plus a small deterministic DURATION resolver. Background: subject+action tagging redesign. The AI extracts words (ExtractionCandidate: operation, subject, action, activityState, temporalExpression, durationExpression); TagDecisionPolicy.decide(extraction, TagCatalog) returns AUTO_SAVE / CONFIRM / NEEDS_REVIEW with resolved tags. Two real recordings now exist in core-testing/src/test/resources/semantic-corpus/recordings/: tag-device-latest.json (Pixel 10 Pro, Gemini Nano) and tag-standin-latest.json (gemma3n stand-in). Today they are only structurally checked (TagRecordingFilesTest). This task scores them. A later task (TG1.4b) will change the resolver/policy and use this scorer to measure the change, so the scorer must call the real production policy, never a copy.\n\nDECISIONS ALREADY MADE (follow them):\n(1) core-domain: new `DurationResolver` (package ...core.domain.temporal, pure, KDoc'd, style of TemporalResolver.kt): resolve(text: String?): Int? minutes, or null when absent/unreadable. Handles at least: 'for half an hour'/'half an hour' -> 30, 'for about 30 minutes'/'about 30 minutes'/'30 minutes'/'40 minutes'/'Spent 40 minutes' -> number, 'an hour'/'one hour'/'1 hour'/'for an hour' -> 60, 'an hour and a half'/'1.5 hours'/'90 minutes' -> 90, 'two hours'/'2 hours'/'2 hrs' -> 120, '45 min', 'a quarter of an hour' -> 15; number words one..twelve, twenty, thirty, forty, forty-five, fifty, sixty; leading 'for', 'about', 'around', 'roughly', 'spent', 'like' ignored. Ranges/other text -> null. Rounds to whole minutes; > 24h -> null. Unit tests for each form. No other core-domain change.\n(2) core-testing main (package ...core.testing.corpus), modelled on SemanticReplay/SemanticReport/SemanticGate (read them) but separate files: TagReplay.kt, TagReport.kt, TagGate.kt.\n   - TagReplay(corpus: TagCorpus).replay(recording: TagRecording): TagReplayResult. Throws a stale-recording exception (reuse StaleRecordingException) when tagCorpusSha256 != corpus.sha256 or entries don't cover exactly the corpus case ids. For each case: if failureKind -> class FAILED. Else decision = TagDecisionPolicy.decide(answer.toCandidate(), TagCorpusCatalogs.toTagCatalog(fixture)); temporal = TemporalResolver resolution of answer.temporalExpression at the case's capture instant/zone (mirror how SemanticReplay resolves time); durationMinutes = DurationResolver.resolve(answer.durationExpression).\n   - Classification (enum TagReplayClass): CORRECT, SAFE_MISS, NAME_MISMATCH, UNSAFE, FAILED. With outcome = TagOutcome.valueOf(decision.outcome.name):\n     * If decision is AUTO_SAVE, collect TagUnsafeCheck reasons: SILENT_WHEN_NOT_ACCEPTABLE (AUTO_SAVE not in acceptableOutcomes); per side (SUBJECT/ACTION): MUST_NOT_MATCH (Exact id in mustNotMatch), WRONG_EXISTING_TAG (Exact id not in acceptableExistingIds, except an inferred subject when expected.subject.mayBeEmpty and the id is acceptable-or-the-expected existingId), DUPLICATE_TAG (New where expected existingId != null); WRONG_TIME (expected has no time but a time resolved to a date different from the capture's local date with precision coarser than... -- simpler rule: if expected.temporalExpression == null and answer.temporalExpression resolves to a date other than the capture's local date -> WRONG_TIME; if expected has a time and the resolved local date != expectedLocalDate -> WRONG_TIME); WRONG_DURATION (durationMinutes != expected.durationMinutes, where both null counts as equal). Any reason -> UNSAFE.\n     * Else if AUTO_SAVE and a New name is not acceptable (acceptsNewName false, existingId null) -> NAME_MISMATCH (silent save under an oddly named new tag; reported separately, not gated).\n     * Else if outcome in acceptableOutcomes -> CORRECT.\n     * Else -> SAFE_MISS (asked or held for review when a silent save was expected), with the decision's reason codes.\n     Also record per entry: outcome, decision reason codes, resolved subject/action tag ids or 'new', subjectInferred, timeOk/durationOk booleans, latencyMs.\n   - TagReplayResult: entries + counts per class, per group (PORTED/REAL_ENTRY/SIBLING/EMPTY_START) and per TagUnsafeCheck; provenance header copied from the recording.\n   - TagReport.markdown(result, corpus) and consoleSummary(result): like SemanticReport: banner for STAND_IN ('not official'), totals table, per-group table, per-unsafe-check counts, then one row per non-CORRECT case: case id, group, class, outcome, reason/check codes, the committed corpus rawText (allowed: owner-approved/synthetic), expected tags (ids or new names from the corpus). NEVER print model output (extracted words, new tag names produced from the model's words) in the report or console -- AGENTS.md #11 and docs/SEMANTIC_CORPUS.md section 10. Console: ids, counts and codes only.\n   - TagGate: baseline file `tag-baseline.json` = JSON object { \"mustStayCorrect\": [case ids], \"maxUnsafe\": Int, \"maxUnsafeRealEntry\": Int } with strict parsing (unknown keys rejected). failures(result, baseline, corpus): list of messages (ids and counts only) for: a mustStayCorrect id not CORRECT; total UNSAFE > maxUnsafe; REAL_ENTRY UNSAFE > maxUnsafeRealEntry; an unknown id in the baseline.\n(3) core-testing test: TagRegressionGateTest mirroring SemanticRegressionGateTest: replays tag-device-latest.json -> build/reports/semantic-corpus/tag-device.md and gates on tag-baseline.json (Assume-skip if the recording or baseline is missing; malformed/stale always fails); replays tag-standin-latest.json -> tag-standin.md, never gated. Do NOT create tag-baseline.json (the orchestrator creates it after reviewing the numbers). Unit tests: TagReplayScorerTest using small hand-built TagRecordings over real corpus case ids (one per class and per unsafe check, inferred subject handling, stale detection, time/duration checks), TagGateTest (parse + each failure), TagReportTest (no model text leaks: build a recording whose answers contain a sentinel string and assert the markdown and console never contain it).\n(4) Scripts: in scripts/semantic/run-device-corpus.sh --tags, run-standin-corpus.sh --tags and import-tag-recording.sh, after the structural check also run TagRegressionGateTest and print where tag-device.md / tag-standin.md is (update their closing messages that say scoring is not built). Keep exit-code meanings; gate failure -> the existing 'saved but check failed' code. bash -n all three.\n(5) Docs: docs/SEMANTIC_CORPUS.md section 12: replace 'scoring not built yet' wording with the classes, unsafe checks, report names, gate file shape, and that tag-baseline.json is created from a reviewed device run. recordings/README.md: add tag-baseline.json row and the report names.\n\nRULES: call the real TagDecisionPolicy/TemporalResolver/DurationResolver, never copies. Do not change the tagging, extraction, interpretation, naming or validation packages, corpus files, recordings, the v3 replay/gate, or existing tests. No logging of corpus or model text. Report the actual counts you get for both recordings in your completion report (counts and case ids only).",
+  "non_goals": [
+    "No change to resolver/policy behaviour (TG1.4b).",
+    "No new recordings; no device or Ollama use.",
+    "No creation of tag-baseline.json.",
+    "No app wiring or persistence."
+  ],
+  "dependencies": ["TG1.2", "TG1.3", "TG1.4a"],
+  "read_paths": [
+    "core-domain/**",
+    "core-testing/**",
+    "scripts/semantic/**",
+    "docs/SEMANTIC_CORPUS.md",
+    "docs/DECISIONS.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/DurationResolver.kt",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/DurationResolverTest.kt",
+    "core-testing/src/main/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/TagReplay.kt",
+    "core-testing/src/main/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/TagReport.kt",
+    "core-testing/src/main/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/TagGate.kt",
+    "core-testing/src/test/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/TagRegressionGateTest.kt",
+    "core-testing/src/test/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/TagReplayScorerTest.kt",
+    "core-testing/src/test/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/TagGateTest.kt",
+    "core-testing/src/test/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/TagReportTest.kt",
+    "core-testing/src/test/resources/semantic-corpus/recordings/README.md",
+    "scripts/semantic/run-device-corpus.sh",
+    "scripts/semantic/run-standin-corpus.sh",
+    "scripts/semantic/import-tag-recording.sh",
+    "docs/SEMANTIC_CORPUS.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/extraction/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/interpretation/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/naming/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/validation/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/TemporalResolver.kt",
+    "core-testing/src/main/resources/**",
+    "core-testing/src/test/resources/semantic-corpus/recordings/*.json",
+    "core-ai/**",
+    "core-data/**",
+    "app-phone/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "DurationResolver resolves the listed duration forms to minutes and returns null otherwise, with unit tests.",
+    "TagReplay classifies every case of a recording into CORRECT / SAFE_MISS / NAME_MISMATCH / UNSAFE / FAILED using the real TagDecisionPolicy, TemporalResolver and DurationResolver, with the unsafe checks as specified, and rejects stale recordings.",
+    "TagReport writes markdown and a console summary with totals, per-group and per-check counts and per-case rows, and never includes model output (proved by a sentinel test).",
+    "TagGate parses tag-baseline.json strictly and reports mustStayCorrect regressions and unsafe-count limits; TagRegressionGateTest replays both recordings, writes tag-device.md and tag-standin.md, skips the gate while no baseline exists.",
+    "The three scripts run the new gate test after their structural check and point to the reports; bash -n passes; docs updated.",
+    "All core-domain and core-testing tests pass; no forbidden path changed; the completion report lists the actual per-class counts and UNSAFE case ids for both recordings."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test :core-testing:test",
+    "bash -n scripts/semantic/run-device-corpus.sh && bash -n scripts/semantic/run-standin-corpus.sh && bash -n scripts/semantic/import-tag-recording.sh",
+    "git diff --stat -- core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/TemporalResolver.kt core-testing/src/main/resources core-testing/src/test/resources/semantic-corpus/recordings"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

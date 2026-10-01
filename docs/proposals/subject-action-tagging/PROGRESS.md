@@ -14,10 +14,21 @@ Registered in `.sdlc/state.json` as TG1.
 | TG1.2 | Extraction interpreter (prompt v4) + recorders | done | Beside v3 (app still on v3); verifier pass; never yet run against a model |
 | TG1.3 | Tag resolver + decision policy in core-domain | done | Verifier pass on attempt 2; oracle 49/49, no gaps |
 | TG1.4a | On-phone debug-only runner, APK via owner's Google Drive | done | APK in G:/My Drive/ActivityLogger; awaiting owner's run |
-| TG1.4 | Replay, score, report; Pixel 10 Pro recording | todo | needs owner + phone for a short session; STOP after this |
+| TG1.4 | Replay, score, report, gate; Pixel 10 Pro recording | done | Device recording via in-app runner; tag-baseline.json set after TG1.4b |
+| TG1.4b | Resolver/policy fixes from the device findings | todo | verifier required; STOP after this with the Stage 1 report |
 | TG1.5+ | Stages 2-4 | todo | detail written after the Stage 1 report |
 
 ## Session log
+
+### 2026-10-01 — TG1.4 done (scorer, report, gate, DurationResolver)
+`TagReplay`/`TagReport`/`TagGate` + `TagRegressionGateTest` (reports `tag-device.md`,
+`tag-standin.md`; gate skips until `tag-baseline.json` exists). `DurationResolver` in
+core-domain temporal. Device (Pixel 10 Pro, prompt v4, TG1.3 policy): CORRECT 49, SAFE_MISS 5,
+NAME_MISMATCH 4, UNSAFE 14, FAILED 0; REAL_ENTRY unsafe 1 (real-mowed-lawn-40-minutes
+WRONG_TIME, model invented "yesterday"); also p-time-mowed-about-an-hour-ago WRONG_DURATION.
+Stand-in: 39/7/8/17/1. Scorer is stricter than the oracle on inferred subjects (must be an
+acceptable id) -- kept, safer. Stale KDoc in TagRecordingFilesTest (says no scoring) -> fix
+in TG1.4b. Next: TG1.4b.
 
 ### 2026-10-01 — first DEVICE tag recording (Pixel 10 Pro, in-app runner)
 Owner ran the debug "AI test set" screen and shared the file via Drive; imported with

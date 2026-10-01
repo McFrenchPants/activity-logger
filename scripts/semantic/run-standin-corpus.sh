@@ -14,8 +14,9 @@
 # With --tags as the first argument it records the TAG corpus (subject + action, 72 sentences)
 # through the extraction prompt instead: it runs ONLY *StandInTagCorpusRecorderTest with
 # -PtagStandIn=true, which overwrites recordings/tag-standin-latest.json, then runs the structural
-# check TagRecordingFilesTest (the tag corpus has no gate or report yet). Without --tags nothing
-# changes.
+# check TagRecordingFilesTest and the tag scorer TagRegressionGateTest, which writes
+# core-testing/build/reports/semantic-corpus/tag-standin.md (stand-in scores are never gated).
+# Without --tags nothing changes.
 #
 # Model override:  MODEL=gemma3n:e2b scripts/semantic/run-standin-corpus.sh [--tags]
 # Works in Git Bash on Windows and on macOS/Linux. Needs curl.
@@ -38,10 +39,11 @@ DEST_FILE="core-testing/src/test/resources/semantic-corpus/recordings/standin-la
 REPORT_FILE="core-testing/build/reports/semantic-corpus/standin.md"
 if [ "$TAG_MODE" -eq 1 ]; then
     RECORDER_TEST="*StandInTagCorpusRecorderTest"
-    # No tag gate or report exists yet: only the structural check of the recording files runs.
+    # Structural check of the recording files first, then the tag scorer (never gated for a stand-in).
     GATE_CLASS="com.mcfrenchpants.activityledger.core.testing.corpus.TagRecordingFilesTest"
+    TAG_GATE_CLASS="com.mcfrenchpants.activityledger.core.testing.corpus.TagRegressionGateTest"
     DEST_FILE="core-testing/src/test/resources/semantic-corpus/recordings/tag-standin-latest.json"
-    REPORT_FILE=""
+    REPORT_FILE="core-testing/build/reports/semantic-corpus/tag-standin.md"
 fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -53,7 +55,7 @@ die() { printf 'ERROR: %s\n' "$*" >&2; exit "${2:-1}"; }
 if [ "$TAG_MODE" -eq 1 ]; then
 say "== Tag corpus (subject + action): STAND-IN recording (NOT official) =="
 say "This will run every tag corpus sentence (72) through the local model, one request each,"
-say "then check the recording's structure (there is no score or gate for the tag corpus yet)."
+say "then check the recording's structure and score it (report tag-standin.md; never gated)."
 else
 say "== Semantic corpus: STAND-IN recording (NOT official) =="
 fi
@@ -95,8 +97,13 @@ if [ "$TAG_MODE" -eq 1 ]; then
         || die "The stand-in tag recording does not match the tag corpus; see core-testing/build/reports/tests/test/index.html."
 
     say ""
+    say "Scoring the stand-in tag recording..."
+    ./gradlew :core-testing:test --tests "$TAG_GATE_CLASS" \
+        || die "The tag replay could not read the stand-in tag recording; see ${REPORT_FILE}."
+
+    say ""
     say "Stand-in tag recording: ${DEST_FILE}"
-    say "Scoring the tag corpus is not built yet, so no report was produced."
+    say "Stand-in tag report:    ${REPORT_FILE}"
     say "Reminder: these are STAND-IN results from ${MODEL}, not Gemini Nano on the phone. They are"
     say "useful for comparing prompt changes, but they are NOT the official measurement."
     exit 0

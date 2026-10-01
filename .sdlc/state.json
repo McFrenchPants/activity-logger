@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-10-01T19:14:07.844Z",
+  "updated_at": "2026-10-01T22:30:49.522Z",
   "work_items": [
     {
       "id": "SS1",
@@ -1131,21 +1131,22 @@
         },
         {
           "id": "TG1.4",
-          "title": "Replay, score, report; Pixel 10 Pro recording",
-          "status": "todo",
-          "lifecycle_state": "approved",
+          "title": "Tag replay, scorer, report, gate + DurationResolver (device recording via in-app runner)",
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [
             "TG1.2",
-            "TG1.3"
+            "TG1.3",
+            "TG1.4a"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/TG1.4.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Scorer/report/gate + DurationResolver. Device: C49 SM5 NM4 U14 F0 (real entries U1 = WRONG_TIME). Stand-in: C39 SM7 NM8 U17 F1. tag-baseline.json deferred to TG1.4b. Orchestrator spot-check, no verifier (test tooling; DurationResolver not yet used by product code)."
         }
       ]
     }
