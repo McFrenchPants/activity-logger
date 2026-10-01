@@ -10,14 +10,30 @@
 #      core-testing/src/test/resources/semantic-corpus/recordings/device-latest.json,
 #   4. runs the JVM regression gate (SemanticRegressionGateTest) and says where the report is.
 #
+# With --tags as the first argument it records the TAG corpus (subject + action, 72 sentences)
+# through the extraction prompt instead: it runs TagCorpusRecorderTest with tagCorpus=true, pulls
+# .../files/semantic-corpus/tag-device-recording.json, does the same checks before overwriting,
+# writes recordings/tag-device-latest.json, then runs ONLY the structural check
+# TagRecordingFilesTest (the tag corpus has no gate or report yet). Without --tags nothing
+# changes.
+#
 # Never downloads the on-device model (if it is not ready the recorder skips and this script
 # says so). Never uninstalls the app or clears its data. The only file it overwrites in the
-# repository is device-latest.json. Works in Git Bash on Windows and on macOS/Linux.
+# repository is device-latest.json (tag-device-latest.json with --tags). Works in Git Bash on
+# Windows and on macOS/Linux.
 #
 # Exit codes: 0 recorded and gate passed; 1 setup/run problem (nothing overwritten);
 #             2 model not ready, recorder skipped (nothing overwritten);
-#             3 recording saved but the regression gate FAILED.
+#             3 recording saved but the regression gate FAILED
+#               (with --tags: saved but its structural check FAILED).
 set -euo pipefail
+
+# Optional first argument: --tags records the tag corpus instead (see the header).
+TAG_MODE=0
+if [ "${1:-}" = "--tags" ]; then
+    TAG_MODE=1
+    shift
+fi
 
 PACKAGE="com.mcfrenchpants.activityledger"
 RECORDER_CLASS="com.mcfrenchpants.activityledger.semantic.SemanticCorpusRecorderTest"
@@ -29,6 +45,20 @@ REPORT_FILE="core-testing/build/reports/semantic-corpus/device.md"
 WORK_DIR="app-phone/build/semantic-corpus-run"
 PULLED_FILE="${WORK_DIR}/device-recording.pulled.json"
 RESULTS_DIR="app-phone/build/outputs/androidTest-results"
+OPT_IN_ARG="semanticCorpus"
+LOG_TAG="SemanticCorpusRecorder"
+if [ "$TAG_MODE" -eq 1 ]; then
+    RECORDER_CLASS="com.mcfrenchpants.activityledger.semantic.TagCorpusRecorderTest"
+    # No tag gate or report exists yet: only the structural check of the recording files runs.
+    GATE_CLASS="com.mcfrenchpants.activityledger.core.testing.corpus.TagRecordingFilesTest"
+    # The recorder writes to context.getExternalFilesDir(null)/semantic-corpus/tag-device-recording.json.
+    DEVICE_FILE="/sdcard/Android/data/${PACKAGE}/files/semantic-corpus/tag-device-recording.json"
+    DEST_FILE="core-testing/src/test/resources/semantic-corpus/recordings/tag-device-latest.json"
+    REPORT_FILE=""
+    PULLED_FILE="${WORK_DIR}/tag-device-recording.pulled.json"
+    OPT_IN_ARG="tagCorpus"
+    LOG_TAG="TagCorpusRecorder"
+fi
 
 # Run from the repository root; every local path below is relative to it (relative paths also
 # avoid Git Bash rewriting absolute paths handed to the Windows adb.exe).
@@ -38,6 +68,16 @@ cd "$REPO_ROOT"
 say() { printf '%s\n' "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit "${2:-1}"; }
 
+if [ "$TAG_MODE" -eq 1 ]; then
+say "== Tag corpus (subject + action): on-device recording =="
+say "This will:"
+say "  - build the app and its test package and install them on ONE connected phone"
+say "    (the app is NOT uninstalled afterwards and its data is left alone),"
+say "  - run every tag corpus sentence (72) through the phone's on-device model,"
+say "    at roughly 6-7 seconds each: about 8 minutes, plus a few minutes of build/install,"
+say "  - bring the recording back into the repository and check its structure"
+say "    (there is no score or gate for the tag corpus yet)."
+else
 say "== Semantic corpus: on-device recording =="
 say "This will:"
 say "  - build the app and its test package and install them on ONE connected phone"
@@ -45,6 +85,7 @@ say "    (the app is NOT uninstalled afterwards and its data is left alone),"
 say "  - run every corpus sentence (about 45-50) through the phone's on-device model,"
 say "    at roughly 6-7 seconds each: about 5-6 minutes, plus a few minutes of build/install,"
 say "  - bring the recording back into the repository and score it."
+fi
 say "Keep the phone unlocked with the screen on for the whole run: the model only answers"
 say "while the app is in the foreground. Nothing is downloaded to the phone."
 say ""
@@ -114,7 +155,7 @@ say "== Building, installing and recording (this is the long part) =="
 set +e
 ./gradlew :app-phone:connectedDebugAndroidTest \
     -Pandroid.testInstrumentationRunnerArguments.class="$RECORDER_CLASS" \
-    -Pandroid.testInstrumentationRunnerArguments.semanticCorpus=true \
+    -Pandroid.testInstrumentationRunnerArguments."$OPT_IN_ARG"=true \
     -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true
 RUN_STATUS=$?
 set -e
@@ -151,7 +192,7 @@ if [ "$AFTER_STAMP" = "none" ] || [ "$AFTER_STAMP" = "$BEFORE_STAMP" ]; then
 fi
 
 # Numbers only: the recorder never logs sentence text or model output.
-SUMMARY="$(adb_dev logcat -d -s SemanticCorpusRecorder:I 2>/dev/null | grep 'cases=' | tail -n 1 || true)"
+SUMMARY="$(adb_dev logcat -d -s "$LOG_TAG":I 2>/dev/null | grep 'cases=' | tail -n 1 || true)"
 [ -n "$SUMMARY" ] && say "Recorder summary: ${SUMMARY#*: }"
 
 # --- pull and check before overwriting anything ------------------------------------------------
@@ -210,6 +251,26 @@ say "Recording checked with $VALIDATED: $ENTRY_COUNT entries."
 
 cp "$PULLED_FILE" "$DEST_FILE"
 say "Saved to $DEST_FILE"
+
+# --- tag corpus: structural check only ------------------------------------------------------
+if [ "$TAG_MODE" -eq 1 ]; then
+    say ""
+    say "== Checking the tag recording (structure only; there is no tag score or gate yet) =="
+    set +e
+    ./gradlew :core-testing:test --tests "$GATE_CLASS"
+    CHECK_STATUS=$?
+    set -e
+    say ""
+    if [ "$CHECK_STATUS" -ne 0 ]; then
+        say "CHECK FAILED (Gradle exit $CHECK_STATUS): the tag recording does not match the tag corpus."
+        say "The recording itself was kept at $DEST_FILE."
+        say "Details: core-testing/build/reports/tests/test/index.html"
+        exit 3
+    fi
+    say "Done. Tag recording from ${MODEL_NAME:-the phone} saved and structurally checked."
+    say "Scoring the tag corpus is not built yet, so no report was produced."
+    exit 0
+fi
 
 # --- score it -------------------------------------------------------------------------------
 say ""

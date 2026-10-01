@@ -99,3 +99,30 @@ tasks.withType<Test>().configureEach {
         testLogging.showStandardStreams = true
     }
 }
+
+// ---- Tag corpus STAND-IN recorder (opt-in, host-only) ----------------------------------------
+//
+// StandInTagCorpusRecorderTest sends every tag corpus case through the EXTRACTION prompt (v4,
+// ADR-038) to the same local Ollama model and writes a STAND_IN tag recording. Opt-in exactly like
+// the block above: without -PtagStandIn=true it Assume-skips and nothing contacts any server. It
+// reuses the -PsemanticStandIn.model / -PsemanticStandIn.baseUrl overrides (loopback only). Run it
+// via scripts/semantic/run-standin-corpus.sh --tags. The semanticStandIn block above is unchanged.
+val tagStandInEnabled: Boolean =
+    providers.gradleProperty("tagStandIn").orNull?.trim()?.equals("true", ignoreCase = true) == true
+val tagStandInOutput: String = rootProject.layout.projectDirectory
+    .file("core-testing/src/test/resources/semantic-corpus/recordings/tag-standin-latest.json")
+    .asFile.absolutePath
+
+tasks.withType<Test>().configureEach {
+    if (tagStandInEnabled) {
+        systemProperty("tagStandIn", "true")
+        systemProperty("tagStandIn.output", tagStandInOutput)
+        semanticStandInModel?.let { systemProperty("semanticStandIn.model", it) }
+        semanticStandInBaseUrl?.let { systemProperty("semanticStandIn.baseUrl", it) }
+        // A recording run talks to a live local model: never "up to date", never from cache.
+        outputs.upToDateWhen { false }
+        outputs.cacheIf { false }
+        // The recorder prints exactly one summary line (counts, timings, path); show it.
+        testLogging.showStandardStreams = true
+    }
+}

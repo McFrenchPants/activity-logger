@@ -592,3 +592,18 @@ Owner decision after the first real watch captures ("I just walked the dogs for 
 - Known leak: phrases outside the word list that mean another day ("the 5th", "over the weekend", "christmas") fall to today. Widen the list if this shows up in practice.
 - Prompt version 3: the model is told durations are not time wording, with a worked example for "just".
 
+## ADR-038 — Interpretation becomes extraction-only (prompt v4), built beside v3
+
+**Status:** Accepted (developer decision, 2026-10-01; implements the subject + action tagging redesign, backlog 13)
+
+The owner's first real watch entries showed the v3 design failing in practice: 9 of 15 real entries were filed under the wrong activity, all at HIGH model confidence. With a near-empty activity list the model over-matches -- it picks the closest offered activity rather than proposing a new one -- and its self-reported confidence does not track correctness, so it cannot be used to catch these.
+
+**Decision.**
+
+- The AI step becomes **extraction only**: the model pulls out, in the user's own words, the operation, the SUBJECT (what it was done to), the ACTION (what was done), the state, the time wording and the duration wording. It is shown **no** activity or tag list. Matching those words against existing tags becomes deterministic domain logic (exact, alias, close match) followed by a decision policy, never the model.
+- It is a separate prompt with separate version constants: `EXTRACTION_PROMPT_VERSION` = "4", `EXTRACTOR_VERSION` = "gemini-nano-extract-1", `EXTRACTION_SCHEMA_VERSION` = 1, its own drift test and its own response schema (`ExtractionResponse`).
+- The model's confidence field is **dropped** from the extraction schema: it is no longer used for any decision, and every extra field costs on-device latency.
+- It is built **beside** v3: `GeminiNanoActivityInterpreter`, prompt v3, its schema, constants, drift pins and recordings are unchanged, and the app keeps using v3 until a later stage swaps the capture pipeline over. Generation settings, the readiness gate (never downloads), one call with no retry, the failure mapping and the no-logging rule are shared with v3.
+- Extraction answers are measured against the tag corpus through a separate recording format (`TagRecording`), with device and stand-in recorders mirroring the v3 ones.
+
+**Consequences.** Two AI paths coexist in core-ai until the switch-over; both must keep passing their own drift and schema tests. The worked examples in the v4 prompt deliberately avoid every corpus sentence and tag, so recordings measure the prompt rather than its examples. Scoring the extraction against the tag corpus needs the deterministic resolver and a replay/gate that do not exist yet; until then a tag recording is checked for structure only. Confidence-based policy (auto-save at HIGH) can no longer come from the model and must come from how well the words resolve.

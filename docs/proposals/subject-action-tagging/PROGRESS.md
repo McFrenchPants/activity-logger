@@ -11,12 +11,29 @@ Registered in `.sdlc/state.json` as TG1.
 | Task ID | Description | Status | Notes |
 |---|---|---|---|
 | TG1.1 | New corpus cases from real watch entries | done | Separate `tag-corpus.json` (72 cases); old corpus/recordings untouched |
-| TG1.2 | Extraction interpreter (prompt v4) + recorders | todo | after TG1.1 |
+| TG1.2 | Extraction interpreter (prompt v4) + recorders | done | Beside v3 (app still on v3); verifier pass; never yet run against a model |
 | TG1.3 | Tag resolver + decision policy in core-domain | todo | verifier required |
 | TG1.4 | Replay, score, report; Pixel 10 Pro recording | todo | needs owner + phone for a short session; STOP after this |
 | TG1.5+ | Stages 2-4 | todo | detail written after the Stage 1 report |
 
 ## Session log
+
+### 2026-10-01 — TG1.2 done
+`GeminiNanoActivityExtractor` (core-ai) + `ExtractionTypes.kt` (core-domain `extraction`
+package: `ExtractionInput`, untrusted `ExtractionCandidate`, `ExtractionResult`,
+`ActivityExtractor`). Prompt v4 (`EXTRACTION_PROMPT_VERSION`), schema `ExtractionResponse`
+(operation, subject, action, activityState, temporalExpression, durationExpression; no
+confidence), shape-only decoder, provenance `gemini-nano-extract-1`/`4`/`1`. v3 path untouched
+(only `isWorthRetrying` moved to `GenAiRetry.kt`). `TagRecording` format (`tagCorpusSha256`),
+`TagCorpusExtractionInput`, `TagRecordingFilesTest` (structural, skips without files). Recorders:
+device `TagCorpusRecorderTest` (`tagCorpus=true`), stand-in `StandInTagCorpusRecorderTest`
+(`-PtagStandIn=true`); both scripts take `--tags`. ADR-038. Verifier: pass, all 9 criteria.
+Implementer noted the packet's suggested prompt examples (water heater, smoke detector,
+"Just finished mowing.") are corpus content, so the prompt uses bikes/porch light/coffee
+maker/deck/piano/silverware/boiler instead; "just" is copied as "just" (not "just now").
+Neither recorder has been run (no Ollama server, no AI phone): v4 accuracy is unmeasured.
+Known nit: `GENERATION_MAX_OUTPUT_TOKENS` KDoc still describes v3's seven fields. Next: TG1.3
+(resolver + decision policy, verifier required).
 
 ### 2026-10-01 — TG1.1 done
 Built a separate tag corpus (`core-testing/.../semantic-corpus/tag-corpus.json`) rather than

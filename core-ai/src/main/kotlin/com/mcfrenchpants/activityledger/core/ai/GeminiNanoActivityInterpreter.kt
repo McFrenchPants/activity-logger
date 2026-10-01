@@ -248,16 +248,7 @@ class GeminiNanoActivityInterpreter(
     }
 }
 
-/**
- * True when ML Kit itself indicated that waiting and asking again could work: the request was
- * refused as [GenAiException.ErrorCode.BUSY] (whatever its retry delay), or it carries a
- * positive retry delay.
- *
- * Only the error code and the duration are read -- never the message or the cause.
- */
-private fun GenAiException.isWorthRetrying(): Boolean =
-    errorCode == GenAiException.ErrorCode.BUSY ||
-        (!retryDelay.isZero && !retryDelay.isNegative)
+// GenAiException.isWorthRetrying lives in GenAiRetry.kt, shared with GeminiNanoActivityExtractor.
 
 /**
  * Every failure this interpreter returns.

@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.emptyFlow
  * outcome instead, records the request it was given so the generation settings can be asserted,
  * and counts every call so "exactly once" and "never downloaded" are proved by a counter rather
  * than by reading the code.
+ *
+ * Also serves the extractor's tests: script it with [WELL_FORMED_EXTRACTION] (or any
+ * [ExtractionResponse]) in [GenerationOutcome.Responses]. The default outcome is unchanged.
  */
 internal class FakeInterpretationSession(
     var status: Int = FeatureStatus.AVAILABLE,
@@ -67,8 +70,14 @@ internal class FakeInterpretationSession(
 
 /** What a scripted `generateContent` call does. */
 internal sealed interface GenerationOutcome {
-    /** Return these responses as the candidate list, in order. An empty list is legitimate. */
-    data class Responses(val responses: List<InterpretationResponse>) : GenerationOutcome
+    /**
+     * Return these responses as the candidate list, in order. An empty list is legitimate.
+     *
+     * Element type is `Any` so the same fake serves both the interpreter (an
+     * [InterpretationResponse]) and the extractor (an [ExtractionResponse]); a test supplies the
+     * type its subject asked for.
+     */
+    data class Responses(val responses: List<Any>) : GenerationOutcome
 
     /** Throw this instead of answering. */
     data class Throws(val throwable: Throwable) : GenerationOutcome
@@ -85,6 +94,16 @@ internal val WELL_FORMED_RESPONSE = InterpretationResponse(
     confidenceBand = "HIGH",
 )
 
+/** An extraction response that decodes cleanly, for the extractor's tests. */
+internal val WELL_FORMED_EXTRACTION = ExtractionResponse(
+    operation = "LOG_ACTIVITY",
+    subject = "coffee maker",
+    action = "descale",
+    activityState = "COMPLETED",
+    temporalExpression = "yesterday",
+    durationExpression = null,
+)
+
 /**
  * Builds ML Kit's typed response types reflectively.
  *
@@ -97,15 +116,15 @@ internal val WELL_FORMED_RESPONSE = InterpretationResponse(
  */
 @Suppress("UNCHECKED_CAST")
 internal fun typedResponse(
-    responses: List<InterpretationResponse>,
-): GenerateTypedContentResponse<InterpretationResponse> {
+    responses: List<Any>,
+): GenerateTypedContentResponse<Any> {
     val candidates = responses.map { response ->
         val constructor = TypedCandidate::class.java.declaredConstructors.single()
         constructor.isAccessible = true
-        constructor.newInstance(response, null, null) as TypedCandidate<InterpretationResponse>
+        constructor.newInstance(response, null, null) as TypedCandidate<Any>
     }
     val constructor = GenerateTypedContentResponse::class.java.declaredConstructors.single()
     constructor.isAccessible = true
     return constructor.newInstance(candidates, null)
-        as GenerateTypedContentResponse<InterpretationResponse>
+        as GenerateTypedContentResponse<Any>
 }

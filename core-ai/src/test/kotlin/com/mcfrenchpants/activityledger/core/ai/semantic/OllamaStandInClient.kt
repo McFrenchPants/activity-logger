@@ -1,5 +1,9 @@
 package com.mcfrenchpants.activityledger.core.ai.semantic
 
+import com.mcfrenchpants.activityledger.core.ai.EXTRACTION_SYSTEM_INSTRUCTION
+import com.mcfrenchpants.activityledger.core.ai.ExtractionDecodeResult
+import com.mcfrenchpants.activityledger.core.ai.ExtractionResponse
+import com.mcfrenchpants.activityledger.core.ai.ExtractionResponseDecoder
 import com.mcfrenchpants.activityledger.core.ai.GENERATION_MAX_OUTPUT_TOKENS
 import com.mcfrenchpants.activityledger.core.ai.GENERATION_SEED
 import com.mcfrenchpants.activityledger.core.ai.GENERATION_TEMPERATURE
@@ -9,7 +13,10 @@ import com.mcfrenchpants.activityledger.core.ai.INTERPRETATION_SYSTEM_INSTRUCTIO
 import com.mcfrenchpants.activityledger.core.ai.InterpretationDecodeResult
 import com.mcfrenchpants.activityledger.core.ai.InterpretationResponse
 import com.mcfrenchpants.activityledger.core.ai.InterpretationResponseDecoder
+import com.mcfrenchpants.activityledger.core.ai.buildExtractionPrompt
 import com.mcfrenchpants.activityledger.core.ai.buildInterpretationPrompt
+import com.mcfrenchpants.activityledger.core.domain.extraction.ExtractionInput
+import com.mcfrenchpants.activityledger.core.domain.extraction.ExtractionResult
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpretationInput
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpretationResult
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterFailureKind
@@ -49,6 +56,11 @@ internal data class OllamaModelInfo(val name: String, val digest: String?)
  * and seed -- and constrains the answer with [StandInSchema.jsonSchema]. The answer then goes
  * through the device's own [InterpretationResponseDecoder], mapped to results the way
  * `GeminiNanoActivityInterpreter` maps them. One call per case, never retried.
+ *
+ * [extract] is the prompt-v4 twin (ADR-038): [EXTRACTION_SYSTEM_INSTRUCTION], [buildExtractionPrompt]
+ * (plus [StandInSchema.extraction]'s rendering when [INCLUDE_SCHEMA_IN_PROMPT]), the same
+ * generation options, constrained by [StandInSchema.extraction], decoded through the device's own
+ * [ExtractionResponseDecoder], and mapped to failures exactly as [interpret] maps them.
  *
  * Loopback only: a base URL whose host is not 127.0.0.1, ::1 or localhost is refused at
  * construction, no proxy is ever used and redirects are never followed, so corpus text cannot
@@ -119,20 +131,28 @@ internal class OllamaStandInClient(
     }
 
     /** The exact `/api/chat` request body for [input]. */
-    fun requestBody(input: InterpretationInput): JsonObject = buildJsonObject {
+    fun requestBody(input: InterpretationInput): JsonObject =
+        chatBody(INTERPRETATION_SYSTEM_INSTRUCTION, userMessage(input), StandInSchema.jsonSchema)
+
+    /** The exact `/api/chat` request body for extracting from [input] (prompt v4). */
+    fun extractionRequestBody(input: ExtractionInput): JsonObject =
+        chatBody(EXTRACTION_SYSTEM_INSTRUCTION, extractionUserMessage(input), StandInSchema.extraction.jsonSchema)
+
+    /** One chat request: system + user message, constrained by [format], device generation options. */
+    private fun chatBody(system: String, user: String, format: JsonObject): JsonObject = buildJsonObject {
         put("model", model)
         put("stream", false)
         putJsonArray("messages") {
             addJsonObject {
                 put("role", "system")
-                put("content", INTERPRETATION_SYSTEM_INSTRUCTION)
+                put("content", system)
             }
             addJsonObject {
                 put("role", "user")
-                put("content", userMessage(input))
+                put("content", user)
             }
         }
-        put("format", StandInSchema.jsonSchema)
+        put("format", format)
         putJsonObject("options") {
             put("temperature", GENERATION_TEMPERATURE)
             put("top_k", GENERATION_TOP_K)
@@ -149,39 +169,68 @@ internal class OllamaStandInClient(
      * - answer that is not a JSON object, or that the decoder rejects -> MALFORMED
      * - HTTP error status, I/O error, timeout, or a reply that is not an Ollama chat reply -> OTHER
      */
-    fun interpret(input: InterpretationInput): InterpretationResult {
+    fun interpret(input: InterpretationInput): InterpretationResult =
+        when (val reply = chat(requestBody(input))) {
+            is ChatReply.Failed -> failure(reply.kind)
+            is ChatReply.Answer -> when (val decoded = InterpretationResponseDecoder.decode(reply.json.toResponse())) {
+                is InterpretationDecodeResult.Decoded ->
+                    InterpretationResult.Success(decoded.candidate, structuredResultJson = null)
+                is InterpretationDecodeResult.Failed -> failure(InterpreterFailureKind.MALFORMED)
+            }
+        }
+
+    /**
+     * Extracts from one capture (prompt v4) with exactly one request. Never throws for a server or
+     * model problem; maps failures exactly as [interpret] does:
+     *
+     * - decodable answer -> [ExtractionResult.Success]
+     * - answer that is not a JSON object, or that [ExtractionResponseDecoder] rejects -> MALFORMED
+     * - HTTP error status, I/O error, timeout, or a reply that is not an Ollama chat reply -> OTHER
+     */
+    fun extract(input: ExtractionInput): ExtractionResult =
+        when (val reply = chat(extractionRequestBody(input))) {
+            is ChatReply.Failed -> ExtractionResult.Failure(reply.kind)
+            is ChatReply.Answer -> when (val decoded = ExtractionResponseDecoder.decode(reply.json.toExtractionResponse())) {
+                is ExtractionDecodeResult.Decoded -> ExtractionResult.Success(decoded.candidate)
+                is ExtractionDecodeResult.Failed -> ExtractionResult.Failure(InterpreterFailureKind.MALFORMED)
+            }
+        }
+
+    /** What one chat request produced: the model's JSON answer, or a failure kind. */
+    private sealed interface ChatReply {
+        data class Answer(val json: JsonObject) : ChatReply
+        data class Failed(val kind: InterpreterFailureKind) : ChatReply
+    }
+
+    /** Sends [body] once to `/api/chat`; never retried, never throws for a server or model problem. */
+    private fun chat(body: JsonObject): ChatReply {
         val request = HttpRequest.newBuilder(URI.create("$baseUrl/api/chat"))
             .timeout(requestTimeout)
             .header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(requestBody(input).toString(), Charsets.UTF_8))
+            .POST(HttpRequest.BodyPublishers.ofString(body.toString(), Charsets.UTF_8))
             .build()
 
         val response = try {
             http.send(request, HttpResponse.BodyHandlers.ofString(Charsets.UTF_8))
         } catch (e: IOException) {
             // Includes HttpTimeoutException and connection failures. Recorded once, not retried.
-            return failure(InterpreterFailureKind.OTHER)
+            return ChatReply.Failed(InterpreterFailureKind.OTHER)
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            return failure(InterpreterFailureKind.OTHER)
+            return ChatReply.Failed(InterpreterFailureKind.OTHER)
         }
-        if (response.statusCode() != 200) return failure(InterpreterFailureKind.OTHER)
+        if (response.statusCode() != 200) return ChatReply.Failed(InterpreterFailureKind.OTHER)
 
         // The envelope is Ollama's, not the model's: if it is not a chat reply, the server failed.
         val envelope = runCatching { Json.parseToJsonElement(response.body()) as? JsonObject }.getOrNull()
-            ?: return failure(InterpreterFailureKind.OTHER)
-        val message = envelope["message"] as? JsonObject ?: return failure(InterpreterFailureKind.OTHER)
+            ?: return ChatReply.Failed(InterpreterFailureKind.OTHER)
+        val message = envelope["message"] as? JsonObject ?: return ChatReply.Failed(InterpreterFailureKind.OTHER)
 
         // From here on it is the model's answer: anything unusable is MALFORMED, as on the device.
-        val content = message.string("content") ?: return failure(InterpreterFailureKind.MALFORMED)
+        val content = message.string("content") ?: return ChatReply.Failed(InterpreterFailureKind.MALFORMED)
         val answer = runCatching { Json.parseToJsonElement(content) as? JsonObject }.getOrNull()
-            ?: return failure(InterpreterFailureKind.MALFORMED)
-
-        return when (val decoded = InterpretationResponseDecoder.decode(answer.toResponse())) {
-            is InterpretationDecodeResult.Decoded ->
-                InterpretationResult.Success(decoded.candidate, structuredResultJson = null)
-            is InterpretationDecodeResult.Failed -> failure(InterpreterFailureKind.MALFORMED)
-        }
+            ?: return ChatReply.Failed(InterpreterFailureKind.MALFORMED)
+        return ChatReply.Answer(answer)
     }
 
     companion object {
@@ -200,6 +249,11 @@ internal class OllamaStandInClient(
         /** The user message: the device prompt, plus the schema text when the device adds it. */
         fun userMessage(input: InterpretationInput): String =
             buildInterpretationPrompt(input) + if (INCLUDE_SCHEMA_IN_PROMPT) StandInSchema.promptRendering else ""
+
+        /** The extraction user message: the v4 device prompt, plus its schema text when the device adds it. */
+        fun extractionUserMessage(input: ExtractionInput): String =
+            buildExtractionPrompt(input) +
+                if (INCLUDE_SCHEMA_IN_PROMPT) StandInSchema.extraction.promptRendering else ""
 
         /**
          * Returns [raw] without a trailing slash if it is an http(s) URL on a loopback host;
@@ -243,6 +297,16 @@ internal class OllamaStandInClient(
             activityState = string("activityState"),
             temporalExpression = string("temporalExpression"),
             confidenceBand = string("confidenceBand"),
+        )
+
+        /** Absent, null or non-string values become null; the extraction decoder judges the rest. */
+        private fun JsonObject.toExtractionResponse(): ExtractionResponse = ExtractionResponse(
+            operation = string("operation"),
+            subject = string("subject"),
+            action = string("action"),
+            activityState = string("activityState"),
+            temporalExpression = string("temporalExpression"),
+            durationExpression = string("durationExpression"),
         )
     }
 }
