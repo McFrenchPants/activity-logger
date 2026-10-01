@@ -1,0 +1,63 @@
+{
+  "task_id": "TG1.4a",
+  "plan_revision": "tg1",
+  "objective": "Add an ON-PHONE, DEBUG-BUILD-ONLY test runner so the owner can record the tag corpus through the real on-device model (Gemini Nano) without the phone being attached to the PC. Background: the owner's Pixel 10 Pro is their primary phone and is rarely at home; no emulator can run Gemini Nano. Today the device tag recorder (app-phone/src/androidTest/.../semantic/TagCorpusRecorderTest.kt, built in TG1.2) needs adb instrumentation. The owner approved: build a hidden test screen, put the debug APK in their Google Drive, they install it from Drive, run it, and share the result file back to Drive. This task builds the screen and an import script; the orchestrator builds and copies the APK.\n\nDECISIONS ALREADY MADE (follow them):\n(1) DEBUG ONLY. Everything lives in the `debug` source set (app-phone/src/debug/...): code, manifest additions, resources. The release build must not contain the screen, the corpus, or core-testing. In app-phone/build.gradle.kts add `debugImplementation(project(\":core-testing\"))` (with a comment why) and nothing that affects release. Prove it: `./gradlew :app-phone:assembleRelease` (or compileReleaseKotlin if signing blocks assemble) must still succeed and the release classes must not reference the runner (state how you checked).\n(2) ENTRY POINT: a second launcher entry, only in the debug manifest (app-phone/src/debug/AndroidManifest.xml, merged with main), activity `com.mcfrenchpants.activityledger.debugtools.TagCorpusRunnerActivity`, label \"AI test set\" (debug string resource), exported=true with MAIN/LAUNCHER, using the app's existing icon and theme. Do not touch src/main.\n(3) RUN LOGIC in a plain class `TagCorpusRun` (debug source set, package ...debugtools) that is unit-testable on the JVM: constructor takes an `ActivityExtractor` (core-domain interface), the `TagCorpus`, a monotonic nanos clock function and a suspend delay function (for tests). `suspend fun run(onProgress: (done: Int, total: Int) -> Unit): TagRecordingResult` iterates TagCorpus.load().cases in order via TagCorpusExtractionInput.forCase, calls extractor.extract once per case, with the SAME fast-refusal BUSY backoff as TagCorpusRecorderTest (a RETRYABLE/OTHER failure faster than 1000 ms is retried after 5s,10s,20s,30s,60s,60s; otherwise recorded as-is), records TagRecordingEntry.of(caseId, result, latencyMs), and returns a TagRecording with source DEVICE, modelLabel \"gemini-nano (AICore)\", deviceModel = a passed-in string (the activity passes Build.MODEL), provenance from the extractor, tagCorpusSha256 = corpus.sha256, recordedAt = passed-in clock Instant, notes \"in-app runner; busy retries: N\". Cancellation propagates (no partial recording is returned). Counts for the summary: answered, failed, busyRetries, total and median latency.\n(4) ACTIVITY (Compose, Material3, app theme): on open, checks OnDeviceModelCapability readiness and NEVER downloads (ADR-031); if not READY shows the state in plain words and disables Run. Run button starts the run in lifecycleScope with GeminiNanoActivityExtractor(capability) after warmUp() (untimed). While running: FLAG_KEEP_SCREEN_ON, a progress line \"23 of 72\", and a plain instruction \"Keep this screen open and the phone unlocked. Takes about 8-10 minutes.\". If the activity stops (onStop: user leaves, screen locks) the run is cancelled and the screen says it stopped and must be restarted, because the on-device model only answers in the foreground (ADR-029). On success: write the recording with TagRecording.write to filesDir/tag-corpus/tag-device-recording.json atomically (temp + rename), show a numbers-only summary (answered/failed/busy retries/time), and a Share button that sends the file with ACTION_SEND (type application/json) through an androidx.core FileProvider (authority \"${applicationId}.debugtools.fileprovider\", declared in the debug manifest, paths limited to files/tag-corpus/), granting read permission, so the owner can pick 'Save to Drive'. Show the screen's own close. Also keep the last successful file and offer Share again on reopen if it exists. The app's INTERNET permission stays removed; sharing hands the file to another app, which is fine.\n(5) PRIVACY: the screen and logs show numbers only -- never corpus text, prompt or model output (AGENTS.md #11). Use no Log calls except, optionally, one numbers-only summary line like TagCorpusRecorderTest. The recording file itself holds only case ids and the extractor's answers for the 72 test sentences (same format as the instrumented recorder).\n(6) TESTS: app-phone/src/testDebug/kotlin/.../debugtools/TagCorpusRunTest.kt (JVM, runs under :app-phone:testDebugUnitTest) with a fake ActivityExtractor: every case extracted once in corpus order; entries map answers/failures; fast RETRYABLE refusal retried with the backoff schedule (assert delays) then recorded; slow failure not retried; backoff exhaustion records the last failure; provenance/sha/source/notes; cancellation propagates. If a Robolectric smoke test of the activity is cheap, add one asserting the not-READY state disables Run; otherwise skip and say so.\n(7) IMPORT SCRIPT: scripts/semantic/import-tag-recording.sh <path-to-json>: copies a shared recording (e.g. from G:/My Drive/...) after a cheap structure check (JSON parses if python/node available, source DEVICE, has entries) to core-testing/src/test/resources/semantic-corpus/recordings/tag-device-latest.json, then runs ONLY TagRecordingFilesTest and reports. Same style/safety as run-device-corpus.sh (repo-root relative, Git Bash on Windows, never overwrites on a failed check, header comment with exit codes). bash -n must pass.\n(8) DOCS: short subsection in docs/SEMANTIC_CORPUS.md section 12 'Recording on the phone without a PC (debug build)': install the debug APK, open 'AI test set', Run, keep screen on, Share -> Drive, then scripts/semantic/import-tag-recording.sh. Mention that the release build has none of this.\n\nRULES: do not change app-phone/src/main, core-ai, core-domain, core-testing main code, the instrumented recorders, corpus files or recordings. No network use. Never download the model.",
+  "non_goals": [
+    "No scoring/report/gate for tag recordings (TG1.4 proper).",
+    "No change to the release app, its manifest, permissions or screens.",
+    "No resolver/policy tuning (separate follow-up).",
+    "Building/copying the APK to Google Drive is done by the orchestrator, not this task."
+  ],
+  "dependencies": ["TG1.2", "TG1.3"],
+  "read_paths": [
+    "app-phone/**",
+    "core-ai/src/main/**",
+    "core-domain/src/main/**",
+    "core-testing/src/main/**",
+    "scripts/semantic/**",
+    "docs/SEMANTIC_CORPUS.md",
+    "docs/DECISIONS.md",
+    "docs/ARCHITECTURE.md",
+    "AGENTS.md",
+    "gradle/libs.versions.toml",
+    "settings.gradle.kts",
+    "build.gradle.kts"
+  ],
+  "write_paths": [
+    "app-phone/src/debug/**",
+    "app-phone/src/testDebug/**",
+    "app-phone/build.gradle.kts",
+    "gradle/libs.versions.toml",
+    "scripts/semantic/import-tag-recording.sh",
+    "docs/SEMANTIC_CORPUS.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "app-phone/src/main/**",
+    "app-phone/src/androidTest/**",
+    "app-wear/**",
+    "core-ai/**",
+    "core-domain/**",
+    "core-data/**",
+    "core-testing/**"
+  ],
+  "acceptance_criteria": [
+    "A debug-only 'AI test set' launcher entry opens TagCorpusRunnerActivity; release build compiles and contains no runner, corpus or core-testing classes (checked and stated).",
+    "TagCorpusRun extracts each of the 72 cases once in order with the instrumented recorder's fast-refusal backoff, and returns a DEVICE TagRecording with correct provenance, corpus hash and notes; cancellation returns nothing.",
+    "The screen never downloads the model, disables Run when not READY, keeps the screen on while running, cancels on stop, writes the file atomically, and shares it via a FileProvider limited to files/tag-corpus/.",
+    "No corpus text, prompt or model output is shown on screen or logged; only numbers.",
+    "TagCorpusRunTest passes under :app-phone:testDebugUnitTest; all existing app-phone tests still pass; :app-phone:assembleDebug succeeds.",
+    "import-tag-recording.sh copies a checked DEVICE recording to tag-device-latest.json, runs TagRecordingFilesTest, never overwrites on a failed check, and passes bash -n; SEMANTIC_CORPUS.md documents the flow."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:testDebugUnitTest :app-phone:assembleDebug :app-phone:compileReleaseKotlin",
+    "bash -n scripts/semantic/import-tag-recording.sh",
+    "git diff --stat -- app-phone/src/main core-ai core-domain core-testing"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

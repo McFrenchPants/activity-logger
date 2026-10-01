@@ -89,6 +89,12 @@ dependencies {
     debugImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
+    // DEBUG BUILD ONLY (TG1.4a): the "AI test set" runner in src/debug (debugtools package)
+    // records the tag corpus on the phone without a PC, so the debug APK needs the corpus, its
+    // classpath resource and the recording format. `debugImplementation` keeps core-testing (and
+    // the test sentences) out of the release build entirely; nothing in src/main may use it.
+    debugImplementation(project(":core-testing"))
+
     // On-device test only. Only what the vertical-slice test actually uses: the runner that
     // executes it, the AndroidJUnit4 runner class, ApplicationProvider, JUnit 4 assertions and
     // runBlocking. Catalog entries androidx-test-core and androidx-test-ext-junit are reused.

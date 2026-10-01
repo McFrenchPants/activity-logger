@@ -13,10 +13,22 @@ Registered in `.sdlc/state.json` as TG1.
 | TG1.1 | New corpus cases from real watch entries | done | Separate `tag-corpus.json` (72 cases); old corpus/recordings untouched |
 | TG1.2 | Extraction interpreter (prompt v4) + recorders | done | Beside v3 (app still on v3); verifier pass; never yet run against a model |
 | TG1.3 | Tag resolver + decision policy in core-domain | done | Verifier pass on attempt 2; oracle 49/49, no gaps |
+| TG1.4a | On-phone debug-only runner, APK via owner's Google Drive | done | APK in G:/My Drive/ActivityLogger; awaiting owner's run |
 | TG1.4 | Replay, score, report; Pixel 10 Pro recording | todo | needs owner + phone for a short session; STOP after this |
 | TG1.5+ | Stages 2-4 | todo | detail written after the Stage 1 report |
 
 ## Session log
+
+### 2026-10-01 — TG1.4a done (no verifier: debug-only, no persistence/auth/release)
+Debug source set only: `debugtools/TagCorpusRun` (same fast-refusal backoff as the
+instrumented recorder), `TagCorpusRunnerActivity` + stateless screen (launcher label "AI test
+set", never downloads, keep-screen-on, cancel on stop, atomic write to files/tag-corpus/, share
+via FileProvider limited to that folder), `debugImplementation(core-testing)`. Release APK
+checked to contain none of it. `scripts/semantic/import-tag-recording.sh` (check, back up,
+copy to tag-device-latest.json, run TagRecordingFilesTest); success path not yet exercised.
+174 app-phone unit tests pass. Debug APK copied to `G:/My Drive/ActivityLogger/
+ActivityLedger-debug-ai-test.apk`. Owner installs from Drive, runs, shares the JSON back to
+Drive; then `import-tag-recording.sh`. Next on PC: resolver fixes from the stand-in findings.
 
 ### 2026-10-01 — first stand-in tag recording (unofficial)
 Owner's Pixel is their primary phone and rarely free; no emulator can run Gemini Nano. Ran

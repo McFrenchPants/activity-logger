@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    DEBUG BUILD ONLY (merged into the main manifest for debug builds; the release build never sees
+    this file). Adds the owner's "AI test set" runner (TG1.4a): a second launcher entry that records
+    the tag corpus through the on-device model without a PC, and the FileProvider it shares the
+    result file through. No permission is added; INTERNET stays removed by the main manifest.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!--
+            configChanges: rotating or resizing must not recreate the activity, because a
+            recreation stops it and a stop cancels the run (the model only answers in the
+            foreground, ADR-029).
+        -->
+        <activity
+            android:name=".debugtools.TagCorpusRunnerActivity"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:label="@string/debugtools_runner_label"
+            android:theme="@style/Theme.ActivityLedger"
+            android:taskAffinity="${applicationId}.debugtools"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Shares only <filesDir>/tag-corpus/ (res/xml/debugtools_file_paths.xml), read-only, by grant. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.debugtools.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/debugtools_file_paths" />
+        </provider>
+    </application>
+</manifest>

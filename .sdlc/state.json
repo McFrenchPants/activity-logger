@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-10-01T17:09:49.634Z",
+  "updated_at": "2026-10-01T19:14:07.844Z",
   "work_items": [
     {
       "id": "SS1",
@@ -1110,6 +1110,24 @@
           "task_packet_path": ".sdlc/task-packets/TG1.3.packet.json",
           "report_path": null,
           "notes": "tagging package: TagNormalizer/TagResolver/TagDecisionPolicy + oracle test (49 ideal-extraction cases, no gaps). ADR-039. Attempt 1 failed verifier (stop-word filter weakened action close-match); attempt 2 passed, also added pronoun-vague rule."
+        },
+        {
+          "id": "TG1.4a",
+          "title": "On-phone debug-only tag corpus runner + import script (owner-approved Drive install)",
+          "status": "done",
+          "lifecycle_state": "verifying",
+          "dependencies": [
+            "TG1.2",
+            "TG1.3"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/TG1.4a.packet.json",
+          "report_path": null,
+          "notes": "Debug-only AI test set screen + import script; APK copied to G:/My Drive/ActivityLogger. Not yet run on a phone."
         },
         {
           "id": "TG1.4",
