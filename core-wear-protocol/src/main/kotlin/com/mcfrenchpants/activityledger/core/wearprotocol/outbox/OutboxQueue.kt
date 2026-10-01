@@ -67,19 +67,25 @@ class Outbox(
         return if (store.insertIfAbsent(record)) EnqueueResult.Enqueued else EnqueueResult.AlreadyPresent
     }
 
-    /** Oldest QUEUED or RETRYABLE record whose nextAttemptAt has passed. */
+    /**
+     * Oldest QUEUED or RETRYABLE record whose nextAttemptAt has passed, or a PHONE_RECEIVED
+     * record whose ack-wait deadline has passed (it is resent with the same captureId).
+     */
     @Synchronized
     fun nextDue(): OutboxRecord? {
         val now = clock()
         return store.listAll().firstOrNull {
-            (it.state == OutboxState.QUEUED || it.state == OutboxState.RETRYABLE) &&
-                it.nextAttemptAtEpochMillis <= now
+            (
+                it.state == OutboxState.QUEUED || it.state == OutboxState.RETRYABLE ||
+                    it.state == OutboxState.PHONE_RECEIVED
+                ) && it.nextAttemptAtEpochMillis <= now
         }
     }
 
+    /** Moves the record to SENDING and sets its ack deadline (now + [OutboxPolicy.ackWaitMillis]). */
     @Synchronized
     fun markSendStarted(captureId: String): UpdateResult =
-        apply(captureId, OutboxEvent.SendStarted) { it }
+        apply(captureId, OutboxEvent.SendStarted) { it.copy(nextAttemptAtEpochMillis = ackDeadline()) }
 
     @Synchronized
     fun markSendFailedTransient(captureId: String): UpdateResult =
@@ -92,7 +98,11 @@ class Outbox(
     @Synchronized
     fun applyAck(ack: CaptureAck): UpdateResult =
         apply(ack.captureId, OutboxEvent.AckReceived(ack.status)) { rec ->
-            if (ack.status == AckStatus.FAILED_RETRYABLE) retryLater(rec) else rec
+            when (ack.status) {
+                AckStatus.FAILED_RETRYABLE -> retryLater(rec)
+                AckStatus.RECEIVED -> rec.copy(nextAttemptAtEpochMillis = ackDeadline())
+                else -> rec
+            }
         }
 
     /** Deletes a record (used to dismiss a FAILED capture). Returns true if one was removed. */
@@ -116,12 +126,41 @@ class Outbox(
         return count
     }
 
+    /**
+     * Turns every SENDING record whose ack deadline has passed into RETRYABLE with the normal
+     * backoff (a lost ack must not leave it stuck). Returns how many records were recovered.
+     */
+    @Synchronized
+    fun recoverStale(): Int {
+        val now = clock()
+        var count = 0
+        for (rec in store.listAll()) {
+            if (rec.state != OutboxState.SENDING || rec.nextAttemptAtEpochMillis > now) continue
+            val t = OutboxTransitions.next(rec.state, OutboxEvent.SendFailedTransient)
+            if (t is TransitionResult.Moved && store.replace(retryLater(rec).copy(state = t.to))) count++
+        }
+        return count
+    }
+
+    /**
+     * Earliest nextAttemptAt among records the sender still has to act on (QUEUED, RETRYABLE,
+     * SENDING, PHONE_RECEIVED), or null if there are none. Lets the caller schedule one wake-up.
+     */
+    @Synchronized
+    fun earliestPendingAttemptAt(): Long? =
+        store.listAll().filter {
+            it.state == OutboxState.QUEUED || it.state == OutboxState.RETRYABLE ||
+                it.state == OutboxState.SENDING || it.state == OutboxState.PHONE_RECEIVED
+        }.minOfOrNull { it.nextAttemptAtEpochMillis }
+
     /** Records still awaiting delivery or phone outcome (everything except FAILED). */
     @Synchronized
     fun pendingCount(): Int = store.listAll().count { it.state != OutboxState.FAILED }
 
     @Synchronized
     fun failedCount(): Int = store.listAll().count { it.state == OutboxState.FAILED }
+
+    private fun ackDeadline(): Long = clock() + policy.ackWaitMillis
 
     private fun retryLater(rec: OutboxRecord): OutboxRecord {
         val attempts = rec.attemptCount + 1

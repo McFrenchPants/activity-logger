@@ -1,0 +1,64 @@
+{
+  "task_id": "WC1.5a",
+  "plan_revision": "wc1",
+  "objective": "Build the watch-side send engine as pure, JVM-testable Kotlin so a spoken capture is persisted, delivered, acknowledged and never lost. NO Android/Data Layer code in this task (that is WC1.5b); the Data Layer is an interface here.\n\n(A) core-wear-protocol (Outbox / OutboxTransitions / OutboxPolicy), fixing the 'stuck pending item' follow-ups from WC1.2/WC1.3b:\n 1. Ack-wait deadline. Add `OutboxPolicy.ackWaitMillis` (open val, default 2 minutes). `Outbox.markSendStarted` (QUEUED/RETRYABLE/PHONE_RECEIVED -> SENDING) must set the record's nextAttemptAtEpochMillis to now + ackWaitMillis (the ack deadline) and return the resulting UpdateResult as today. An ack of RECEIVED (-> PHONE_RECEIVED) also sets nextAttemptAt = now + ackWaitMillis.\n 2. New legal transition: PHONE_RECEIVED -SendStarted-> SENDING (resend with the SAME captureId so the phone re-acks; update the OutboxTransitions KDoc and its tests; every other existing edge unchanged, SENDING -SendStarted-> still refused).\n 3. `Outbox.nextDue()` additionally returns a PHONE_RECEIVED record whose deadline has passed (QUEUED/RETRYABLE behaviour unchanged).\n 4. New `Outbox.recoverStale(): Int`: every SENDING record whose deadline has passed becomes RETRYABLE through SendFailedTransient with the normal backoff (attemptCount+1, delay from policy). `recoverOnStart()` is unchanged.\n 5. Keep: thread-safety, no logging, records' toString never shows text, FileOutboxStore untouched.\n\n(B) app-wear, package `com.mcfrenchpants.activityledger.wear.capture` (new files under the existing `capture/` directory; do NOT touch MainActivity, the manifest or build files; keep PlaceholderCaptureSink as is, WC1.5b removes it):\n 1. `interface CaptureTransport { suspend fun send(captureId: String, envelopeJson: String, attempt: Long): SendOutcome; suspend fun retract(captureId: String) }` and `enum class SendOutcome { DELIVERED_TO_LINK, TRANSIENT_FAILURE, PERMANENT_FAILURE }`. `attempt` must be a value that differs on every call (the Data Layer drops a DataItem whose content is unchanged, see CAPTURE_ATTEMPT_KEY in core-wear-protocol Contract.kt). `retract` removes the capture's DataItem after a final outcome so items do not accumulate; it must never throw into the sender (the sender swallows non-cancellation exceptions from it).\n 2. `class OutboxCaptureSink(outbox: Outbox, newId: () -> String, clock: () -> Long, sourceSurface: String = WATCH_LAUNCHER_SURFACE, onEnqueued: () -> Unit) : CaptureSink`. `const val WATCH_LAUNCHER_SURFACE = \"watch_launcher\"`. `enqueue(transcript)` builds a CaptureEnvelope (protocolVersion default, source = SOURCE_WATCH_VOICE, captureId = newId(), capturedAtEpochMillis = clock(), speechConfidence = transcript.confidence?.toDouble(), alternatives = transcript.alternatives truncated to MAX_ALTERNATIVES and with blanks dropped, null when empty), calls Outbox.enqueue, and on Enqueued calls onEnqueued() (the wake-up for the sender) and returns the id. Full / Refused / AlreadyPresent from a fresh id => throw a plain IllegalStateException with a FIXED message (never containing transcript text) so the session controller shows Failure. The record is persisted by Outbox.enqueue before onEnqueued runs (design spec R2).\n 3. `class OutboxSender(outbox: Outbox, transport: CaptureTransport, clock: () -> Long)` with `suspend fun drain(): Long?`: first `outbox.recoverStale()`, then loop `outbox.nextDue()`: decode `envelopeJson` with WireCodec (a decode failure => `markSendFailedPermanent`, continue; poison records must never block the queue or crash); `markSendStarted` (CHECK its UpdateResult: anything other than Moved => skip that record this pass, no send); call `transport.send(id, json, attempt)` where attempt is strictly increasing within the sender instance (`max(previous + 1, clock())`); map TRANSIENT_FAILURE -> `markSendFailedTransient`, PERMANENT_FAILURE -> `markSendFailedPermanent`; DELIVERED_TO_LINK -> leave in SENDING (waiting for the phone's ack). If markSendFailedPermanent leaves a FAILED record, that is final (owner can discard later, WC1.5b). Each record is handled at most once per drain call (no hot loop on a record that is immediately due again). Returns the earliest nextAttemptAtEpochMillis among records the sender still must act on (QUEUED/RETRYABLE/SENDING/PHONE_RECEIVED) or null if nothing is pending, so the Android layer can schedule one wake-up. Cancellation must propagate (rethrow CancellationException; any other exception from transport.send is treated as TRANSIENT_FAILURE).\n 4. `class AckHandler(outbox: Outbox, transport: CaptureTransport, onAck: (CaptureAck) -> Unit)` with `suspend fun onAckMessage(payload: ByteArray)`: decode UTF-8 -> WireCodec.decodeAck; on any decode failure ignore it silently (no log, no throw). A decoded ack is forwarded to `onAck` (so the screen controller sees it) AND applied with `outbox.applyAck`. When the result is Removed, or the ack status is FAILED_FINAL, call `transport.retract(captureId)`. A duplicate/late ack (Unchanged), an ack for an UnknownCapture, or a Refused result must not throw and must not call retract twice for the same removal. IMPORTANT: acks for captures that are not in this outbox are still forwarded to onAck only if the outbox knows the id (so a stray ack cannot change the screen); the controller already ignores foreign ids, but do not rely on that.\n 5. Update `CaptureSessionController` ONLY if needed so a NEEDS_REVIEW or SAVED ack for the capture it queued shows its screen (it already does) - do not change its public API; WC1.5b wires it.\n\n(C) Tests (JVM, app-wear/src/test and core-wear-protocol/src/test), including ONE end-to-end fake test `WatchCaptureEndToEndTest`: real FileOutboxStore in a temp dir + real Outbox + OutboxCaptureSink + OutboxSender + AckHandler + a FakeTransport and a fake phone that decodes the sent envelope, keeps a map captureId -> single stored capture (idempotent, like the real receiver), and replies with acks through AckHandler. It must cover: happy path (speak -> persisted before send -> sent once -> RECEIVED then SAVED ack -> record gone, retract called once, controller shows Saved with the name); phone offline then back (transient failures back off, then delivered, exactly ONE stored capture); lost ack (deadline passes, recoverStale -> resend with a DIFFERENT attempt value and the SAME captureId, phone dedupes, re-ack completes); process death mid-send (new Outbox over the same directory, recoverOnStart, delivered once); NEEDS_REVIEW ack completes the record (PROCESSED removed) and the screen shows NeedsReview; FAILED_RETRYABLE ack schedules a retry; FAILED_FINAL ack leaves FAILED, retracts, and does not retry; poison record (corrupt envelopeJson) goes FAILED without blocking a good record behind it; Outbox Full => enqueue throws and nothing is stored; stray/garbage/foreign ack changes nothing; no test or production code may put transcript text in an exception message, toString or log. Use an injectable fake clock; no real sleeping.",
+  "non_goals": [
+    "No Android, Data Layer, WorkManager, manifest, MainActivity or Gradle change (that is WC1.5b).",
+    "No change to the wire format (CaptureEnvelope, CaptureAck, paths, WireCodec) and no new dependency.",
+    "No change to app-phone or any phone-side code; the phone receiver is verified and out of scope.",
+    "No UI change, no new strings, no discard-failed UI (WC1.5b/1.6).",
+    "No logging of any kind and no transcript text in any message, log or toString (AGENTS.md #11)."
+  ],
+  "dependencies": ["WC1.1", "WC1.2", "WC1.3b", "WC1.4b"],
+  "read_paths": [
+    "core-wear-protocol/**",
+    "app-wear/src/main/kotlin/**",
+    "app-wear/src/test/**",
+    "app-wear/build.gradle.kts",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/wear/WatchCaptureReceiver.kt",
+    "AGENTS.md",
+    "docs/WATCH_SPEC.md",
+    "docs/proposals/watch-capture/DESIGN_SPEC.md"
+  ],
+  "write_paths": [
+    "core-wear-protocol/src/main/**",
+    "core-wear-protocol/src/test/**",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/capture/**",
+    "app-wear/src/test/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-phone/**",
+    "core-ai/**",
+    "core-data/**",
+    "core-domain/**",
+    "core-testing/**",
+    "core-speech/**",
+    "gradle/libs.versions.toml",
+    "**/build.gradle.kts",
+    "app-wear/src/main/AndroidManifest.xml",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/MainActivity.kt",
+    "app-wear/src/debug/**",
+    "app-wear/src/androidTest/**"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew test` passes for all modules; every pre-existing test passes unchanged except OutboxTransitions tests that deliberately encode the new PHONE_RECEIVED -SendStarted-> SENDING edge.",
+    "A capture is in the durable store before the sender is woken, and a store/queue failure makes enqueue throw a fixed-message exception (screen shows Failure) rather than losing the capture silently.",
+    "A resend of the same captureId always carries a different `attempt` value than the previous send, and the captureId and envelope JSON are byte-identical across resends.",
+    "A lost ack no longer leaves a capture stuck: SENDING past its deadline becomes RETRYABLE (recoverStale) and PHONE_RECEIVED past its deadline is resent.",
+    "markSendStarted's result is checked; a non-Moved result means no send for that record in that pass.",
+    "Poison (undecodable) records go FAILED without blocking others; garbage acks are ignored without throwing; terminal outcomes retract the DataItem exactly once.",
+    "The end-to-end fake test covers every scenario listed in the objective and the phone fake stores exactly one capture per captureId across resends.",
+    "No file outside write_paths changed; no logging call, no new dependency, no transcript text in any exception message or toString."
+  ],
+  "verification_commands": [
+    "./gradlew :core-wear-protocol:test :app-wear:testDebugUnitTest",
+    "./gradlew test",
+    "./gradlew :app-wear:assembleDebug :app-phone:assembleDebug"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

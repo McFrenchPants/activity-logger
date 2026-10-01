@@ -20,6 +20,7 @@ class OutboxTransitionsTest {
         moved(OutboxState.CREATED, OutboxEvent.Queued, OutboxState.QUEUED)
         moved(OutboxState.QUEUED, OutboxEvent.SendStarted, OutboxState.SENDING)
         moved(OutboxState.RETRYABLE, OutboxEvent.SendStarted, OutboxState.SENDING)
+        moved(OutboxState.PHONE_RECEIVED, OutboxEvent.SendStarted, OutboxState.SENDING)
         moved(OutboxState.SENDING, OutboxEvent.SendFailedTransient, OutboxState.RETRYABLE)
         for (s in listOf(OutboxState.QUEUED, OutboxState.SENDING, OutboxState.RETRYABLE)) {
             moved(s, OutboxEvent.SendFailedPermanent, OutboxState.FAILED)

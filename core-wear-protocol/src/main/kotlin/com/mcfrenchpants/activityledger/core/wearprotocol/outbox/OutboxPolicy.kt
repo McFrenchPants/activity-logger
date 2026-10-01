@@ -8,6 +8,12 @@ package com.mcfrenchpants.activityledger.core.wearprotocol.outbox
  * how many times it happened, so a capture is never dropped for being slow to deliver.
  */
 open class OutboxPolicy {
+    /**
+     * How long a sent capture waits for the phone's ack before the sender gives up on that
+     * attempt: SENDING past this deadline becomes RETRYABLE, PHONE_RECEIVED past it is resent.
+     */
+    open val ackWaitMillis: Long = 2 * MINUTE
+
     open fun delayAfterAttempt(attemptCount: Int): Long {
         val index = (attemptCount - 1).coerceIn(0, DELAYS_MILLIS.size - 1)
         return DELAYS_MILLIS[index]

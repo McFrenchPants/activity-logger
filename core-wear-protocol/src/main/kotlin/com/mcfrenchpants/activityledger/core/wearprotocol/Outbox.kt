@@ -27,7 +27,8 @@ sealed interface TransitionResult {
 /**
  * Pure outbox transition function.
  *
- * Legal edges: CREATED -queued-> QUEUED; QUEUED/RETRYABLE -sendStarted-> SENDING;
+ * Legal edges: CREATED -queued-> QUEUED; QUEUED/RETRYABLE/PHONE_RECEIVED -sendStarted-> SENDING
+ * (PHONE_RECEIVED resends the same captureId after the ack deadline so the phone re-acks);
  * SENDING -transient failure-> RETRYABLE; QUEUED/SENDING/RETRYABLE -permanent failure-> FAILED.
  *
  * Ack status mapping (valid from SENDING, RETRYABLE, PHONE_RECEIVED, PROCESSED; an ack in
@@ -49,7 +50,9 @@ object OutboxTransitions {
             OutboxEvent.Queued ->
                 if (state == OutboxState.CREATED) moved(OutboxState.QUEUED) else refused
             OutboxEvent.SendStarted ->
-                if (state == OutboxState.QUEUED || state == OutboxState.RETRYABLE) {
+                if (state == OutboxState.QUEUED || state == OutboxState.RETRYABLE ||
+                    state == OutboxState.PHONE_RECEIVED
+                ) {
                     moved(OutboxState.SENDING)
                 } else {
                     refused
