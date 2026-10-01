@@ -804,7 +804,7 @@
     {
       "id": "WD1",
       "title": "Wear Data Layer round-trip probe (backlog item 16)",
-      "lifecycle_state": "implemented",
+      "lifecycle_state": "ready_to_release",
       "tasks": [
         {
           "id": "WD1.1",
@@ -824,8 +824,8 @@
         {
           "id": "WD1.2",
           "title": "Device run and write-up",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "implemented",
           "dependencies": [
             "WD1.1"
           ],
@@ -836,7 +836,7 @@
           },
           "task_packet_path": null,
           "report_path": null,
-          "notes": ""
+          "notes": "Done. Device run passed; see RESULTS.md."
         }
       ]
     }
