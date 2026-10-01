@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-10-01T16:45:50.192Z",
+  "updated_at": "2026-10-01T17:09:49.634Z",
   "work_items": [
     {
       "id": "SS1",
@@ -1096,19 +1096,20 @@
         {
           "id": "TG1.3",
           "title": "Tag resolver + decision policy in core-domain",
-          "status": "todo",
-          "lifecycle_state": "approved",
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [
-            "TG1.1"
+            "TG1.1",
+            "TG1.2"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 2
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/TG1.3.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "tagging package: TagNormalizer/TagResolver/TagDecisionPolicy + oracle test (49 ideal-extraction cases, no gaps). ADR-039. Attempt 1 failed verifier (stop-word filter weakened action close-match); attempt 2 passed, also added pronoun-vague rule."
         },
         {
           "id": "TG1.4",

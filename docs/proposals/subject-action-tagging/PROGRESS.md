@@ -12,11 +12,28 @@ Registered in `.sdlc/state.json` as TG1.
 |---|---|---|---|
 | TG1.1 | New corpus cases from real watch entries | done | Separate `tag-corpus.json` (72 cases); old corpus/recordings untouched |
 | TG1.2 | Extraction interpreter (prompt v4) + recorders | done | Beside v3 (app still on v3); verifier pass; never yet run against a model |
-| TG1.3 | Tag resolver + decision policy in core-domain | todo | verifier required |
+| TG1.3 | Tag resolver + decision policy in core-domain | done | Verifier pass on attempt 2; oracle 49/49, no gaps |
 | TG1.4 | Replay, score, report; Pixel 10 Pro recording | todo | needs owner + phone for a short session; STOP after this |
 | TG1.5+ | Stages 2-4 | todo | detail written after the Stage 1 report |
 
 ## Session log
+
+### 2026-10-01 — TG1.3 done
+New `core-domain` `tagging` package: `TagCatalog`/`KnownTag`/`KnownPair`, `TagNormalizer`
+(cleanName, key, tokens; Wi-Fi=WiFi, lawn mower=lawnmower, naive singular), `TagResolver`
+(Exact NAME/ALIAS, Near, New; OSA edit distance >=5 chars, subject shared word >=3 letters,
+action shared word after the verb with no stop-word list), `TagDecisionPolicy` (NOT_A_LOG,
+ACTION_MISSING, VAGUE_ACTION incl. vague verb + pronoun, FILLER_WORDS, NEW_NAME_REJECTED via
+NewActivityNameCheck, single-pair subject inference / SUBJECT_MISSING, Near -> CONFIRM, else
+AUTO_SAVE). `TagPolicyOracleTest` (core-testing): 49 tag-corpus cases with hand-written ideal
+extractions all acceptable, KNOWN_POLICY_GAPS empty. ADR-039 amends ADR-027 for the tag path
+only. Attempt 1 failed the verifier: implementer added a NON_CONTENT_TOKENS filter that made
+"put out" vs "take out" New (silent near-duplicate); removed in attempt 2. Singularization
+deviates from packet examples for idempotence (-sses; -as kept) -- verifier judged in intent.
+Known for TG1.4: no synonyms (grass/lawn, HVAC/furnace go New = duplicate on ported cases);
+particle sharing ("pick up"/"clean up") will add CONFIRM cards; naive singular mangles
+headaches/movies. Next: TG1.4 needs owner + Pixel 10 Pro (short session); JVM replay/scorer
+can be built first.
 
 ### 2026-10-01 — TG1.2 done
 `GeminiNanoActivityExtractor` (core-ai) + `ExtractionTypes.kt` (core-domain `extraction`
