@@ -35,7 +35,7 @@ import com.mcfrenchpants.activityledger.wear.R
  *
  * @param ambient true draws black, outline-only, dimmed. The real ambient callback is deferred
  *   (WC1.6); callers currently pass false.
- * @param onRetry invoked by a tap anywhere, in [CaptureUiState.Failure] only.
+ * @param onRetry invoked by a tap anywhere, on the failure and finished-capture screens only.
  */
 @Composable
 fun CaptureScreen(
@@ -48,7 +48,10 @@ fun CaptureScreen(
     val base = Modifier
         .fillMaxSize()
         .background(if (ambient) Color.Black else MaterialTheme.colorScheme.background)
-    val tap = if (state is CaptureUiState.Failure) base.clickable(onClick = onRetry) else base
+    val tappable = state is CaptureUiState.Failure ||
+        state is CaptureUiState.Saved ||
+        state is CaptureUiState.NeedsReview
+    val tap = if (tappable) base.clickable(onClick = onRetry) else base
 
     Column(
         modifier = tap.padding(horizontal = 24.dp, vertical = 16.dp),

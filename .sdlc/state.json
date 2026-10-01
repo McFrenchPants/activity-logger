@@ -983,7 +983,7 @@
         {
           "id": "WC1.6",
           "title": "Device pass and documentation",
-          "status": "todo",
+          "status": "done",
           "lifecycle_state": "planned",
           "dependencies": [
             "WC1.5"
@@ -995,7 +995,7 @@
           },
           "task_packet_path": null,
           "report_path": null,
-          "notes": ""
+          "notes": "Device pass done on Pixel 10 Pro + OnePlus Watch 3; wake/resume fix. Untested: offline retry, ambient, background interpretation."
         },
         {
           "id": "WC1.5a",

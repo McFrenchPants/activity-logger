@@ -103,6 +103,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun beginSession() {
-        controller.start()
+        controller.resume()
     }
 }

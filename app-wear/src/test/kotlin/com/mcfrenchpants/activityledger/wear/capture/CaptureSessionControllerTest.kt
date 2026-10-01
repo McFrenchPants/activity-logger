@@ -214,6 +214,27 @@ class CaptureSessionControllerTest {
     }
 
     @Test
+    fun resumeKeepsQueuedCaptureSoItsAckStillLands() = runTest {
+        val (c, id) = queued()
+        c.resume()
+        advanceUntilIdle()
+        assertEquals(CaptureUiState.Queued, c.state.value)
+        c.onAck(ack(id, AckStatus.SAVED, "Run"))
+        assertEquals(CaptureUiState.Saved("Run"), c.state.value)
+        c.resume()
+        assertEquals(CaptureUiState.Saved("Run"), c.state.value)
+    }
+
+    @Test
+    fun tapOnFinishedCaptureStartsNewSession() = runTest {
+        val (c, id) = queued()
+        c.onAck(ack(id, AckStatus.SAVED, "Run"))
+        c.retry()
+        advanceUntilIdle()
+        assertEquals(CaptureUiState.Listening(null), c.state.value)
+    }
+
+    @Test
     fun ackMatchingAppliesAndIsIdempotent() = runTest {
         val (c, id) = queued()
         c.onAck(ack(id, AckStatus.SAVED, "Run"))

@@ -61,11 +61,28 @@ class CaptureSessionController(
         }
     }
 
-    /** Starts a new session, from [CaptureUiState.Failure] only. */
+    /** Starts a new session after a failure or a finished capture (tap on the result screen). */
     fun retry() {
-        if (_state.value !is CaptureUiState.Failure) return
+        val current = _state.value
+        if (current !is CaptureUiState.Failure &&
+            current !is CaptureUiState.Saved &&
+            current !is CaptureUiState.NeedsReview
+        ) {
+            return
+        }
         stop()
         start()
+    }
+
+    /**
+     * Called when the screen comes back to the foreground: starts listening unless a capture is
+     * still waiting for, or showing, the phone's answer (a new session would drop that ack).
+     */
+    fun resume() {
+        when (_state.value) {
+            CaptureUiState.Queued, is CaptureUiState.Saved, CaptureUiState.NeedsReview -> Unit
+            else -> start()
+        }
     }
 
     /** Applies a phone ack to the capture this controller queued; foreign ids are ignored. */
