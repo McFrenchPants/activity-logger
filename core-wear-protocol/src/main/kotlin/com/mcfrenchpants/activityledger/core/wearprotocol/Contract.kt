@@ -15,6 +15,19 @@ const val SOURCE_WATCH_VOICE: String = "WATCH_VOICE"
 /** Data Layer DataItem path prefix; one item per capture at `/capture/<captureId>`. */
 const val CAPTURE_PATH_PREFIX: String = "/capture"
 
+/** [CAPTURE_PATH_PREFIX] plus a trailing slash, for manifest/path-prefix matching of `/capture/<id>`. */
+const val CAPTURE_PATH_PREFIX_WITH_SLASH: String = "/capture/"
+
+/** DataItem key holding the WireCodec-encoded [CaptureEnvelope] JSON (a String). */
+const val CAPTURE_DATA_KEY: String = "envelope"
+
+/**
+ * DataItem key holding a Long the watch changes on every (re)send. The Data Layer only fires
+ * `onDataChanged` on the phone when an item's content actually changes, so an identical resend
+ * would be silently dropped; a changing attempt value forces delivery. The phone ignores the value.
+ */
+const val CAPTURE_ATTEMPT_KEY: String = "attempt"
+
 /** Data Layer message path the phone uses to send a [CaptureAck] to the watch. */
 const val CAPTURE_ACK_PATH: String = "/capture-ack"
 

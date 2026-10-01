@@ -1,0 +1,62 @@
+{
+  "task_id": "WC1.3b",
+  "plan_revision": "wc1",
+  "objective": "Build the phone's receiving end for watch captures. (A) core-wear-protocol Contract.kt: ADD (do not change anything existing) two constants for the DataItem payload: `CAPTURE_DATA_KEY = \"envelope\"` (String value = WireCodec-encoded CaptureEnvelope JSON) and `CAPTURE_ATTEMPT_KEY = \"attempt\"` (Long; the watch sets a changing value on every resend because the Data Layer only fires onDataChanged when item content changes -- document this in KDoc), plus a one-line KDoc'd `CAPTURE_PATH_PREFIX_WITH_SLASH = \"/capture/\"` if useful for manifest/path matching. A tiny test file asserting the constants and that CAPTURE_ACK_PATH does not start with the slash prefix. (B) app-phone package `com.mcfrenchpants.activityledger.wear`: (1) `WatchCaptureReceiver` -- pure Kotlin (no Android/Play Services types) with constructor ports: `repository: ActivityRepository`, `process: suspend (captureId: String) -> CaptureProcessingOutcome` (production passes the orchestrator's process), `sendAck: suspend (sourceNodeId: String, ackJson: String) -> Unit`, `zone: () -> ZoneId` (phone's zone; the envelope carries none -- note it in KDoc). `suspend fun receive(sourceNodeId: String, envelopeJson: String)`: a single kotlinx.coroutines Mutex serialises all receives. Steps: decode with WireCodec.decodeEnvelope; on ANY decode failure do nothing and send nothing (cannot trust an id; payload-free; never log); then repository.getCapture(captureId): (i) NOT FOUND -> createRawCapture(NewRawCapture(id = captureId, source = CaptureSource.WATCH_VOICE, sourceSurface = envelope.sourceSurface, capturedAt = Instant.ofEpochMilli(envelope.capturedAtEpochMillis), zoneId = zone(), rawText = envelope.rawText EXACTLY as received (no trim/normalise), speechConfidence, speechAlternativesJson = alternatives encoded as a JSON array string or null, processingState = CAPTURED)); if that throws (not CancellationException) send FAILED_RETRYABLE ack and stop; else send RECEIVED ack immediately, then run `process` and send the final ack. (ii) FOUND with hasOccurrence -> do NOT reprocess; re-ack SAVED. (iii) FOUND without occurrence and processingState CAPTURED or FAILED_RETRYABLE (never processed, e.g. phone died between save and process; or earlier model-unavailable) -> process it now and ack from the outcome. (iv) FOUND in any other state (NEEDS_REVIEW, FAILED_FINAL, INTERPRETED etc.) -> no reprocessing; re-ack NEEDS_REVIEW (FAILED_FINAL -> FAILED_FINAL). Outcome -> ack mapping: AutoAccepted -> SAVED (fill canonicalActivityName and occurredAtEpochMillis from repository.getOccurrence/catalog ONLY if that is a cheap existing read, else leave null) with needsReview=false; NeedsReview and Rejected -> NEEDS_REVIEW with needsReview=true; InterpreterUnavailable -> NEEDS_REVIEW with needsReview=true (the raw capture is durably stored on the phone and the owner can review/retry there; this stops the watch resending forever); AlreadyHasOccurrence -> SAVED; any non-cancellation exception from process -> FAILED_RETRYABLE (capture stays stored). CancellationException is always rethrown. Acks are encoded with WireCodec and a sendAck exception is swallowed (the watch will resend and get re-acked) -- but never swallow CancellationException. A resend never creates a second raw capture or a second occurrence. No logging anywhere; no raw text in any exception message. (2) `WatchCaptureListenerService : WearableListenerService` (thin shell): onDataChanged -> for each TYPE_CHANGED event whose path starts with \"/capture/\", read CAPTURE_DATA_KEY from DataMapItem, derive the sender node id from dataItem.uri.host, and call receiver.receive inside runBlocking (callbacks are on a background thread; document that a killed service is safe because the watch resends and the receiver is idempotent). Build the receiver from `(application as ActivityLedgerApplication).capturePipeline` (repository, orchestrator::process) and send the ack with Wearable.getMessageClient(this).sendMessage(nodeId, CAPTURE_ACK_PATH, bytes). Always call super / close the DataEventBuffer correctly; never throw out of the callback. (3) Register the service in app-phone/src/main/AndroidManifest.xml (exported=true is required for the Wearable listener) with intent-filter action com.google.android.gms.wearable.DATA_CHANGED, data scheme=wear host=* pathPrefix=\"/capture/\". Do not add INTERNET or any new permission; keep the existing tools:node=remove INTERNET line. (C) Tests (JVM, app-phone/src/test/.../wear/WatchCaptureReceiverTest.kt, use InMemoryActivityRepository from core-testing and fakes; the real CaptureInterpretationOrchestrator with FakeActivityInterpreter for at least one end-to-end case): pin `SOURCE_WATCH_VOICE == CaptureSource.WATCH_VOICE.name`; first delivery stores raw capture with id == captureId, source WATCH_VOICE, sourceSurface, exact rawText, capturedAt, confidence, alternatives JSON; acks sequence RECEIVED then SAVED for an auto-accepted capture; NEEDS_REVIEW path; InterpreterUnavailable -> NEEDS_REVIEW; process throws -> FAILED_RETRYABLE and capture stays stored; DUPLICATE delivery after SAVED -> exactly one raw capture, exactly one occurrence, interpreter NOT called again, SAVED re-acked; duplicate while CAPTURED (simulate crash between save and process) -> processed once now; duplicate while FAILED_RETRYABLE reprocesses; malformed/unsupported/oversized/blank envelope -> no repository write, no ack; blank/oversize text never stored; concurrent identical deliveries -> one capture, one occurrence; sendAck throwing does not lose the capture or propagate; CancellationException from process is rethrown and capture remains stored; no ack or exception string contains the raw text except where the ack protocol legitimately has none (acks carry no raw text). Also a Robolectric-free JVM manifest sanity test is NOT required.",
+  "non_goals": [
+    "No Room schema change or migration; no change to core-domain, core-data or core-testing (WC1.3 already added NewRawCapture.id).",
+    "No watch-side code (app-wear), no outbox, no recognizer, no UI on either device.",
+    "No DataItem deletion/cleanup (tracked as a follow-up) and no background scheduling/WorkManager.",
+    "No new permission, no INTERNET, no logging, no telemetry; no raw text in exception messages or acks (AGENTS.md #11).",
+    "No on-device instrumented test in this task -- the live phone+watch pass is WC1.6."
+  ],
+  "dependencies": ["WC1.1", "WC1.3"],
+  "read_paths": [
+    "app-phone/**",
+    "core-wear-protocol/**",
+    "core-domain/**",
+    "core-testing/**",
+    "core-data/src/main/**",
+    "app-wear/src/debug/**",
+    "AGENTS.md",
+    "docs/WATCH_SPEC.md",
+    "docs/ARCHITECTURE.md",
+    "docs/proposals/watch-capture/DESIGN_SPEC.md",
+    "gradle/libs.versions.toml"
+  ],
+  "write_paths": [
+    "core-wear-protocol/src/main/kotlin/com/mcfrenchpants/activityledger/core/wearprotocol/Contract.kt",
+    "core-wear-protocol/src/test/kotlin/com/mcfrenchpants/activityledger/core/wearprotocol/ContractConstantsTest.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/wear/**",
+    "app-phone/src/main/AndroidManifest.xml",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/wear/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-wear/**",
+    "core-ai/**",
+    "core-data/**",
+    "core-domain/**",
+    "core-speech/**",
+    "core-testing/**",
+    "gradle/libs.versions.toml",
+    "app-phone/build.gradle.kts"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew test` passes (all modules).",
+    "Contract.kt change is additive only; existing wire tests still pass unchanged.",
+    "A resend of the same captureId never creates a second raw capture or occurrence and never re-runs the interpreter once an occurrence exists; the existing ack state is re-sent.",
+    "Raw text is stored exactly as received, with source WATCH_VOICE; SOURCE_WATCH_VOICE == CaptureSource.WATCH_VOICE.name is pinned by a test.",
+    "Undecodable/oversize/blank envelopes write nothing and send no ack; ack send failures never lose the capture; cancellation is rethrown.",
+    "Manifest registers the listener for DATA_CHANGED on pathPrefix /capture/ only; INTERNET still removed; no new permission.",
+    "No logging; no raw text in exception messages."
+  ],
+  "verification_commands": [
+    "./gradlew test",
+    "./gradlew :app-phone:assembleDebug"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

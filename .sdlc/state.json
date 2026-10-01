@@ -914,8 +914,8 @@
         {
           "id": "WC1.3b",
           "title": "Phone receiver (listener, idempotent processing, ack)",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "implemented",
           "dependencies": [
             "WC1.3"
           ],
@@ -924,9 +924,9 @@
             "run_id": null,
             "attempt_count": 0
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/WC1.3b.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Verifier pass, no blocking. 21 receiver tests + 2 contract tests."
         },
         {
           "id": "WC1.4",
