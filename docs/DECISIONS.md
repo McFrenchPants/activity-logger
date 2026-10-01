@@ -408,7 +408,7 @@ This replaces the four suggested tiers previously sketched in AI_INTERPRETATION_
 | Phrase | Result | Precision |
 |---|---|---|
 | none / blank | capture instant | `INFERRED_NOW` |
-| "just now", "just", "now", "right now", "a moment ago", "just finished", "just did it" | capture instant | `INFERRED_NOW` |
+| "just now", "just", "now", "right now", "(just) a moment/minute/second ago", "moments ago", "just finished", "just did it" | capture instant | `INFERRED_NOW` |
 | "yesterday morning/afternoon/evening" | band anchor on yesterday | `APPROXIMATE` |
 | "(earlier) this morning/afternoon/evening", "tonight" | see band rule below | `APPROXIMATE` |
 | "earlier today" | midpoint between local midnight and the capture instant | `APPROXIMATE` |
@@ -421,7 +421,7 @@ This replaces the four suggested tiers previously sketched in AI_INTERPRETATION_
 | month name + day ("Sep 14", "14th of September") | start of the most recent such date not after today | `DATE_ONLY` |
 | clock time today ("3pm", "3:30 pm", "7 this evening") | that local time today | `EXACT` |
 | "tomorrow…", "next …", "later", "later today", "in N …" | `Future` | — |
-| anything else | `Unresolvable` | — |
+| anything else | the capture's local day, no time (owner decision 2026-10-01, below) | `DATE_ONLY` |
 
 Part-of-day bands and anchors: morning 05:00–12:00, anchor 09:00; afternoon 12:00–17:00, anchor 15:00; evening 17:00–21:00, anchor 19:00; tonight 17:00–midnight, anchor 21:00.
 
@@ -581,3 +581,14 @@ The watch must resend a capture later when the phone was unreachable or an ackno
 **Consequence.** Doze may delay a retry by minutes; acceptable for a note-taking flow. If device testing (WC1.6) shows retries are too slow or unreliable, revisit with WorkManager.
 
 **Also decided (WC1.5b).** When the watch outbox is full, the oldest FAILED capture is discarded to make room for a new one; non-failed captures are never discarded. There is no watch screen for reviewing failed captures (design spec non-goal).
+
+### Amendment 2026-10-01 — "just" means now; an unreadable time means today, no time
+
+Owner decision after the first real watch captures ("I just walked the dogs for about 30 minutes" went to review because the model reported the duration as the time wording).
+
+- Immediate phrases ("just", "just now", "a minute ago") are the capture instant, `INFERRED_NOW`.
+- A time phrase the table cannot read no longer forces review: it logs for the capture's local day with no time (`DATE_ONLY`).
+- Safety net kept: these still need review (`Unresolvable`) — punctuation-only text, invalid explicit dates/clock times, a model non-answer ("UNRESOLVED", "n/a", "none"…), a bare numeric date/clock that was not parsed ("9/1", "at 3"), and any phrase containing a word pointing at another past day (ago, last, previous, yesterday, earlier, recently, before, day/week/month/year, weekday or month names). The first draft of this rule dropped that net and a recorded confused model answer ("UNRESOLVED") was then auto-saved with a wrong activity; the semantic regression gate caught it.
+- Known leak: phrases outside the word list that mean another day ("the 5th", "over the weekend", "christmas") fall to today. Widen the list if this shows up in practice.
+- Prompt version 3: the model is told durations are not time wording, with a worked example for "just".
+

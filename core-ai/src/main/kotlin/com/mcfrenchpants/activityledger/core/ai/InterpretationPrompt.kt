@@ -14,7 +14,7 @@ import java.util.Locale
  * this value, update the drift-guard fixture in `InterpretationPromptDriftTest`, and re-run
  * the semantic regression corpus.
  */
-internal const val PROMPT_VERSION: String = "2"
+internal const val PROMPT_VERSION: String = "3"
 
 /**
  * The fixed system instruction the on-device model is given for every capture.
@@ -83,7 +83,13 @@ internal fun buildInterpretationPrompt(input: InterpretationInput): String {
         )
         append("  GOOD: \"Flush water heater\", \"Clean dryer vent\".\n")
         append("  BAD: \"I flushed the water heater today\", \"Water heater stuff\".\n")
-        append("- Copy the user's time wording; never write a date, a time or a timestamp.\n")
+        append(
+            "- Copy the user's time wording; never write a date, a time or a timestamp. Time " +
+                "wording is ONLY words saying WHEN the activity happened (yesterday, this " +
+                "morning, at 3pm, just now, last Tuesday). A duration or amount (\"for 30 " +
+                "minutes\", \"about 40 minutes\") is NOT time wording: leave the time wording " +
+                "empty for it.\n",
+        )
         append('\n')
         append("### Worked examples\n")
         append("- Synonym: \"I cut the grass\" -> match Mow lawn. So does \"mowed\".\n")
@@ -104,7 +110,12 @@ internal fun buildInterpretationPrompt(input: InterpretationInput): String {
         )
         append(
             "- Completed vs in progress: \"Just finished mowing\" is completed; \"I'm " +
-                "mowing now\" is in progress; say nothing when the sentence does not say.\n",
+                "mowing now\" is in progress; say nothing when the sentence does not say. " +
+                "\"Just finished mowing\" has time wording \"just now\".\n",
+        )
+        append(
+            "- Duration is not time: \"I just walked the dogs for about 30 minutes\" -> time " +
+                "wording \"just now\"; the duration \"for about 30 minutes\" is ignored.\n",
         )
         append(
             "- Relative time: \"Changed the furnace filter yesterday\" -> time wording " +

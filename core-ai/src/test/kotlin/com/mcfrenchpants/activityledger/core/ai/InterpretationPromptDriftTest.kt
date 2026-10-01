@@ -40,7 +40,7 @@ class InterpretationPromptDriftTest {
 
     @Test
     fun `prompt version is the one these fixtures were pinned against`() {
-        assertEquals("2", PROMPT_VERSION, bumpVersion)
+        assertEquals("3", PROMPT_VERSION, bumpVersion)
     }
 
     @Test
@@ -71,19 +71,19 @@ class InterpretationPromptDriftTest {
     }
 
     private companion object {
-        /** SHA-256 of `buildInterpretationPrompt(fixedInput)` at prompt version 2. */
+        /** SHA-256 of `buildInterpretationPrompt(fixedInput)` at prompt version 3. */
         const val PINNED_PROMPT_SHA256 =
-            "9fdec567037eaf043966a22e5e03a81321ce60b132189a841823c94c6c1b90a7"
+            "dc5b1a6742166836f5bc58855b03ebdfe789b600872538f931bff868bc931a02"
 
         /**
-         * SHA-256 of the same capture with no candidates at all, at prompt version 2. Pinned
+         * SHA-256 of the same capture with no candidates at all, at prompt version 3. Pinned
          * separately because the empty-candidate branch has its own instruction text, which a
          * fixture built from a populated shortlist would never exercise.
          */
         const val PINNED_NO_CANDIDATE_PROMPT_SHA256 =
-            "59741bff8330efd7bf37800a351a46833e194f426a073db21368e6783cfe84c4"
+            "870773f600015b181ab4969ca3f969d8e5c26faf5d70f836ed3894d95a42755e"
 
-        /** SHA-256 of [INTERPRETATION_SYSTEM_INSTRUCTION] at prompt version 2. */
+        /** SHA-256 of [INTERPRETATION_SYSTEM_INSTRUCTION] at prompt version 3. */
         const val PINNED_SYSTEM_INSTRUCTION_SHA256 =
             "f666dd83a5c68feedcd1567e0e8c3171fe3f9ec24b30d77881c762f9655196c5"
     }

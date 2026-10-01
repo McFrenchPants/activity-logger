@@ -48,6 +48,14 @@ class TemporalResolverTest {
     private fun assertUnresolvable(expr: String, capturedAt: Instant = standard) =
         assertEquals(TemporalResolution.Unresolvable, resolve(expr, capturedAt), "expression: $expr")
 
+    /** Unknown phrases fall back to the capture's local day with no time (owner rule). */
+    private fun assertTodayDateOnly(expr: String, capturedAt: Instant = standard) =
+        assertEquals(
+            TemporalResolution.Resolved(at("2026-09-15T00:00-04:00"), TimePrecision.DATE_ONLY),
+            resolve(expr, capturedAt),
+            "expression: $expr",
+        )
+
     // ---- Rule 1: null / blank ----
 
     @Test
@@ -61,7 +69,8 @@ class TemporalResolverTest {
 
     @Test
     fun rule2_immediatePhrasesAreInferredNow() {
-        listOf("just now", "just", "now", "right now", "a moment ago", "just finished", "just did it")
+        listOf("just now", "just", "now", "right now", "a moment ago", "just finished", "just did it",
+            "Just now.", "JUST", "a minute ago", "a second ago", "moments ago", "just a moment ago")
             .forEach { assertResolved(standard, TimePrecision.INFERRED_NOW, it) }
     }
 
@@ -135,7 +144,7 @@ class TemporalResolverTest {
         assertResolved(at("2026-09-15T19:30-04:00"), approx, "half an hour ago")
         assertResolved(at("2026-09-15T18:00-04:00"), approx, "a couple of hours ago")
         assertResolved(at("2026-09-15T18:00-04:00"), approx, "around 2 hours ago")
-        assertResolved(at("2026-09-15T19:59-04:00"), approx, "a minute ago")
+        assertResolved(standard, TimePrecision.INFERRED_NOW, "a minute ago")
         assertResolved(at("2026-09-15T19:55-04:00"), approx, "five mins ago")
         assertResolved(at("2026-09-15T19:58-04:00"), approx, "a couple of minutes ago")
         assertResolved(at("2026-09-15T08:00-04:00"), approx, "twelve hours ago")
@@ -293,11 +302,31 @@ class TemporalResolverTest {
     // ---- Rule 14: unresolvable ----
 
     @Test
-    fun rule14_unresolvablePhrases() {
+    fun rule14_otherDayHintsStayUnresolvable() {
         listOf(
-            "9/1", "2026-09-01", "recently", "the other day", "earlier", "gibberish words",
-            "last month", "a few days ago", "several days ago", "a month ago", "last week",
+            "recently", "the other day", "earlier", "last month", "a few days ago", "several days ago",
+            "a month ago", "last week", "saturday brunch", "the other week", "before lunch",
+            "in march sometime", "two years back last year",
         ).forEach { assertUnresolvable(it) }
+    }
+
+    @Test
+    fun rule14_indicatorFreeUnknownPhrasesFallBackToTodayDateOnly() {
+        listOf("gibberish words", "about 30 minutes", "whenever", "for a bit")
+            .forEach { assertTodayDateOnly(it) }
+    }
+
+    @Test
+    fun modelPlaceholdersAreUnresolvable() {
+        listOf(
+            "unresolved", "UNRESOLVED", "unknown", "none", "null", "n/a", "N/A", "na", "undefined",
+            "unspecified", "not specified", "not given", "nothing", "Unresolved.",
+        ).forEach { assertUnresolvable(it) }
+    }
+
+    @Test
+    fun bareNumericDateOrClockLookingTextIsUnresolvable() {
+        listOf("9/1", "2026-09-01", "10:30", "at 3", "at 3:15").forEach { assertUnresolvable(it) }
     }
 
     // ---- TEST_STRATEGY section 5 ----
@@ -398,7 +427,7 @@ class TemporalResolverTest {
         "at 3pm", "at 7:30 am", "3 pm", "3 o'clock this afternoon", "8 this morning", "7:15 this evening",
         "9pm", "11:59 pm", "12 am", "12:05 am", "1:30 am", "at 3", "13pm",
         "tomorrow", "next week", "next Saturday", "later", "later today", "in 2 hours", "in an hour",
-        "9/1", "2026-09-01", "recently", "the other day", "earlier", "gibberish words", "last month",
+        "recently", "the other day", "earlier", "gibberish words", "last month",
         "a few days ago", "several days ago", "a month ago", "last week",
         "Yesterday.", "  this MORNING!  ",
     )

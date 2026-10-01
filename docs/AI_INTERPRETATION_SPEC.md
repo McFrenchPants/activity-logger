@@ -276,7 +276,8 @@ Resolution is implemented by the deterministic `TemporalResolver` in `core-domai
 - "N days ago" / "N weeks ago" -> that calendar date, `DATE_ONLY`
 - only an explicit clock time is `EXACT`; a hedged one ("about 3pm") is `APPROXIMATE`
 - future phrases (or any result after the capture instant) -> `Future`, and the interpretation needs review
-- phrases the resolver does not understand -> `Unresolvable`, and the interpretation needs review; no time is guessed
+- "just"/"just now"/"a minute ago" -> capture instant, `INFERRED_NOW`
+- phrases the resolver does not understand -> the capture's local day, `DATE_ONLY` (owner decision 2026-10-01); model non-answers, unparsed numeric dates, invalid values and phrases pointing at another past day stay `Unresolvable` and need review (see ADR-028 amendment)
 
 The resolved instant and precision are stored on the interpretation (`resolved_occurred_at`, `time_precision`) next to the verbatim `temporal_expression`.
 

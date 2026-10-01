@@ -19,7 +19,9 @@ import java.time.ZonedDateTime
  * - Never fabricates precision: calendar-level phrases are [TimePrecision.DATE_ONLY], fuzzy
  *   phrases [TimePrecision.APPROXIMATE], and only an explicit clock time is
  *   [TimePrecision.EXACT].
- * - Unknown phrases are [TemporalResolution.Unresolvable]; forward-looking phrases are
+ * - Unknown phrases fall back to the capture's local day ([TimePrecision.DATE_ONLY]); explicit
+ *   but invalid values and punctuation-only text are [TemporalResolution.Unresolvable];
+ *   forward-looking phrases are
  *   [TemporalResolution.Future]. A final guard guarantees no Resolved result is after
  *   `capturedAt`.
  *
@@ -38,12 +40,25 @@ class TemporalResolver {
             // Punctuation-only text is not "no time given"; don't treat it as now.
             return TemporalResolution.Unresolvable
         }
+        // A model placeholder ("UNRESOLVED", "n/a") is a non-answer, not user wording: needs review.
+        if (normalized in PLACEHOLDERS || expression.trim().lowercase(java.util.Locale.ROOT) in PLACEHOLDERS) {
+            return TemporalResolution.Unresolvable
+        }
         val context = Context(capturedAt, zoneId)
         for (rule in RULES) {
             val match = rule.matcher.matchEntire(normalized) ?: continue
             return guard(soften(rule.resolve(match, context), hedged), capturedAt)
         }
-        return TemporalResolution.Unresolvable
+        // A bare numeric date/clock-looking value we could not parse is explicit but unusable.
+        if (NUMERIC_LOOKING.matches(normalized) || NUMERIC_LOOKING.matches(expression.trim().lowercase(java.util.Locale.ROOT))) {
+            return TemporalResolution.Unresolvable
+        }
+        // A phrase pointing at some other past day must not silently log as today: needs review.
+        if (OTHER_DAY_INDICATORS.containsMatchIn(normalized)) {
+            return TemporalResolution.Unresolvable
+        }
+        // Owner rule: if the time cannot be told, log it for the capture's local day with no time.
+        return TemporalResolution.Resolved(context.startOf(context.today), TimePrecision.DATE_ONLY)
     }
 
     /** "about 3pm" names a clock time but not an exact one (ADR-018). */
@@ -87,6 +102,14 @@ class TemporalResolver {
     }
 
     private companion object {
+        private val PLACEHOLDERS = setOf(
+            "unresolved", "unknown", "none", "null", "n/a", "na", "undefined", "unspecified",
+            "not specified", "not given", "nothing",
+        )
+
+        /** Digits with / - : separators, or "at <digit>..." : looks like an explicit date/time. */
+        private val NUMERIC_LOOKING = Regex("[0-9/:.-]*[0-9][0-9/:.-]*|at [0-9].*")
+
         private val LEADING_FILLERS = listOf("on ", "at ", "about ", "around ", "approximately ")
         private val HEDGES = setOf("about ", "around ", "approximately ")
 
@@ -115,6 +138,25 @@ class TemporalResolver {
         }
         private val MONTH_ALT = MONTHS.keys.sortedByDescending { it.length }.joinToString("|")
         private const val DAY = "(\\d{1,2})(?:st|nd|rd|th)?"
+
+        private val WEEKDAYS_FOR_HINTS = listOf(
+            "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+            "mon", "tue", "tues", "wed", "thu", "thur", "thurs", "fri", "sat", "sun",
+        )
+        private val MONTH_NAMES_FOR_HINTS = listOf(
+            "january", "february", "march", "april", "may", "june", "july", "august",
+            "september", "october", "november", "december",
+            "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "sept", "oct", "nov", "dec",
+        )
+
+        /** Whole-word hints that an unparsed phrase names a different (past) day. */
+        private val OTHER_DAY_INDICATORS: Regex = run {
+            val words = listOf(
+                "ago", "last", "previous", "yesterday", "earlier", "recently", "before",
+                "other day", "weeks?", "months?", "years?", "days?",
+            ) + WEEKDAYS_FOR_HINTS + MONTH_NAMES_FOR_HINTS
+            Regex("\\b(?:" + words.joinToString("|") + ")\\b")
+        }
 
         private val WEEKDAYS: Map<String, DayOfWeek> =
             DayOfWeek.values().associateBy { it.name.lowercase(java.util.Locale.ROOT) }
@@ -206,7 +248,12 @@ class TemporalResolver {
 
         private val RULES: List<PhraseRule> = listOf(
             // 2. Immediate past.
-            PhraseRule(Regex("just now|just|now|right now|a moment ago|just finished|just did it")) { _, ctx ->
+            PhraseRule(
+                Regex(
+                    "just now|just|now|right now|just finished|just did it|" +
+                        "(?:just )?(?:a )?(?:moment|minute|second) ago|moments ago",
+                ),
+            ) { _, ctx ->
                 resolved(ctx.now, TimePrecision.INFERRED_NOW)
             },
             // 3. Yesterday part-of-day.
@@ -279,7 +326,7 @@ class TemporalResolver {
             PhraseRule(Regex("in (?:\\d{1,3}|$WORD_NUMBER|an|a|a couple(?: of)?|half an) .+")) { _, _ ->
                 TemporalResolution.Future
             },
-            // 14. Everything else falls through to Unresolvable.
+            // 14. Everything else falls through to the capture's local day (DATE_ONLY).
         )
     }
 }

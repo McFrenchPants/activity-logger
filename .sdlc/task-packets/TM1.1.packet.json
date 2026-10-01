@@ -1,0 +1,52 @@
+{
+  "task_id": "TM1.1",
+  "plan_revision": "tm1",
+  "objective": "Two owner-decided time rules (owner, 2026-10-01). (A) 'just' means now: in core-domain TemporalResolver add phrase rules (before the catch-all) so that 'just now', 'just', 'right now', 'a moment ago', 'a minute ago', 'a second ago', 'moments ago', 'just a moment ago' (case/punctuation-insensitive via the existing normalizer; also 'just' as the whole expression) resolve to Resolved(capturedAt, INFERRED_NOW). (B) Unknown time phrase must not need review: when no rule matches an otherwise non-blank expression, return Resolved(start of the capture's local day, DATE_ONLY) (reuse the same helper/anchor the 'today' rule uses) instead of Unresolvable -- the owner wants 'if it cannot tell: log for the current day, no time'. Keep Unresolvable ONLY for punctuation-only/empty-after-normalization text and for explicit-but-invalid calendar/clock values (e.g. Feb 30, 13pm, nonexistent DST local time) -- those still need review. Future phrases stay Future (review). Update TemporalResolverTest: unknown phrases (e.g. 'about 30 minutes', 'whenever', 'the other week') now give DATE_ONLY today; 'just' variants give INFERRED_NOW; invalid explicit dates remain Unresolvable; fix any other core-domain test (InterpretationValidatorTest, orchestrator tests) whose expectation changes -- validator code itself needs no change (Unresolvable still maps to TIME_UNRESOLVABLE). (C) core-ai prompt: in InterpretationPrompt.kt change the rule 'Copy the user's time wording...' area so the model puts in temporalExpression ONLY words saying WHEN the activity happened (yesterday, this morning, at 3pm, just now, last Tuesday), never a DURATION or amount ('for 30 minutes', 'about 40 minutes' are NOT time wording; leave temporalExpression empty), and add a worked example: \\\"I just walked the dogs for about 30 minutes\\\" -> time wording \\\"just now\\\" (duration ignored). Keep 'Just finished mowing' example consistent (time wording 'just now'). Also add to INTERPRETATION_SYSTEM_INSTRUCTION nothing unless needed. Bump PROMPT_VERSION from \\\"2\\\" to \\\"3\\\", update the drift-guard fixture in InterpretationPromptDriftTest and the version assertion, and any test asserting the version/prompt text. Do not run or edit the on-device semantic corpus runner.",
+  "non_goals": [
+    "No schema/Room change.",
+    "Do not touch app-phone, app-wear, core-data, core-wear-protocol, core-speech.",
+    "Do not change InterpretationValidator logic or the confidence policy.",
+    "No logging; no capture text in messages (AGENTS.md #11).",
+    "Do not edit docs (the orchestrator updates them)."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "core-domain/**",
+    "core-ai/**",
+    "core-testing/**",
+    "AGENTS.md",
+    "docs/AI_INTERPRETATION_SPEC.md",
+    "docs/DECISIONS.md",
+    "gradle/libs.versions.toml"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/TemporalResolver.kt",
+    "core-domain/src/test/**",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/InterpretationPrompt.kt",
+    "core-ai/src/test/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-phone/**",
+    "app-wear/**",
+    "core-data/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "gradle/libs.versions.toml"
+  ],
+  "acceptance_criteria": [
+    "'just'/'just now'/'a moment ago'-style phrases resolve to the capture instant with INFERRED_NOW.",
+    "Unknown non-blank time phrases resolve to the capture's local date, DATE_ONLY, and no longer produce TIME_UNRESOLVABLE review.",
+    "Invalid explicit dates/times and punctuation-only text remain Unresolvable; future phrases remain Future.",
+    "Prompt tells the model durations are not time wording, includes the 'just walked the dogs for about 30 minutes' example, PROMPT_VERSION is \"3\" and drift-guard fixture updated.",
+    "./gradlew :core-domain:test :core-ai:testDebugUnitTest (or equivalent) and ./gradlew test pass."
+  ],
+  "verification_commands": [
+    "./gradlew test"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
