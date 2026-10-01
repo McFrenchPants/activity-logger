@@ -19,6 +19,24 @@ Registered in `.sdlc/state.json` as TG1.
 
 ## Session log
 
+### 2026-10-01 — first DEVICE tag recording (Pixel 10 Pro, in-app runner)
+Owner ran the debug "AI test set" screen and shared the file via Drive; imported with
+`import-tag-recording.sh` (72/72 answered, 27 busy retries). Throwaway scorer (subject/action
+only; time/duration not scored): CORRECT 51, NAMING 4, SAFE_MISS 5, UNSAFE 12, FAILED 0.
+REAL_ENTRY: 0 unsafe (v3 device: 9 of 15 wrong); 2 safe misses (furnace/hot tub filter split as
+"X filter / change" -> CONFIRM), Durango -> "headlight / replace" (NAMING; speech-error subject
+lost). UNSAFE (11 ported + 1 sibling), all silent duplicates: inflected verbs ("cleaning",
+"cleaned", "edging" x3); subject = action gerund ("edging / edging"); subject = action's object
+with real subject dropped ("filter / change filter" for the hot tub -- single-pair inference
+would wrongly pick furnace, so must NOT infer there); head verb + extra words ("blow off
+driveway" vs blow); synonyms (cut/mow, grass/lawn, swap|replace / replace filter, HVAC/air
+filter -> "filter", clear leaves/clean). NEW finding, not in the scratch score: time/duration
+hallucination -- "Spent 40 minutes mowing the lawn" -> time "yesterday"; "Mowed about an hour
+ago" -> duration "for an hour". Plan: TG1.4 scorer (incl. time/duration) first, then TG1.4b
+fixes (stemming, re-split, junk subjects, head-verb near, small synonym list producing CONFIRM
+only, grounding check that time/duration words appear in the raw text) measured by replay;
+deterministic fixes need no new phone run.
+
 ### 2026-10-01 — TG1.4a done (no verifier: debug-only, no persistence/auth/release)
 Debug source set only: `debugtools/TagCorpusRun` (same fast-refusal backoff as the
 instrumented recorder), `TagCorpusRunnerActivity` + stateless screen (launcher label "AI test
