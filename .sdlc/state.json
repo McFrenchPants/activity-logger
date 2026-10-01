@@ -964,8 +964,8 @@
         {
           "id": "WC1.5",
           "title": "Wire watch UI to outbox and transport (split into 5a/5b)",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "implemented",
           "dependencies": [
             "WC1.2",
             "WC1.3b",
@@ -1018,8 +1018,8 @@
         {
           "id": "WC1.5b",
           "title": "Android wiring: Data Layer transport, ack listener, deferred retry, MainActivity",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "implemented",
           "dependencies": [
             "WC1.5a"
           ],
@@ -1028,9 +1028,9 @@
             "run_id": null,
             "attempt_count": 0
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/WC1.5b.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Verifier pass, no blocking. Data Layer transport, ack listener service, AlarmManager retry (ADR-037), CaptureRuntime holder, MainActivity on outbox. Compile-verified only; on-device in WC1.6."
         }
       ]
     }

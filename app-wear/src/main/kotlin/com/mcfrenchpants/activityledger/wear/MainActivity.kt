@@ -18,14 +18,14 @@ import com.mcfrenchpants.activityledger.wear.capture.CaptureScreen
 import com.mcfrenchpants.activityledger.wear.capture.CaptureSessionController
 import com.mcfrenchpants.activityledger.wear.capture.CaptureUiState
 import com.mcfrenchpants.activityledger.wear.capture.HapticPlayer
-import com.mcfrenchpants.activityledger.wear.capture.PlaceholderCaptureSink
 import com.mcfrenchpants.activityledger.wear.capture.UnavailableReason
 import com.mcfrenchpants.activityledger.wear.capture.VibratorHapticPlayer
 import com.mcfrenchpants.activityledger.wear.capture.hapticOnTransition
 import kotlinx.coroutines.launch
 
 /**
- * Opens straight into listening. Captures go to a placeholder sink until WC1.5 wires the outbox.
+ * Opens straight into listening. Finished transcripts go to the durable outbox; phone acks reach
+ * the screen through the runtime's ack flow.
  *
  * The real ambient-mode callback is deferred to WC1.6; until then the screen is always told
  * `ambient = false`.
@@ -51,11 +51,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val runtime = (application as WatchApplication).runtime
+        runtime.ensureStarted()
         controller = CaptureSessionController(
             transcriber = PlatformSpeechTranscriber.preferringOffline(this),
-            sink = PlaceholderCaptureSink(),
+            sink = runtime.newSink(),
             scope = lifecycleScope,
         )
+        lifecycleScope.launch {
+            runtime.acks.collect { controller.onAck(it) }
+        }
         haptics = VibratorHapticPlayer(this)
         lifecycleScope.launch {
             var previous: CaptureUiState? = null

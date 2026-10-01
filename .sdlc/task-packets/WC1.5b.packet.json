@@ -1,0 +1,60 @@
+{
+  "task_id": "WC1.5b",
+  "plan_revision": "wc1",
+  "objective": "Wire the watch app's already-built, JVM-tested send engine (OutboxCaptureSink, OutboxSender, AckHandler, CaptureTransport, Outbox/FileOutboxStore - all exist, read them) to Android. Package com.mcfrenchpants.activityledger.wear (and .capture). NO new Gradle dependency (do not use kotlinx-coroutines-play-services or WorkManager; bridge Play Services Task with suspendCancellableCoroutine + addOnSuccessListener/addOnFailureListener, like app-phone's WatchCaptureListenerService does for sendMessage). Never log anything; no transcript text in any exception/log.\n\n1. DataLayerCaptureTransport(context): CaptureTransport. send(): PutDataMapRequest.create(capturePath(captureId)); dataMap.putString(CAPTURE_DATA_KEY, envelopeJson); dataMap.putLong(CAPTURE_ATTEMPT_KEY, attempt); asPutDataRequest().setUrgent(); DataClient.putDataItem -> success = DELIVERED_TO_LINK; ApiException/any other failure = TRANSIENT_FAILURE (rethrow CancellationException). retract(): DataClient.deleteDataItems(Uri.Builder().scheme(PutDataRequest.WEAR_URI_SCHEME).path(capturePath(id)).build()); swallow every non-cancellation exception.\n2. CaptureRuntime (plain Kotlin holder, one per process, created lazily by the Application): FileOutboxStore(File(filesDir,\"outbox\")), Outbox (check its real constructor; clock = System::currentTimeMillis), OutboxSender, AckHandler, an app-scoped CoroutineScope(SupervisorJob()+Dispatchers.Default), a MutableSharedFlow<CaptureAck>(extraBufferCapacity=16) named acks that AckHandler's onAck emits to (tryEmit), fun wake() which launches ONE serialized drain at a time (a wake during a drain must cause exactly one more pass, never be lost, never run concurrently) and after each drain schedules the retry alarm from drain()'s returned time (null cancels the alarm), and fun ensureStarted() (idempotent) that calls outbox.recoverOnStart() once and then wake(). fun newSink(): CaptureSink returning OutboxCaptureSink(outbox, UUID.randomUUID().toString(), System::currentTimeMillis, onEnqueued = ::wake).\n3. Deferred retry WITHOUT a new dependency (the orchestrator records this as ADR-037): RetryScheduler using AlarmManager.setAndAllowWhileIdle (inexact, no SCHEDULE_EXACT_ALARM permission) with a PendingIntent (FLAG_IMMUTABLE|FLAG_UPDATE_CURRENT) to a manifest-declared, NON-exported RetryAlarmReceiver : BroadcastReceiver whose onReceive does goAsync(), calls runtime.ensureStarted()/wake(), and finishes the pending result. Schedule at max(time, now+1s). One alarm id; rescheduling replaces it; null cancels it.\n4. WatchApplication : Application exposing val runtime by lazy { CaptureRuntime(this) }; register via android:name on the manifest <application>.\n5. CaptureAckListenerService : WearableListenerService (release manifest, exported=true, MESSAGE_RECEIVED intent-filter with data scheme=\"wear\" host=\"*\" and path exactly \"/capture-ack\" (android:path)): onMessageReceived for event.path == CAPTURE_ACK_PATH calls runtime.ensureStarted() then runBlocking { runtime.ackHandler.onAckMessage(event.data) }; never throw out of the callback (catch Exception, no logging).\n6. MainActivity: replace PlaceholderCaptureSink with runtime.newSink(); call runtime.ensureStarted() in onCreate; collect runtime.acks in lifecycleScope and forward each to controller.onAck; keep everything else (permission flow, haptics, ambient=false). Update the KDoc that mentions the placeholder. DELETE PlaceholderCaptureSink.kt.\n7. Discard-FAILED path with no new UI: in OutboxCaptureSink, when outbox.enqueue returns Full, discard the OLDEST FAILED record and retry the enqueue ONCE; if still not Enqueued throw the same fixed-message IllegalStateException as today. Never discard a non-FAILED record. If no existing Outbox API exposes the records, add a small thread-safe Outbox.discardOldestFailed(): Boolean in core-wear-protocol (additive only). JVM tests: Full with a FAILED record -> succeeds and the oldest FAILED is gone; Full with no FAILED -> throws and nothing is discarded.\n8. Manifest: keep the INTERNET/ACCESS_NETWORK_STATE removals and existing permissions unchanged. Do not touch src/debug.\n9. Tests: extract the single-flight wake logic behind small interfaces (e.g. a Scheduler interface and a drain function) so a JVM test proves: a wake during a drain causes exactly one more pass; drains never overlap; scheduler receives the returned time; null cancels. The Android classes themselves (transport, alarm, services) are verified by compiling; WC1.6 does the on-device pass.",
+  "non_goals": [
+    "No WorkManager or any new dependency; no change to gradle/libs.versions.toml or any build.gradle.kts.",
+    "No change to the wire format, to the phone app, or to any existing Outbox behaviour other than the additive discardOldestFailed.",
+    "No new UI screens or new strings; no ambient-mode work (WC1.6).",
+    "No logging and no transcript text anywhere outside the envelope itself."
+  ],
+  "dependencies": ["WC1.5a"],
+  "read_paths": [
+    "core-wear-protocol/**",
+    "app-wear/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/wear/WatchCaptureListenerService.kt",
+    "app-phone/src/main/AndroidManifest.xml",
+    "AGENTS.md",
+    "docs/WATCH_SPEC.md",
+    "docs/proposals/watch-capture/DESIGN_SPEC.md"
+  ],
+  "write_paths": [
+    "core-wear-protocol/src/main/**",
+    "core-wear-protocol/src/test/**",
+    "app-wear/src/main/**",
+    "app-wear/src/test/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-phone/**",
+    "core-ai/**",
+    "core-data/**",
+    "core-domain/**",
+    "core-testing/**",
+    "core-speech/**",
+    "gradle/**",
+    "**/build.gradle.kts",
+    "app-wear/src/debug/**",
+    "app-wear/src/androidTest/**"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew test` and `./gradlew :app-wear:assembleDebug :app-wear:assembleRelease :app-phone:assembleDebug` pass; no pre-existing test changed except to follow PlaceholderCaptureSink's removal.",
+    "MainActivity feeds finished transcripts to the durable outbox (OutboxCaptureSink) and phone acks reach the screen controller via the ack listener service; PlaceholderCaptureSink no longer exists.",
+    "Every DataItem put carries CAPTURE_DATA_KEY = envelope JSON and a CAPTURE_ATTEMPT_KEY long equal to the `attempt` argument; items are deleted by retract; the transport never throws except cancellation.",
+    "Outbox.recoverOnStart runs once per process before the first drain; a wake during a drain is never lost and drains never run concurrently (JVM-tested).",
+    "A retry alarm is scheduled from drain()'s returned time and cancelled when null, using AlarmManager only (no new dependency, no exact-alarm permission); the receiver is not exported.",
+    "Release merged manifest still has INTERNET and ACCESS_NETWORK_STATE removed; the ack service is declared with a path filter for exactly /capture-ack and is not in src/debug.",
+    "When the outbox is full, only the oldest FAILED record is discarded to make room; non-FAILED records are never discarded; tests cover both cases.",
+    "No logging calls, no new dependency, no transcript text in exception messages or toString; no file outside write_paths changed."
+  ],
+  "verification_commands": [
+    "./gradlew :core-wear-protocol:test :app-wear:testDebugUnitTest",
+    "./gradlew test",
+    "./gradlew :app-wear:assembleDebug :app-wear:assembleRelease :app-phone:assembleDebug"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

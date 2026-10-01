@@ -37,7 +37,12 @@ class OutboxCaptureSink(
                 .ifEmpty { null },
         )
         val result = try {
-            outbox.enqueue(envelope)
+            var first = outbox.enqueue(envelope)
+            // Full: make room by dropping the oldest FAILED record (never any other state), once.
+            if (first == EnqueueResult.Full && outbox.discardOldestFailed()) {
+                first = outbox.enqueue(envelope)
+            }
+            first
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (e: Exception) {

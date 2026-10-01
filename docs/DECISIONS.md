@@ -569,3 +569,15 @@ The owner's original wish was "do as much as possible offline". That grew, acros
 **Unchanged.** Interpretation stays on the phone's on-device model (Gemini Nano) — that is an architecture choice, not a privacy rule. Core capture must still work when there is no connection where the platform engine allows it, but a failure for lack of a network is an ordinary failure, not a policy matter. The `INTERNET` permission stripping (ADR-025) is left as is: the app itself makes no network calls; the system speech service does its own. If a feature ever needs the app to use the network directly, that is a new decision. No telemetry or logging of captured text is added (a separate engineering habit, not a privacy ban).
 
 **Supersedes** the privacy wording in ADR-005/ADR-024/ADR-025/ADR-035 and AGENTS.md "Do not transmit captured activity text off-device" as far as speech recognition is concerned.
+
+## ADR-037 — Watch retries use a plain system alarm, not WorkManager
+
+**Status:** Accepted (developer decision, 2026-10-01)
+
+The watch must resend a capture later when the phone was unreachable or an acknowledgement was lost (design spec R8: no polling, no long-running service). WorkManager would be a new library for one narrow need.
+
+**Decision.** After every send pass the watch arms one inexact `AlarmManager.setAndAllowWhileIdle` alarm at the time the outbox says it must next act (cancelled when nothing is pending). It fires a non-exported broadcast receiver that runs one more pass. No exact-alarm permission and no new dependency. Phone acknowledgements wake the app through the Data Layer listener service, and opening the app also runs recovery and a pass.
+
+**Consequence.** Doze may delay a retry by minutes; acceptable for a note-taking flow. If device testing (WC1.6) shows retries are too slow or unreliable, revisit with WorkManager.
+
+**Also decided (WC1.5b).** When the watch outbox is full, the oldest FAILED capture is discarded to make room for a new one; non-failed captures are never discarded. There is no watch screen for reviewing failed captures (design spec non-goal).

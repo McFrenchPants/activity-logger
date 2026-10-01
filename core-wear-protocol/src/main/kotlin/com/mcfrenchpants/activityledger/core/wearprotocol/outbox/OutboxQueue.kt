@@ -109,6 +109,16 @@ class Outbox(
     @Synchronized
     fun discard(captureId: String): Boolean = store.remove(captureId)
 
+    /**
+     * Deletes the oldest FAILED record to make room. Never touches any other state. Returns true
+     * if a record was removed.
+     */
+    @Synchronized
+    fun discardOldestFailed(): Boolean {
+        val oldest = store.listAll().firstOrNull { it.state == OutboxState.FAILED } ?: return false
+        return store.remove(oldest.captureId)
+    }
+
     /** Turns every record left in SENDING (process died mid-send) into RETRYABLE, due now. */
     @Synchronized
     fun recoverOnStart(): Int {
