@@ -125,7 +125,10 @@ class InMemoryActivityRepository(private val clock: Clock) : ActivityRepository 
     }
 
     override suspend fun createRawCapture(capture: NewRawCapture): String {
-        val id = nextId("capture")
+        val supplied = capture.id
+        require(supplied == null || supplied.isNotBlank()) { "supplied raw capture id must not be blank" }
+        if (supplied != null && captures.containsKey(supplied)) return supplied
+        val id = supplied ?: nextId("capture")
         captures[id] = Capture(capture, capture.processingState, clock.instant())
         writeCount++
         return id

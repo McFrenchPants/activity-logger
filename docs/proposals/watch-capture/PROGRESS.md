@@ -13,12 +13,16 @@ sdlc-tracked as `WC1`.
 |---|---|---|---|
 | WC1.1 | Protocol module: envelope, ack, state machine | done | Spot-check. 16 JVM tests; max text 4096 chars, 5 alternatives. NEEDS_REVIEW maps to non-terminal PROCESSED: WC1.2 must treat PROCESSED as complete/removable. WC1.3 must pin SOURCE_WATCH_VOICE == CaptureSource.WATCH_VOICE.name with a test |
 | WC1.2 | Watch outbox (durable queue + retry) | done | Verifier pass, no blocking issues. Pure JVM in core-wear-protocol/outbox: FileOutboxStore (atomic temp+move), Outbox, OutboxPolicy (5s,30s,2m,10m,30m,1h cap, never permanent), cap 200 no eviction. 18 new tests. Follow-ups for WC1.4/1.5: PHONE_RECEIVED is never due, so a lost SAVED/NEEDS_REVIEW ack leaves a stuck pending item (no data loss; add staleness resend with same captureId); markSendStarted result must be checked by the sender; UI must let owner discard FAILED (they count toward cap) |
-| WC1.3 | Phone receiver, idempotent, acks | todo | Verifier tier |
+| WC1.3 | Repository: caller-supplied capture id (idempotent receive) | done | Verifier pass. NewRawCapture.id (nullable); Room does exists-check+insert in one transaction; no schema change; InMemory mirrors. Watch captureId becomes the raw capture id |
+| WC1.3b | Phone receiver (WearableListenerService, idempotent processing, ack) | todo | Verifier tier. Must pin SOURCE_WATCH_VOICE == CaptureSource.WATCH_VOICE.name; check getCapture(id) first and ack from state instead of reprocessing; send ack; no logging |
 | WC1.4 | Watch recognizer adapter + UI states + haptics + no-silent-network guard | todo | |
 | WC1.5 | Wire UI to outbox and transport; end-to-end fake test | todo | |
 | WC1.6 | Device pass and documentation | todo | Needs phone + watch online |
 
 ## Session log
+
+### 2026-10-01 - WC1.3 done
+Split the phone side in two: WC1.3 (repository idempotent on supplied id) done; WC1.3b (listener + ack) next.
 
 ### 2026-10-01 - WC1.2 done
 Watch outbox built and verified (see table). Next: WC1.3 (phone receiver).

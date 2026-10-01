@@ -69,6 +69,9 @@ data class ActivityView(
  * @property sourceSurface Optional finer-grained origin (e.g. a specific entry point).
  * @property zoneId The IANA zone at capture time.
  * @property speechAlternativesJson Alternative speech hypotheses, as JSON, if any.
+ * @property id When non-null, becomes the raw capture's id (used for the watch captureId, so
+ *   phone processing is idempotent on captureId); must be non-blank. When null the repository
+ *   generates an id.
  */
 data class NewRawCapture(
     val source: CaptureSource,
@@ -79,6 +82,7 @@ data class NewRawCapture(
     val speechConfidence: Double?,
     val speechAlternativesJson: String?,
     val processingState: ProcessingState,
+    val id: String? = null,
 )
 
 /** Which canonical activity an occurrence should belong to. */

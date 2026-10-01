@@ -15,7 +15,8 @@ transition function (illegal edges refused, duplicate ack idempotent). Full
 objective and acceptance criteria are in `.sdlc/task-packets/WC1.1.packet.json`.
 
 ## WC1.2 - Watch outbox (durable queue + retry policy) - verifier tier
-## WC1.3 - Phone receiver (Data Layer listener -> existing pipeline, idempotent, ack) - verifier tier
+## WC1.3 - Repository accepts caller-supplied capture id, idempotent (done) - verifier tier
+## WC1.3b - Phone receiver (Data Layer listener -> existing pipeline, idempotent, ack) - verifier tier
 ## WC1.4 - Watch recognizer adapter + UI states + haptics + no-silent-network guard
 ## WC1.5 - Wire watch UI to outbox and transport; end-to-end fake test
 ## WC1.6 - Device pass (Pixel 10 Pro + OnePlus Watch 3) and documentation

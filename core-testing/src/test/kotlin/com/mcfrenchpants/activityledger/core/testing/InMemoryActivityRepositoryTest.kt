@@ -41,6 +41,33 @@ class InMemoryActivityRepositoryTest {
         at: Instant = captured,
     ) = NewRawCapture(CaptureSource.PHONE_TEXT, null, at, ZoneId.of("America/Detroit"), text, null, null, state)
 
+    @Test
+    fun suppliedCaptureIdIsUsedAndRepeatWritesNothing() = runSuspend {
+        val id = repo.createRawCapture(capture("first words").copy(id = "watch-1"))
+        assertEquals("watch-1", id)
+        val writes = repo.writeCount
+        val again = repo.createRawCapture(capture("other words").copy(id = "watch-1"))
+        assertEquals("watch-1", again)
+        assertEquals(writes, repo.writeCount)
+        assertEquals("first words", repo.getCapture("watch-1")?.rawText)
+    }
+
+    @Test
+    fun blankSuppliedCaptureIdIsRefusedWithoutEchoingText() = runSuspend {
+        val e = assertFailsWith<IllegalArgumentException> {
+            repo.createRawCapture(capture("synthetic secret words").copy(id = " "))
+        }
+        assertTrue("synthetic secret words" !in e.message.orEmpty())
+        assertEquals(0, repo.writeCount)
+    }
+
+    @Test
+    fun nullCaptureIdStillGeneratesDistinctIds() = runSuspend {
+        val a = repo.createRawCapture(capture())
+        val b = repo.createRawCapture(capture())
+        assertTrue(a != b)
+    }
+
     private fun record(
         matched: String? = null,
         status: ValidationStatus = ValidationStatus.VALID,

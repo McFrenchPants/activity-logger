@@ -56,24 +56,33 @@ internal class RoomActivityRepository(
     private val writer = ActivityLedgerWriter(database, idFactory)
 
     override suspend fun createRawCapture(capture: NewRawCapture): String = io {
-        val id = idFactory.newId()
+        val supplied = capture.id
+        require(supplied == null || supplied.isNotBlank()) { "supplied raw capture id must not be blank" }
+        val id = supplied ?: idFactory.newId()
         val now = clock.millis()
-        database.rawCaptureDao().insert(
-            RawCaptureEntity(
-                id = id,
-                source = capture.source,
-                sourceSurface = capture.sourceSurface,
-                capturedAt = capture.capturedAt.toEpochMilli(),
-                capturedZoneId = capture.zoneId.id,
-                rawText = capture.rawText,
-                speechConfidence = capture.speechConfidence,
-                speechAlternativesJson = capture.speechAlternativesJson,
-                processingState = capture.processingState,
-                createdAt = now,
-                updatedAt = now,
-            ),
-        )
-        id
+        // Exists-check and insert share one transaction, so concurrent deliveries of the same
+        // id serialize: the second sees the first's row and writes nothing.
+        database.runInTransaction<String> {
+            val dao = database.rawCaptureDao()
+            if (supplied == null || dao.getById(id) == null) {
+                dao.insert(
+                    RawCaptureEntity(
+                        id = id,
+                        source = capture.source,
+                        sourceSurface = capture.sourceSurface,
+                        capturedAt = capture.capturedAt.toEpochMilli(),
+                        capturedZoneId = capture.zoneId.id,
+                        rawText = capture.rawText,
+                        speechConfidence = capture.speechConfidence,
+                        speechAlternativesJson = capture.speechAlternativesJson,
+                        processingState = capture.processingState,
+                        createdAt = now,
+                        updatedAt = now,
+                    ),
+                )
+            }
+            id
+        }
     }
 
     override suspend fun getCapture(id: String): StoredCapture? = io {

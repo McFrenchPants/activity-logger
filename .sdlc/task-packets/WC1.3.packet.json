@@ -1,0 +1,58 @@
+{
+  "task_id": "WC1.3",
+  "plan_revision": "wc1",
+  "objective": "Make raw-capture creation idempotent on a caller-supplied id, so the phone can use the watch's captureId AS the raw capture's primary key (no schema change, no migration). (1) core-domain `NewRawCapture` (RepositoryTypes.kt): add a LAST constructor property `val id: String? = null` (default keeps every existing call site compiling) with KDoc: when non-null it becomes the raw capture's id (used for the watch captureId, ARCHITECTURE 'phone processing is idempotent on captureId'); must be non-blank. (2) `ActivityRepository.createRawCapture` contract (KDoc in ActivityRepository.kt only; signature unchanged, still returns the id): if `capture.id` is supplied and a raw capture with that id ALREADY EXISTS, return that id and write NOTHING -- the stored capture is never overwritten or altered (raw captures are immutable, ADR-007 / AGENTS.md #4), even if the text differs; a blank supplied id throws IllegalArgumentException with a payload-free message (never include rawText). When id is null, behaviour is exactly unchanged (idFactory id). (3) `RoomActivityRepository.createRawCapture` (core-data): honour the supplied id; do the exists-check and the insert inside ONE database transaction so two concurrent deliveries of the same captureId cannot both insert or surface a constraint crash (the DAO insert is ABORT-on-conflict: keep it, do not change RawCaptureDao to REPLACE/IGNORE and do not add any update path to the DAO). createdAt/updatedAt of an existing row are untouched. (4) `InMemoryActivityRepository` (core-testing) mirrors the same semantics. (5) Tests: core-data new test file `core-data/src/test/kotlin/com/mcfrenchpants/activityledger/core/data/repository/RawCaptureSuppliedIdTest.kt` (follow RoomActivityRepositoryTest's Robolectric/inMemoryTestDatabase pattern): supplied id is stored as the row id; second create with same id returns same id, row count stays 1, original rawText/createdAt/updatedAt/processingState unchanged even when second call has different text; two concurrent createRawCapture calls with the same id yield exactly one row and no exception; blank id refused with message not containing the text; null id still generates distinct ids. Add the equivalent cases to core-testing `InMemoryActivityRepositoryTest.kt`. Run the existing suites to prove no regression.",
+  "non_goals": [
+    "No Room schema change, no migration, no new column, no schema JSON change (git must show no change under any schemas/ directory).",
+    "Do not change RawCaptureDao, any other DAO, or add any update/delete path for raw captures.",
+    "No phone receiver, Data Layer or Android service code (that is WC1.3b).",
+    "Do not touch app-phone, app-wear, core-wear-protocol, core-ai, core-speech or docs.",
+    "No logging; no raw text in exception messages (AGENTS.md #11)."
+  ],
+  "dependencies": ["WC1.1"],
+  "read_paths": [
+    "core-domain/**",
+    "core-data/**",
+    "core-testing/**",
+    "AGENTS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/WATCH_SPEC.md",
+    "docs/proposals/watch-capture/DESIGN_SPEC.md",
+    "gradle/libs.versions.toml"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/RepositoryTypes.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/ActivityRepository.kt",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/repository/RoomActivityRepository.kt",
+    "core-data/src/test/kotlin/com/mcfrenchpants/activityledger/core/data/repository/RawCaptureSuppliedIdTest.kt",
+    "core-testing/src/main/kotlin/com/mcfrenchpants/activityledger/core/testing/InMemoryActivityRepository.kt",
+    "core-testing/src/test/kotlin/com/mcfrenchpants/activityledger/core/testing/InMemoryActivityRepositoryTest.kt"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-phone/**",
+    "app-wear/**",
+    "core-ai/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "core-data/schemas/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/**",
+    "gradle/libs.versions.toml"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew :core-domain:test :core-data:testDebugUnitTest :core-testing:test` (or the repo's equivalent) and `./gradlew test` pass.",
+    "No schema/migration change: no file under core-data/schemas or db/ changed.",
+    "Supplied id becomes the raw capture id; a repeat with the same id writes nothing and returns the same id, leaving text, timestamps and state untouched (also when the repeat has different text).",
+    "Concurrent same-id creates produce one row and no exception.",
+    "Blank supplied id is refused without echoing raw text; null id behaves exactly as before.",
+    "RawCaptureDao unchanged (still ABORT insert, no update/delete); no logging; no raw text in exception messages."
+  ],
+  "verification_commands": [
+    "./gradlew test"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

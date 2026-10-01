@@ -896,11 +896,28 @@
         },
         {
           "id": "WC1.3",
-          "title": "Phone receiver",
+          "title": "Repository: caller-supplied capture id (idempotent receive)",
+          "status": "done",
+          "lifecycle_state": "implemented",
+          "dependencies": [
+            "WC1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/WC1.3.packet.json",
+          "report_path": null,
+          "notes": "Verifier pass, no blocking. Watch captureId becomes raw capture id; no schema change."
+        },
+        {
+          "id": "WC1.3b",
+          "title": "Phone receiver (listener, idempotent processing, ack)",
           "status": "todo",
           "lifecycle_state": "planned",
           "dependencies": [
-            "WC1.1"
+            "WC1.3"
           ],
           "lease": {
             "assigned_agent": null,
@@ -935,7 +952,7 @@
           "lifecycle_state": "planned",
           "dependencies": [
             "WC1.2",
-            "WC1.3",
+            "WC1.3b",
             "WC1.4"
           ],
           "lease": {

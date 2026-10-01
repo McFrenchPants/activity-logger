@@ -29,7 +29,16 @@ import java.time.Instant
  * - Exception messages carry ids and enum names only, never raw text or activity names.
  */
 interface ActivityRepository {
-    /** Stores a new, immutable raw capture and returns its generated id. */
+    /**
+     * Stores a new, immutable raw capture and returns its id (generated, or [NewRawCapture.id]
+     * when supplied).
+     *
+     * Idempotent on a supplied id: if `capture.id` is non-null and a raw capture with that id
+     * already exists, returns that id and writes nothing. The stored capture is never
+     * overwritten or altered, even if the text differs (raw captures are immutable). A blank
+     * supplied id throws [IllegalArgumentException] with a payload-free message. When the id
+     * is null, a new id is generated.
+     */
     suspend fun createRawCapture(capture: NewRawCapture): String
 
     /** Returns the capture with [id], or null if none exists. */
