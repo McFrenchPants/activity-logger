@@ -860,13 +860,13 @@
     {
       "id": "WC1",
       "title": "Watch capture (build-guide Step 8)",
-      "lifecycle_state": "planned",
+      "lifecycle_state": "implementing",
       "tasks": [
         {
           "id": "WC1.1",
           "title": "Protocol module",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "implemented",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -875,7 +875,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/WC1.1.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Done, spot-check. 16 tests."
         },
         {
           "id": "WC1.2",

@@ -4,6 +4,7 @@
 // Services, on any Android type, or on any other project module.
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -11,6 +12,9 @@ kotlin {
 }
 
 dependencies {
+    // Pure-JVM JSON; the only runtime dependency of this module.
+    implementation(libs.kotlinx.serialization.json)
+
     // Resolves at the applied Kotlin plugin's own version, so it adds no new
     // version to gradle/libs.versions.toml.
     testImplementation(kotlin("test"))
