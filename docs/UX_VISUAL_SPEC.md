@@ -380,7 +380,7 @@ grids, or "AI" sparkle iconography.
   no** (ADR-035): the OnePlus Watch 3 reports no on-device recognition and
   `createOnDeviceSpeechRecognizer()` throws there. The watch Listening screen
   (§3 D2) **cannot be built as designed**, and the ordinary network-capable
-  recognizer is not an acceptable substitute (ADR-005, AGENTS.md §11). ADR-035
+  recognizer is not an acceptable substitute (ADR-005, AGENTS.md §11). **Update 2026-10-01:** superseded -- the ordinary in-app recognizer was measured working fully offline on the watch (ADR-035), so the Wear Listening screen is buildable again. ADR-035
   lists the options; choosing one is a product decision for the Wear work item.
 - **Phone voice capture is built** (VC1, 2026-09-19): microphone control,
   listening state with a live partial transcript, and the recognition-failure

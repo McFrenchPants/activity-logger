@@ -544,7 +544,7 @@ AI capability is implemented as `OnDeviceModelCapability.readiness()` in `core-a
 
 Any state other than `READY` makes interpretation fail as `UNAVAILABLE` without calling the model; the capture is kept as `FAILED_RETRYABLE`. Readiness alone is not sufficient: the app must also be the top foreground app when interpreting (ADR-029).
 
-Speech capability is implemented as `SpeechCapability` in `core-speech` (§14, VC1.2): whether this device has an on-device recognition engine, and the language tag the transcriber asks for. It starts no recognizer and downloads nothing. On a device with no engine, voice capture must be presented as unavailable rather than broken, and typing must stay fully available — the Log screen enforces that today (VC1.3). Measured answers: the Pixel 10 Pro has an engine, the OnePlus Watch 3 does not (ADR-035).
+Speech capability is implemented as `SpeechCapability` in `core-speech` (§14, VC1.2): whether this device has an on-device recognition engine, and the language tag the transcriber asks for. It starts no recognizer and downloads nothing. On a device with no engine, voice capture must be presented as unavailable rather than broken, and typing must stay fully available — the Log screen enforces that today (VC1.3). Measured answers: the Pixel 10 Pro has an engine; the OnePlus Watch 3 refuses `createOnDeviceSpeechRecognizer()` but its ordinary `SpeechRecognizer` ran fully offline on Google's on-device engine in airplane mode (ADR-035, WD1.3).
 
 Wear Data Layer capability detection is not built yet. Measured 2026-10-01 (WD1): the Pixel 10 Pro and OnePlus Watch 3 exchange both a message and a DataItem with the shared `applicationId` and debug signing key; see `docs/proposals/wear-data-layer/RESULTS.md`.
 

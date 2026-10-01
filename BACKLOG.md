@@ -250,7 +250,7 @@ Status vocabulary:
     milestone. Both apps are already installed on their devices.
 
 17. **Decide how the watch captures, now that it cannot listen on-device** —
-    `needs research`
+    `done` (answered 2026-10-01; see the end of this item)
     Added 2026-09-19 from ADR-035. The watch app's entire designed entry point
     is voice, and the OnePlus Watch 3 cannot transcribe on-device. ADR-035 lists
     four options: Wear's own system dictation screen (needs measuring — if it
@@ -265,3 +265,11 @@ Status vocabulary:
     that dictation screen on the watch (does it work in airplane mode?) before
     choosing. WD1 showed the phone<->watch link works, so recording on the
     watch and transcribing on the phone is also viable.
+    **2026-10-01, answered (WD1.3):** with airplane mode on, both the system
+    dictation screen and the ordinary in-app `SpeechRecognizer` transcribed
+    accurately on the OnePlus Watch 3, using Google's on-device engine. So the
+    designed in-app voice capture on the watch is buildable, with no phone and
+    no Internet. Recommended mechanism and the one open risk (a silent
+    network fallback must be prevented or made visible) are in ADR-035. The
+    Wear milestone (build-guide Step 8) is unblocked. Next backlog item to
+    create: the Wear capture app itself.
