@@ -880,8 +880,8 @@
         {
           "id": "WC1.2",
           "title": "Watch outbox",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "implemented",
           "dependencies": [
             "WC1.1"
           ],
@@ -890,9 +890,9 @@
             "run_id": null,
             "attempt_count": 0
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/WC1.2.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Verifier pass (no blocking). 34 module tests. PHONE_RECEIVED can stick if later ack lost: handle in WC1.4/1.5."
         },
         {
           "id": "WC1.3",

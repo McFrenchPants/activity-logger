@@ -1,0 +1,56 @@
+{
+  "task_id": "WC1.2",
+  "plan_revision": "wc1",
+  "objective": "Add the watch's durable outbox as pure Kotlin/JVM inside core-wear-protocol (package com.mcfrenchpants.activityledger.core.wearprotocol.outbox), so it is fully testable with `./gradlew :core-wear-protocol:test` and later wrapped by app-wear. Deliver: (1) `OutboxRecord(captureId, envelopeJson: String (the already-validated Codec.encode output), state: OutboxState, attemptCount: Int, nextAttemptAtEpochMillis: Long, createdAtEpochMillis: Long)`. (2) `OutboxStore` interface (insertIfAbsent(record): Boolean keyed on captureId, get, listAll ordered by createdAt then captureId, replace, remove) and `FileOutboxStore(dir: java.io.File)`: one file per record named <captureId>.json written ATOMICALLY (write to a temp file in the same dir, fsync, then java.nio Files.move with ATOMIC_MOVE/REPLACE_EXISTING); leftover temp files and unreadable/corrupt record files are skipped on load WITHOUT throwing and WITHOUT deleting the corrupt file; the on-disk record is JSON via kotlinx.serialization; file/dir listing never exposes capture text via exceptions or messages. Also `InMemoryOutboxStore` for tests. (3) `OutboxPolicy`: pure backoff function `delayAfterAttempt(attemptCount): Long` -- exponential 5s, 30s, 2m, 10m, 30m then capped at 1h; a transient failure NEVER becomes permanent by attempt count (a capture is never dropped for being slow to deliver); document the numbers. (4) `Outbox(store, clock: () -> Long, policy)`: thread-safe (synchronized). `enqueue(envelope: CaptureEnvelope): EnqueueResult` -- encodes via WireCodec (refusal passes the payload-free ProtocolFailureKind through), persists as QUEUED via OutboxTransitions (CREATED->QUEUED) and is IDEMPOTENT on captureId (a second enqueue of the same id returns AlreadyPresent and does not change the stored record or state); a hard cap MAX_OUTBOX_RECORDS = 200 refuses new enqueues with a typed `Full` result and never evicts existing records. `nextDue(): OutboxRecord?` (QUEUED or RETRYABLE with nextAttemptAt <= now, oldest first). `markSendStarted(id)`, `markSendFailedTransient(id)` (-> RETRYABLE, attemptCount+1, nextAttemptAt = now + policy delay), `markSendFailedPermanent(id)` (-> FAILED), `applyAck(ack: CaptureAck)` -- all go through OutboxTransitions.next; Refused or unknown captureId returns a typed non-throwing result; duplicate/late acks are no-ops. ACKNOWLEDGED and PROCESSED records are REMOVED from the store on ack (PROCESSED = phone needs-review, delivered -- per WC1.1 note: PROCESSED is complete/removable). FAILED records are KEPT (so the UI can show 'Couldn't capture') until `discard(id)`. `recoverOnStart()`: every record left in SENDING (process died mid-send) becomes RETRYABLE with nextAttemptAt = now (never lost, resent with the same captureId so the phone dedupes); returns the count. `pendingCount()` and `failedCount()` for the UI. (5) JVM tests (kotlin.test, java.nio temp dirs) for: enqueue persists and survives a brand-new FileOutboxStore/Outbox instance over the same dir; enqueue idempotency on captureId; cap enforced without eviction; backoff table and cap; transient fail -> RETRYABLE -> due only after delay; permanent fail kept until discard; every ack status effect incl. RECEIVED keeps the record, SAVED/NEEDS_REVIEW remove it, FAILED_RETRYABLE -> RETRYABLE, FAILED_FINAL -> FAILED; duplicate ack idempotent; ack for unknown id is a typed no-op; recoverOnStart converts SENDING to RETRYABLE and is idempotent; crash simulation: a stray .tmp file and a corrupt record file are skipped, valid records still load, corrupt file is not deleted; atomic replace never leaves a record unreadable; ordering is oldest first; refusal results/toString never contain the raw text (assert the sample text is absent from toString of every result type and exception message).",
+  "non_goals": [
+    "No Android or Play Services dependency; no dependency on any project module; no Room/KSP.",
+    "No Data Layer calls, no scheduling/WorkManager, no UI -- those are WC1.4/WC1.5.",
+    "Do not modify Contract.kt, Codec.kt or Outbox.kt (OutboxTransitions) semantics; only use them. If they are insufficient, report scope_change_requested.",
+    "Do not touch app-phone, app-wear, core-domain, core-data, core-speech, gradle/libs.versions.toml or docs.",
+    "No logging of any kind (AGENTS.md #11); no capture text in any exception message, toString or file name (file name is the captureId only)."
+  ],
+  "dependencies": ["WC1.1"],
+  "read_paths": [
+    "core-wear-protocol/**",
+    "gradle/libs.versions.toml",
+    "build.gradle.kts",
+    "AGENTS.md",
+    "docs/WATCH_SPEC.md",
+    "docs/ARCHITECTURE.md",
+    "docs/proposals/watch-capture/DESIGN_SPEC.md"
+  ],
+  "write_paths": [
+    "core-wear-protocol/build.gradle.kts",
+    "core-wear-protocol/src/main/kotlin/com/mcfrenchpants/activityledger/core/wearprotocol/outbox/**",
+    "core-wear-protocol/src/test/kotlin/com/mcfrenchpants/activityledger/core/wearprotocol/outbox/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-phone/**",
+    "app-wear/**",
+    "core-ai/**",
+    "core-data/**",
+    "core-domain/**",
+    "core-speech/**",
+    "core-testing/**",
+    "gradle/libs.versions.toml"
+  ],
+  "acceptance_criteria": [
+    "`./gradlew :core-wear-protocol:test` and `./gradlew test` pass.",
+    "core-wear-protocol still has no Android or project-module dependency and no literal versions.",
+    "Records survive process restart (new store instance over same directory) and are written atomically; corrupt/temp files are skipped without throwing or deletion.",
+    "enqueue is idempotent on captureId; the 200-record cap refuses without evicting.",
+    "A transient failure never becomes permanent by count; backoff capped at 1h.",
+    "SAVED/NEEDS_REVIEW/ACKNOWLEDGED/PROCESSED remove the record; FAILED is kept until discard; SENDING is recovered to RETRYABLE on start.",
+    "No logging call and no raw capture text in any exception message, toString or filename."
+  ],
+  "verification_commands": [
+    "./gradlew :core-wear-protocol:test",
+    "./gradlew test"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
