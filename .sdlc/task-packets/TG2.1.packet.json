@@ -1,0 +1,64 @@
+{
+  "task_id": "TG2.1",
+  "plan_revision": "tg2",
+  "objective": "Room schema version 2 for subject + action tagging, with an explicit, additive, data-preserving migration 1 -> 2. Background: the app is moving from single 'canonical activities' chosen by the AI to two tags per entry -- a SUBJECT (what it was done to: furnace, hot tub) and an ACTION (what was done: change filter, mow) -- plus an optional duration. Stage 1 built the pure decision logic in core-domain `tagging` (TagCatalog/KnownTag/KnownPair/TagKind, TagNormalizer.key, TagResolver, TagDecisionPolicy) and the extraction types (core-domain `extraction`: ExtractionCandidate with subject/action/temporalExpression/durationExpression). This task adds ONLY the database shape; repository functions, corrections and merges are later tasks (TG2.2-TG2.4).\n\nDATA-SHAPE DECISION (owner-approved direction, developer decision; write it up as ADR-040):\n- A *pair* is the existing `canonical_activities` row. It gains two NULLABLE columns `subject_id` (FK -> subjects.id) and `action_id` (FK -> actions.id), NO ACTION on delete/update like every FK in this schema, with a UNIQUE index on (subject_id, action_id) (SQLite treats NULLs as distinct, so untagged v1/v3-path rows are unaffected) and a plain index on action_id (subject lookups are served by the unique index's prefix). Occurrences, interpretations and corrections keep referencing canonical activities, so the existing v3 capture path and all app code keep compiling and working unchanged until Stage 3. Nullable because rows written by the v3 path have no tags; tightening is a later cleanup after v3 is deleted (say so in the ADR).\n- New table `subjects` and new table `actions`, identical shape: id TEXT PK, display_name TEXT NOT NULL, normalized_name TEXT NOT NULL (= TagNormalizer.key of the display name; deliberately NOT unique, uniqueness among ACTIVE tags is enforced by the repository in TG2.2), status TEXT NOT NULL (new domain enum `TagStatus { ACTIVE, MERGED }` in core-domain `model`, persisted by constant name like the other enums, KDoc'd like CanonicalActivityStatus), merged_into_subject_id / merged_into_action_id (nullable self FK), created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL. Indices: normalized_name, status, merged_into_*.\n- New tables `subject_aliases` and `action_aliases`: id TEXT PK, subject_id / action_id TEXT NOT NULL (FK), alias_text TEXT NOT NULL, normalized_alias TEXT NOT NULL (TagNormalizer key), source TEXT NOT NULL (existing AliasSource enum), created_at INTEGER NOT NULL; UNIQUE (subject_id, normalized_alias) / (action_id, normalized_alias). No confidence column.\n- `activity_occurrences.duration_seconds` INTEGER NULL.\n- `interpretations.extracted_subject` TEXT NULL, `extracted_action` TEXT NULL, `duration_expression` TEXT NULL, `resolved_duration_seconds` INTEGER NULL (the AI's extracted words and the resolved duration, for the tag path; null for v3 rows).\n- `corrections.previous_duration_seconds` INTEGER NULL, `new_duration_seconds` INTEGER NULL.\n- NO wipe and NO destructive step: migration 1 -> 2 only adds tables, columns and indices; every v1 row survives (DB-003 and the migration harness stand). The owner's 'start clean' is done outside the code (clearing app storage once when the Stage 3 build is installed) -- record that in the ADR; do NOT build any delete-everything path.\n- Schema v2 has never been installed anywhere; Stage 3 may still amend v2 before it ships (regenerating 2.json). Note this in the ADR.\n\nWORK:\n1. Entities `SubjectEntity`, `ActionEntity`, `SubjectAliasEntity`, `ActionAliasEntity` (core-data db/entity) following the style of CanonicalActivityEntity/ActivityAliasEntity; add the new columns to CanonicalActivityEntity, ActivityOccurrenceEntity, InterpretationEntity, CorrectionEntity as nullable properties WITH Kotlin default `= null` placed last so existing constructors elsewhere keep compiling; keep every existing writer behaviour identical (existing inserts write null to the new columns). `TagStatus` converter in EnumConverters (+ EnumConvertersTest).\n2. DAOs `SubjectDao`, `ActionDao` (insert with default ABORT, getById, listActive ordered by normalized_name then id) and `SubjectAliasDao`, `ActionAliasDao` (insert, list for ACTIVE tags ordered by tag id, created_at, id) -- read/insert only, matching the write-surface rules in ActivityLedgerDatabase's comment (no @Update/@Upsert/@Delete/REPLACE/DELETE). Register entities + DAOs in ActivityLedgerDatabase, version = 2. Update DaoWriteSurfaceGuardTest so it covers the new DAOs (it inspects every DAO the database returns -- make sure the new ones are included and the guard still passes).\n3. `ActivityLedgerDatabaseFactory.MIGRATIONS` gets `MIGRATION_1_2` (explicit SQL; put it in core-data db/migration/Migrations.kt or similar, internal). The SQL must produce exactly what Room expects for v2 (runMigrationsAndValidate checks tables, columns, types, nullability, defaults, FKs and indices against 2.json). Note: SQLite ALTER TABLE ADD COLUMN with a REFERENCES clause is allowed only with a NULL default; if Room's validation of the FK on an added column fails, rebuild canonical_activities with the standard create-new/copy/drop/rename sequence instead (inside the migration, preserving every row and column value) -- your call, document it in a code comment. Export schema 2.json (core-data/schemas/.../2.json) via the normal build; 1.json must stay byte-identical.\n4. Tests: register the v1 -> v2 migration in the harness per its own KDoc (ActivityLedgerMigrationTest.migratesFromVersion1 already exists with MigrationSeeds.V1; make sure it now runs 1 -> 2, the harness CURRENT_VERSION = 2, and the data-survival checks pass). Add a test that after migration the new columns of migrated rows are NULL and the new tables are empty, and that inserting a subject, an action, aliases, and a canonical activity with both tag ids works with FKs on; a second canonical activity with the same (subject_id, action_id) fails with a constraint error; two untagged canonical activities still insert. Update SchemaIntegrityTest / SchemaVersionConsistencyTest as their own logic requires (e.g. FK actions must be NO ACTION for the new FKs too). DestructiveMigrationGuardTest must still pass unchanged in intent.\n5. Docs: ADR-040 in docs/DECISIONS.md (next number after ADR-039; Status Accepted, developer decision 2026-10-01, TG2.1) covering the decision above, alternatives considered (tags directly on occurrences: rejected, because the whole v3 path and corrections reference canonical activities and lookup is a simple join either way; wipe in the migration: rejected, DB-003 and the harness, owner clears storage instead), and consequences. docs/DATA_MODEL.md: section 2 becomes 'schema version 2', document the four new tables and the new columns (mark the pair columns as nullable-until-v3-is-removed), relationship overview, and section 11 note on the 1 -> 2 migration. Keep the existing style of both docs.\n\nRULES: no change to any repository/ledger behaviour (RoomActivityRepository, LedgerWriteDao operations, ActivityRepository interface and RepositoryTypes stay as they are -- TG2.2 adds the tag functions); no app, core-ai, tagging-logic or temporal changes; no logging; exception messages ids/enum names only. Never fallbackToDestructiveMigration.",
+  "non_goals": [
+    "No repository API for tags, no acceptTagged, no corrections/aliases learning, no rename/merge (TG2.2-TG2.4).",
+    "No data wipe and no delete-everything feature.",
+    "No app-phone/app-wear/core-ai change; the v3 path stays exactly as it is.",
+    "No changes to the tagging/extraction/temporal domain logic."
+  ],
+  "dependencies": ["TG1.4b"],
+  "read_paths": [
+    "core-data/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/model/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/extraction/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/**",
+    "docs/DECISIONS.md",
+    "docs/DATA_MODEL.md",
+    "docs/TEST_STRATEGY.md",
+    "docs/REQUIREMENTS.md",
+    "AGENTS.md",
+    "gradle/libs.versions.toml"
+  ],
+  "write_paths": [
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/**",
+    "core-data/src/test/kotlin/com/mcfrenchpants/activityledger/core/data/db/**",
+    "core-data/schemas/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/model/TagStatus.kt",
+    "docs/DECISIONS.md",
+    "docs/DATA_MODEL.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "core-data/schemas/com.mcfrenchpants.activityledger.core.data.db.ActivityLedgerDatabase/1.json",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/repository/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/ledger/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/extraction/**",
+    "core-ai/**",
+    "app-phone/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "Database version 2 with the four new tables, the new nullable columns, the unique (subject_id, action_id) index and the action_id index exactly as described; every new FK is NO ACTION; TagStatus enum + converter exist; 2.json is exported and 1.json is unchanged.",
+    "MIGRATION_1_2 is explicit, additive and in ActivityLedgerDatabaseFactory.MIGRATIONS; the harness's v1 seed migrates to v2 with every row and value preserved, foreign_key_check empty, and the migrated file opens through the production factory; no destructive fallback anywhere (DestructiveMigrationGuardTest passes).",
+    "New tests prove: new columns NULL after migration, new tables empty, tag/alias/pair inserts work with FKs on, a duplicate tagged pair is rejected, untagged pairs are still allowed.",
+    "New DAOs are insert/read only and DaoWriteSurfaceGuardTest covers them and passes; existing repository/ledger behaviour is unchanged and all existing core-data tests pass.",
+    "ADR-040 and DATA_MODEL.md describe the v2 shape, the nullable-until-v3-removed decision, the additive migration and the out-of-code clean start; no forbidden path changed.",
+    "./gradlew :core-domain:test :core-data:test and ./gradlew :app-phone:testDebugUnitTest pass."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test :core-data:test",
+    "./gradlew :app-phone:testDebugUnitTest",
+    "git diff --stat -- core-data/schemas/com.mcfrenchpants.activityledger.core.data.db.ActivityLedgerDatabase/1.json core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/repository core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/ledger app-phone app-wear core-ai"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
