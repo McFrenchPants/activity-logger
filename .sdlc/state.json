@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-10-02T01:00:53.487Z",
+  "updated_at": "2026-10-02T01:16:54.480Z",
   "work_items": [
     {
       "id": "SS1",
@@ -1169,19 +1169,19 @@
         {
           "id": "TG2.1",
           "title": "Schema v2 + migration 1->2 (tag tables, pair columns, duration, extraction fields)",
-          "status": "todo",
-          "lifecycle_state": "draft",
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [
             "TG1.4b"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/TG2.1.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Schema v2, additive migration, ADR-040. Verifier pass attempt 1."
         },
         {
           "id": "TG2.2",

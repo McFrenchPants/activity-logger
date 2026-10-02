@@ -9,6 +9,7 @@ import com.mcfrenchpants.activityledger.core.domain.model.ConfidenceBand
 import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
 import com.mcfrenchpants.activityledger.core.domain.model.InterpretationOperation
 import com.mcfrenchpants.activityledger.core.domain.model.ProcessingState
+import com.mcfrenchpants.activityledger.core.domain.model.TagStatus
 import com.mcfrenchpants.activityledger.core.domain.model.TimePrecision
 import com.mcfrenchpants.activityledger.core.domain.model.ValidationStatus
 import com.mcfrenchpants.activityledger.core.domain.model.VisibilityStatus
@@ -88,4 +89,7 @@ class EnumConvertersTest {
 
     @Test fun correctionSource() =
         checkEnum("CorrectionSource", CorrectionSource.entries, c::fromCorrectionSource, c::toCorrectionSource)
+
+    @Test fun tagStatus() =
+        checkEnum("TagStatus", TagStatus.entries, c::fromTagStatus, c::toTagStatus)
 }

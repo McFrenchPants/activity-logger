@@ -16,13 +16,23 @@ Registered in `.sdlc/state.json` as TG1.
 | TG1.4a | On-phone debug-only runner, APK via owner's Google Drive | done | APK in G:/My Drive/ActivityLogger; awaiting owner's run |
 | TG1.4 | Replay, score, report, gate; Pixel 10 Pro recording | done | Device recording via in-app runner; tag-baseline.json set after TG1.4b |
 | TG1.4b | Resolver/policy fixes from the device findings | done | Verifier pass (attempt 2); device UNSAFE 14 -> 0; tag-baseline.json set. STAGE 1 COMPLETE |
-| TG2.1 | Schema v2 + migration 1 -> 2 (tag tables, pair columns, duration, extraction fields) | todo | Verifier |
+| TG2.1 | Schema v2 + migration 1 -> 2 (tag tables, pair columns, duration, extraction fields) | done | Verifier pass attempt 1; additive ALTER (no rebuild); ADR-040 |
 | TG2.2 | Repository: tag catalog + saving a tagged entry | todo | after TG2.1; verifier |
 | TG2.3 | Corrections teach (correction stores the user's words as aliases) | todo | after TG2.2; verifier |
 | TG2.4 | Rename and merge tags (data only) | todo | after TG2.3; verifier. STAGE 2 STOP |
 | TG3+ | Stages 3-4 | todo | detail after the Stage 2 report |
 
 ## Session log
+
+### 2026-10-01 — Stage 2 started; TG2.1 done
+Owner go-ahead for Stage 2 (accepts test data being cleared). Data shape decided (ADR-040):
+pair = canonical_activities row with nullable subject_id/action_id (unique together); new
+subjects/actions/+aliases tables; duration + extraction columns. Migration 1 -> 2 is additive
+(ALTER ADD COLUMN ... DEFAULT NULL REFERENCES passes Room validation; no rebuild); harness runs
+1 -> 2; MigrationV1ToV2Test added. Clean start = owner clears app storage when the Stage 3
+build is installed (no wipe code). Verifier pass (attempt 1); fixed a KDoc typo and an ADR-040
+citation myself. Risks for TG2.2: never write half-tagged pairs (NULL-distinct unique index);
+repository enforces one ACTIVE tag per key. Next: TG2.2 (packet already written).
 
 ### 2026-10-01 — TG1.4b done; STAGE 1 COMPLETE (stop for owner go/no-go)
 Rules: candidate-set verb matching (only inflected forms reduced; Exact only if exactly one

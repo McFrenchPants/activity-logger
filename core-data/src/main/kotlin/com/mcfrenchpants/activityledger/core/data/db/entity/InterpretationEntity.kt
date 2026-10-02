@@ -56,4 +56,13 @@ internal data class InterpretationEntity(
     @ColumnInfo(name = "structured_result_json") val structuredResultJson: String?,
     @ColumnInfo(name = "validation_status") val validationStatus: ValidationStatus,
     @ColumnInfo(name = "validation_reason") val validationReason: String?,
+    // Tag-path extraction (schema v2); all null for v3-path rows.
+    /** The subject words the model extracted, verbatim. */
+    @ColumnInfo(name = "extracted_subject") val extractedSubject: String? = null,
+    /** The action words the model extracted, verbatim. */
+    @ColumnInfo(name = "extracted_action") val extractedAction: String? = null,
+    /** The duration phrase the model extracted, verbatim. */
+    @ColumnInfo(name = "duration_expression") val durationExpression: String? = null,
+    /** The duration resolved deterministically from [durationExpression], in seconds. */
+    @ColumnInfo(name = "resolved_duration_seconds") val resolvedDurationSeconds: Long? = null,
 )

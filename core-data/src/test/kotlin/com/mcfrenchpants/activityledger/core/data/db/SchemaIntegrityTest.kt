@@ -4,6 +4,8 @@ import android.database.sqlite.SQLiteConstraintException
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mcfrenchpants.activityledger.core.data.db.Fixtures.id
 import com.mcfrenchpants.activityledger.core.data.inMemoryTestDatabase
+import com.mcfrenchpants.activityledger.core.domain.model.AliasSource
+import com.mcfrenchpants.activityledger.core.domain.model.TagStatus
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -12,7 +14,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/** Integrity constraints of schema version 1, exercised on the real database. */
+/** Integrity constraints of the current schema (version 2), exercised on the real database. */
 @RunWith(AndroidJUnit4::class)
 class SchemaIntegrityTest {
 
@@ -174,6 +176,85 @@ class SchemaIntegrityTest {
             correction.previousActivityState!!.name, correction.newActivityState!!.name,
         )
     }
+
+    /** Including the ADR-040 tag tables: every foreign key in the schema is NO ACTION on delete and update. */
+    @Test
+    fun everyForeignKeyIsNoAction() {
+        val tables = sql.query(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' " +
+                "AND name NOT IN ('room_master_table', 'android_metadata')",
+        ).use { c -> buildList { while (c.moveToNext()) add(c.getString(0)) } }
+        val foreignKeys = mutableListOf<String>()
+        for (table in tables) {
+            sql.query("PRAGMA foreign_key_list(`$table`)").use { c ->
+                val from = c.getColumnIndexOrThrow("from")
+                val onUpdate = c.getColumnIndexOrThrow("on_update")
+                val onDelete = c.getColumnIndexOrThrow("on_delete")
+                while (c.moveToNext()) {
+                    val where = "$table.${c.getString(from)}"
+                    foreignKeys += where
+                    assertEquals("NO ACTION", c.getString(onUpdate), "$where ON UPDATE")
+                    assertEquals("NO ACTION", c.getString(onDelete), "$where ON DELETE")
+                }
+            }
+        }
+        val tagForeignKeys = listOf(
+            "canonical_activities.subject_id", "canonical_activities.action_id",
+            "subjects.merged_into_subject_id", "actions.merged_into_action_id",
+            "subject_aliases.subject_id", "action_aliases.action_id",
+        )
+        assertTrue(foreignKeys.containsAll(tagForeignKeys), "tag foreign keys missing from $foreignKeys")
+    }
+
+    @Test
+    fun duplicateTaggedPairIsRejectedButUntaggedActivitiesAreNot() {
+        insertTags()
+        sql.insertCanonicalActivity(Fixtures.canonicalActivity(id(41)).copy(subjectId = id(40), actionId = id(50)))
+        assertFailsWith<SQLiteConstraintException> {
+            sql.insertCanonicalActivity(Fixtures.canonicalActivity(id(42)).copy(subjectId = id(40), actionId = id(50)))
+        }
+        // The same subject with another action, and two untagged activities, are all allowed.
+        sql.insertRow("actions", tagRow(id(51), "rake", "merged_into_action_id"))
+        sql.insertCanonicalActivity(Fixtures.canonicalActivity(id(43)).copy(subjectId = id(40), actionId = id(51)))
+        sql.insertCanonicalActivity(Fixtures.canonicalActivity(id(44)))
+        sql.insertCanonicalActivity(Fixtures.canonicalActivity(id(45)))
+        assertEquals(4, count("canonical_activities"))
+    }
+
+    @Test
+    fun tagForeignKeysAndAliasUniquenessAreEnforced() {
+        insertTags()
+        assertFailsWith<SQLiteConstraintException> {
+            sql.insertCanonicalActivity(Fixtures.canonicalActivity(id(41)).copy(subjectId = id(40), actionId = id(999)))
+        }
+        sql.insertRow("subject_aliases", aliasRow(id(60), "subject_id", id(40), "boiler"))
+        assertFailsWith<SQLiteConstraintException> {
+            sql.insertRow("subject_aliases", aliasRow(id(61), "subject_id", id(40), "boiler"))
+        }
+        assertFailsWith<SQLiteConstraintException> {
+            sql.insertRow("action_aliases", aliasRow(id(62), "action_id", id(999), "mow"))
+        }
+        assertFailsWith<SQLiteConstraintException> {
+            sql.execSQL("DELETE FROM subjects WHERE id = ?", arrayOf(id(40)))
+        }
+        assertEquals(1, count("subjects"))
+        assertEquals(1, count("subject_aliases"))
+    }
+
+    private fun insertTags() {
+        sql.insertRow("subjects", tagRow(id(40), "furnace", "merged_into_subject_id"))
+        sql.insertRow("actions", tagRow(id(50), "changefilter", "merged_into_action_id"))
+    }
+
+    private fun tagRow(id: String, key: String, mergedColumn: String) = mapOf(
+        "id" to id, "display_name" to key, "normalized_name" to key, "status" to TagStatus.ACTIVE,
+        mergedColumn to null, "created_at" to Fixtures.T0, "updated_at" to Fixtures.T0,
+    )
+
+    private fun aliasRow(id: String, ownerColumn: String, ownerId: String, key: String) = mapOf(
+        "id" to id, ownerColumn to ownerId, "alias_text" to key, "normalized_alias" to key,
+        "source" to AliasSource.MANUAL, "created_at" to Fixtures.T0,
+    )
 
     private fun assertRow(query: String, vararg expected: String) {
         sql.query(query).use { c ->

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
+import com.mcfrenchpants.activityledger.core.data.db.migration.MIGRATION_1_2
 
 /**
  * The single place the real, on-disk [ActivityLedgerDatabase] is configured.
@@ -25,10 +26,10 @@ internal object ActivityLedgerDatabaseFactory {
     const val DATABASE_NAME: String = "activity_ledger.db"
 
     /**
-     * Every schema migration, in version order. Empty while version 1 is the
-     * only schema. Production and the migration tests both use this list.
+     * Every schema migration, in version order. Production and the migration
+     * tests both use this list. Each entry is explicit, hand-written SQL.
      */
-    val MIGRATIONS: List<Migration> = emptyList()
+    val MIGRATIONS: List<Migration> = listOf(MIGRATION_1_2)
 
     /**
      * The fully configured builder. Exposed so tests can add test-only settings

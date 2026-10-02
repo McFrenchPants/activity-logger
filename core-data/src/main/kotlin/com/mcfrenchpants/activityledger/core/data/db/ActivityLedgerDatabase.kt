@@ -4,6 +4,8 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.mcfrenchpants.activityledger.core.data.db.converter.EnumConverters
+import com.mcfrenchpants.activityledger.core.data.db.dao.ActionAliasDao
+import com.mcfrenchpants.activityledger.core.data.db.dao.ActionDao
 import com.mcfrenchpants.activityledger.core.data.db.dao.ActivityAliasDao
 import com.mcfrenchpants.activityledger.core.data.db.dao.ActivityOccurrenceDao
 import com.mcfrenchpants.activityledger.core.data.db.dao.CanonicalActivityDao
@@ -11,12 +13,18 @@ import com.mcfrenchpants.activityledger.core.data.db.dao.CorrectionDao
 import com.mcfrenchpants.activityledger.core.data.db.dao.InterpretationDao
 import com.mcfrenchpants.activityledger.core.data.db.dao.LedgerWriteDao
 import com.mcfrenchpants.activityledger.core.data.db.dao.RawCaptureDao
+import com.mcfrenchpants.activityledger.core.data.db.dao.SubjectAliasDao
+import com.mcfrenchpants.activityledger.core.data.db.dao.SubjectDao
+import com.mcfrenchpants.activityledger.core.data.db.entity.ActionAliasEntity
+import com.mcfrenchpants.activityledger.core.data.db.entity.ActionEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.ActivityAliasEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.ActivityOccurrenceEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.CanonicalActivityEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.CorrectionEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.InterpretationEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.RawCaptureEntity
+import com.mcfrenchpants.activityledger.core.data.db.entity.SubjectAliasEntity
+import com.mcfrenchpants.activityledger.core.data.db.entity.SubjectEntity
 
 /**
  * The phone's authoritative Room database.
@@ -26,6 +34,10 @@ import com.mcfrenchpants.activityledger.core.data.db.entity.RawCaptureEntity
  * each version step. Every foreign key is NO ACTION (never CASCADE / SET NULL /
  * SET DEFAULT) so history can never be silently deleted or orphaned; Room turns
  * `PRAGMA foreign_keys` on for this database because the schema declares them.
+ *
+ * Version 2 (ADR-040) adds subject/action tags, their aliases, the nullable
+ * subject/action pair on canonical_activities and duration columns; the 1 -> 2
+ * step is the additive MIGRATION_1_2 in ActivityLedgerDatabaseFactory.MIGRATIONS.
  */
 @Database(
     entities = [
@@ -35,8 +47,12 @@ import com.mcfrenchpants.activityledger.core.data.db.entity.RawCaptureEntity
         InterpretationEntity::class,
         ActivityOccurrenceEntity::class,
         CorrectionEntity::class,
+        SubjectEntity::class,
+        ActionEntity::class,
+        SubjectAliasEntity::class,
+        ActionAliasEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(EnumConverters::class)
@@ -54,4 +70,8 @@ internal abstract class ActivityLedgerDatabase : RoomDatabase() {
     abstract fun activityOccurrenceDao(): ActivityOccurrenceDao
     abstract fun correctionDao(): CorrectionDao
     abstract fun ledgerWriteDao(): LedgerWriteDao
+    abstract fun subjectDao(): SubjectDao
+    abstract fun actionDao(): ActionDao
+    abstract fun subjectAliasDao(): SubjectAliasDao
+    abstract fun actionAliasDao(): ActionAliasDao
 }

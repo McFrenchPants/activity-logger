@@ -37,6 +37,10 @@ class DaoWriteSurfaceGuardTest {
         ActivityOccurrenceDao::class.java,
         CorrectionDao::class.java,
         LedgerWriteDao::class.java,
+        SubjectDao::class.java,
+        ActionDao::class.java,
+        SubjectAliasDao::class.java,
+        ActionAliasDao::class.java,
     )
 
     private fun daoTypesFromDatabase(): Set<Class<*>> =
@@ -96,7 +100,7 @@ class DaoWriteSurfaceGuardTest {
         }
         assertEquals(emptyList(), violations, "DAO write-surface violations")
         // Sanity: the scan really saw the annotations (a reader bug must not pass vacuously).
-        assertTrue(inserts >= 7, "expected to see the @Insert methods, saw $inserts")
+        assertTrue(inserts >= 11, "expected to see the @Insert methods, saw $inserts")
         assertTrue(updates >= 3, "expected to see the UPDATE queries, saw $updates")
     }
 

@@ -73,4 +73,7 @@ internal data class CorrectionEntity(
     @ColumnInfo(name = "new_activity_state") val newActivityState: ActivityState?,
     @ColumnInfo(name = "previous_effective_interpretation_id") val previousEffectiveInterpretationId: String?,
     @ColumnInfo(name = "new_effective_interpretation_id") val newEffectiveInterpretationId: String?,
+    // Duration change (schema v2); null when the correction did not touch the duration.
+    @ColumnInfo(name = "previous_duration_seconds") val previousDurationSeconds: Long? = null,
+    @ColumnInfo(name = "new_duration_seconds") val newDurationSeconds: Long? = null,
 )

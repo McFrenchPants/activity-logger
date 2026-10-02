@@ -1,0 +1,64 @@
+{
+  "task_id": "TG2.2",
+  "plan_revision": "tg2",
+  "objective": "Repository support for subject + action tags on top of schema v2 (TG2.1, ADR-040): load the tag catalog, and save an entry under a subject tag and an action tag in one transaction. Background: each entry gets a SUBJECT tag (what it was done to: furnace, hot tub) and an ACTION tag (what was done: change filter, mow) plus an optional duration. The AI only extracts words; pure core-domain logic (`tagging`: TagCatalog/KnownTag/KnownPair/TagKind, TagNormalizer, TagResolver, TagDecisionPolicy) decides AUTO_SAVE / CONFIRM / NEEDS_REVIEW. Schema v2 (ADR-040): tables subjects / actions (status TagStatus ACTIVE|MERGED, normalized_name = TagNormalizer.key, not unique in the schema), subject_aliases / action_aliases (unique per tag + normalized_alias, AliasSource), canonical_activities = the PAIR with nullable subject_id / action_id (unique together), occurrences.duration_seconds, interpretations.extracted_subject / extracted_action / duration_expression / resolved_duration_seconds, corrections.previous/new_duration_seconds. The capture pipeline is NOT switched in this task (Stage 3); the existing v3 path must behave exactly as before.\n\nDOMAIN API (core-domain `repository` package, new file TagRepository.kt; KDoc in the same style and error contract as ActivityRepository):\n- `sealed interface TagTarget { data class Existing(val tagId: String); data class New(val displayName: String) }`.\n- `data class TaggedAcceptRequest(captureId, interpretation: InterpretationRecord, subject: TagTarget, action: TagTarget, occurredAt: Instant, timePrecision: TimePrecision, activityState: ActivityState, durationSeconds: Long?, learnSubjectAlias: String? = null, learnActionAlias: String? = null)`.\n- `interface TagRepository { suspend fun loadTagCatalog(): TagCatalog; suspend fun acceptTagged(request: TaggedAcceptRequest): String }` and `interface LedgerRepository : ActivityRepository, TagRepository`.\n- `InterpretationRecord` (core-domain interpretation package) gains `extractedSubject: String? = null, extractedAction: String? = null, durationExpression: String? = null, resolvedDurationSeconds: Long? = null` (defaults, placed last, so every existing caller compiles unchanged); the data layer stores them in the v2 columns for BOTH accept paths and recordOutcome (null for v3 callers).\n- Views gain fields with null defaults, placed last: `OccurrenceView.durationSeconds`, `ActivityView.subjectId` / `actionId`, `HistoryOccurrence.subjectName` / `actionName` / `durationSeconds` (current display names of the pair's tags, null for untagged pairs). loadHistory stays ONE statement (join subjects/actions).\n\nSEMANTICS of acceptTagged (one database transaction; nothing written on any error):\n1. Idempotent per capture: if the capture already has an occurrence, return its id and write NOTHING (no tags, aliases, interpretation).\n2. Resolve each target against tags OF ITS OWN KIND. Existing(id): must exist and be ACTIVE, else IllegalArgumentException (a MERGED tag is refused; the caller re-resolves). New(name): key = TagNormalizer.key(name); blank key -> IllegalArgumentException; if an ACTIVE tag of that kind has normalized_name == key, reuse it (oldest created_at, then lowest id, if several), else if an ACTIVE tag of that kind has an alias with that key, reuse that tag (same tie-break), else insert a new ACTIVE tag with display_name = the given name trimmed, normalized_name = key. This makes concurrent captures ('Wi-Fi' then 'WiFi') converge instead of creating duplicates; it is data integrity, not product policy.\n3. Pair: the canonical_activities row with that (subject_id, action_id); if it exists and is ACTIVE use it; if it exists and is not ACTIVE -> IllegalArgumentException; else insert an ACTIVE pair with both ids, display_name = \"<subject display> <action display>\"-style label of your choosing (document it; it is a cache for legacy screens -- history reads the tag names), normalized_name via the existing NameNormalizer, merged_into null.\n4. Insert the interpretation (incl. extraction fields), the occurrence (duration_seconds = request.durationSeconds, must be null or >= 0 else IllegalArgumentException), set the capture PERSISTED -- same rules and ordering guarantees as acceptInterpretation (interpretation must name this capture; unknown capture -> IllegalArgumentException).\n5. Alias learning (used when the user accepts a 'did you mean X?' card): for learnSubjectAlias / learnActionAlias when non-null: key = TagNormalizer.key(text); skip when blank, equal to the final tag's normalized_name, or already an alias key of that tag; otherwise insert an alias (alias_text trimmed, source AliasSource.AI_CONFIRMED). Never fails the save because an alias is redundant.\n6. Every write goes through the LedgerWriteDao pattern: a new `@Transaction open fun acceptTagged(...)` with `protected abstract` primitives (inserts with default ABORT; reads by id / key); no @Update/@Upsert/@Delete/REPLACE/DELETE anywhere; extend DaoWriteSurfaceGuardTest accordingly. Expose through ActivityLedgerWriter like the existing operations. SQLiteConstraintException is translated to IllegalArgumentException by the repository, as today.\n\nloadTagCatalog: TagCatalog(subjects = ACTIVE subjects as KnownTag(kind SUBJECT, displayName, aliases = alias_text list oldest first), actions likewise, pairs = KnownPair for every ACTIVE canonical activity whose subject_id AND action_id are both non-null AND both tags ACTIVE). Bounded number of queries (no per-row query). Deterministic order (by normalized_name, id).\n\nWiring: RoomActivityRepository implements LedgerRepository; `createActivityRepository(context, clock)` returns LedgerRepository (source-compatible for existing callers). Do NOT change app-phone/app-wear code; they must still compile and pass. Do NOT change the in-memory fake in core-testing (Stage 3 adds tag support to it if needed) -- it implements ActivityRepository only and must still compile.\n\nTESTS (core-data, Robolectric, in the style of RoomActivityRepositoryTest): empty catalog -> empty TagCatalog; New+New creates both tags + pair + occurrence and the catalog then contains them and the pair; second capture with Existing ids reuses the pair (one canonical activity); New 'Wi-Fi' after existing 'WiFi' reuses it; New whose key matches an alias reuses that tag; New subject equal to an existing ACTION name creates a separate SUBJECT (kinds never mix); idempotent second call writes nothing (row counts unchanged, even with different targets/aliases); unknown or MERGED Existing id, blank New name, negative duration, unknown capture, interpretation for another capture -> IllegalArgumentException and NOTHING written (including no new tag created by the other target -- prove rollback); alias learning: inserted when different, skipped when equal to name key / existing alias / blank; extraction fields and duration round-trip (interpretation row, OccurrenceView, HistoryOccurrence with tag names); history of a v3 (untagged) entry has null tag fields; loadTagCatalog excludes MERGED tags (insert one via raw SQL fixture), untagged pairs and pairs with a MERGED tag; existing v3 tests unchanged and passing.\n\nDOCS: docs/DATA_MODEL.md -- a short subsection on how a tagged entry is written (find-or-create tags and pair, convergence rule, alias learning source). docs/DECISIONS.md -- append a dated 'Amendment (TG2.2)' to ADR-040 stating the New-name convergence rule and the AI_CONFIRMED alias source. No other doc changes.\n\nRULES: no product policy in the repository beyond the data-integrity rules above (no fuzzy matching, no TagResolver call in the data layer); raw captures never modified except processing_state; no logging; exception messages carry ids and enum names only, never tag names or text.",
+  "non_goals": [
+    "No corrections / alias learning from corrections (TG2.3), no rename/merge (TG2.4).",
+    "No pipeline, UI, watch or core-ai change; the v3 path is untouched.",
+    "No schema change (v2 is fixed by TG2.1); if you believe one is needed, report scope_change_requested.",
+    "No in-memory fake changes in core-testing."
+  ],
+  "dependencies": ["TG2.1"],
+  "read_paths": [
+    "core-data/**",
+    "core-domain/**",
+    "core-testing/src/main/kotlin/com/mcfrenchpants/activityledger/core/testing/InMemoryActivityRepository.kt",
+    "app-phone/src/main/kotlin/**",
+    "docs/DECISIONS.md",
+    "docs/DATA_MODEL.md",
+    "docs/TEST_STRATEGY.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/interpretation/InterpretationTypes.kt",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/**",
+    "core-data/src/test/kotlin/com/mcfrenchpants/activityledger/core/data/**",
+    "docs/DECISIONS.md",
+    "docs/DATA_MODEL.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "core-data/schemas/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/entity/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/migration/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/extraction/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/validation/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/services/**",
+    "core-testing/**",
+    "core-ai/**",
+    "app-phone/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "TagTarget, TaggedAcceptRequest, TagRepository and LedgerRepository exist in core-domain with KDoc'd error contracts; InterpretationRecord and the views gain the new nullable fields with defaults; all existing callers and fakes compile unchanged.",
+    "acceptTagged implements semantics 1-6 in one transaction through a new LedgerWriteDao @Transaction operation; the write-surface guard covers it and passes; errors write nothing (rollback proven by tests).",
+    "loadTagCatalog returns exactly ACTIVE tags with aliases and pairs whose two tags are both ACTIVE, in deterministic order, with a bounded number of queries.",
+    "History and occurrence views carry tag names and duration; loadHistory is still one statement; v3 entries show null tag fields.",
+    "Every test listed in the packet exists and passes; all existing core-domain, core-data, core-testing and app-phone tests pass; no schema file or entity changed.",
+    "DATA_MODEL.md subsection and ADR-040 amendment written; no forbidden path changed."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test :core-data:test :core-testing:test",
+    "./gradlew :app-phone:testDebugUnitTest",
+    "git diff --stat -- core-data/schemas core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/entity core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/migration core-testing app-phone app-wear core-ai core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

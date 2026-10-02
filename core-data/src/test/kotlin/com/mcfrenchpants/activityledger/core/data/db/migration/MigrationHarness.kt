@@ -161,7 +161,7 @@ internal class MigrationHarness(
 
     internal companion object {
         /** The version every migration test migrates to; tied to the exported schemas by SchemaVersionConsistencyTest. */
-        const val CURRENT_VERSION = 1
+        const val CURRENT_VERSION = 2
 
         val CORE_TABLES = setOf(
             "raw_captures", "canonical_activities", "activity_aliases",

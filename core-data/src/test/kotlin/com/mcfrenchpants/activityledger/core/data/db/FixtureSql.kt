@@ -37,6 +37,7 @@ internal fun SupportSQLiteDatabase.insertCanonicalActivity(row: CanonicalActivit
         "id" to row.id, "display_name" to row.displayName, "normalized_name" to row.normalizedName,
         "status" to row.status, "created_at" to row.createdAt, "updated_at" to row.updatedAt,
         "merged_into_activity_id" to row.mergedIntoActivityId,
+        "subject_id" to row.subjectId, "action_id" to row.actionId,
     ),
 )
 

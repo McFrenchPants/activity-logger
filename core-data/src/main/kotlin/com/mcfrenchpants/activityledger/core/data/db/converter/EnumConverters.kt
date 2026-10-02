@@ -10,6 +10,7 @@ import com.mcfrenchpants.activityledger.core.domain.model.ConfidenceBand
 import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
 import com.mcfrenchpants.activityledger.core.domain.model.InterpretationOperation
 import com.mcfrenchpants.activityledger.core.domain.model.ProcessingState
+import com.mcfrenchpants.activityledger.core.domain.model.TagStatus
 import com.mcfrenchpants.activityledger.core.domain.model.TimePrecision
 import com.mcfrenchpants.activityledger.core.domain.model.ValidationStatus
 import com.mcfrenchpants.activityledger.core.domain.model.VisibilityStatus
@@ -60,6 +61,9 @@ internal class EnumConverters {
 
     @TypeConverter fun fromCorrectionSource(value: CorrectionSource): String = value.name
     @TypeConverter fun toCorrectionSource(value: String): CorrectionSource = decode(value)
+
+    @TypeConverter fun fromTagStatus(value: TagStatus): String = value.name
+    @TypeConverter fun toTagStatus(value: String): TagStatus = decode(value)
 
     private inline fun <reified E : Enum<E>> decode(value: String): E =
         enumValues<E>().firstOrNull { it.name == value }

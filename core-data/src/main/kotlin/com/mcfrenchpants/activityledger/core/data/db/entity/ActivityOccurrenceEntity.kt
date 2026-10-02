@@ -57,4 +57,6 @@ internal data class ActivityOccurrenceEntity(
     @ColumnInfo(name = "visibility_status") val visibilityStatus: VisibilityStatus,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    /** How long the activity lasted, in seconds (schema v2); null when not stated or for v3-path rows. */
+    @ColumnInfo(name = "duration_seconds") val durationSeconds: Long? = null,
 )

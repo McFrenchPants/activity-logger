@@ -16,11 +16,11 @@ The key rule is:
 
 > **Never overwrite the evidence to make the interpretation look correct.**
 
-## 2. Entities (Room schema version 1)
+## 2. Entities (Room schema version 2)
 
-Schema version 1 is implemented in `core-data`; the exported Room schema
-(`core-data/schemas/com.mcfrenchpants.activityledger.core.data.db.ActivityLedgerDatabase/1.json`)
-is the authoritative definition. The tables below mirror it. The domain services (work item DS1) added data-layer operations and usage rules but no schema change; the schema version is still 1.
+Schema version 2 is implemented in `core-data`; the exported Room schema
+(`core-data/schemas/com.mcfrenchpants.activityledger.core.data.db.ActivityLedgerDatabase/2.json`)
+is the authoritative definition, and `1.json` stays tracked for the 1 -> 2 migration (section 11). The tables below mirror version 2. The domain services (work item DS1) added data-layer operations and usage rules but no schema change; version 2 (TG2.1, ADR-040) added the subject/action tag tables, the nullable subject/action pair on `canonical_activities` and the duration columns. Columns new in version 2 are marked `-- v2` below.
 
 General rules for all phone tables:
 
@@ -72,19 +72,76 @@ status TEXT NOT NULL
 created_at INTEGER NOT NULL
 updated_at INTEGER NOT NULL
 merged_into_activity_id TEXT NULL
+subject_id TEXT NULL        -- v2
+action_id TEXT NULL         -- v2
 ```
+
+Since version 2 a canonical activity is also the **pair** of a subject tag and an action tag (ADR-040). `subject_id` / `action_id` are **nullable until the v3 capture path is removed**: rows written by the v3 path carry no tags. Tightening them to NOT NULL is a later cleanup.
 
 Indexes:
 
 - `normalized_name` (non-unique)
 - `status`
 - `merged_into_activity_id` (foreign-key child)
+- UNIQUE `(subject_id, action_id)` — a tagged pair exists at most once. SQLite treats NULLs as distinct, so untagged (v3) rows are not constrained. This index also serves the `subject_id` foreign key.
+- `action_id` (foreign-key child)
 
 `normalized_name` is deliberately **not** unique: merged or archived activities may share a name with an active one, and Room cannot declare a partial unique index (e.g. unique only where `status = 'ACTIVE'`). Preventing duplicate active activities is resolution policy, not a schema constraint.
 
 Foreign keys:
 
 - `merged_into_activity_id` -> `canonical_activities.id`
+- `subject_id` -> `subjects.id`
+- `action_id` -> `actions.id`
+
+### subjects and actions
+
+New in version 2. A subject is what an activity was done to ("furnace", "hot tub"); an action is what was done ("change filter", "mow"). The two tables have identical shape; `actions` uses `merged_into_action_id` where `subjects` uses `merged_into_subject_id`.
+
+```text
+id TEXT PRIMARY KEY
+display_name TEXT NOT NULL
+normalized_name TEXT NOT NULL
+status TEXT NOT NULL
+merged_into_subject_id TEXT NULL     -- actions: merged_into_action_id
+created_at INTEGER NOT NULL
+updated_at INTEGER NOT NULL
+```
+
+`normalized_name` is the `TagNormalizer.key` of the display name (ADR-039). Like `canonical_activities.normalized_name` it is deliberately **not** unique: uniqueness among `ACTIVE` tags is enforced by the repository, not the schema. `status` is a `TagStatus`.
+
+Indexes:
+
+- `normalized_name` (non-unique)
+- `status`
+- `merged_into_subject_id` / `merged_into_action_id` (foreign-key child)
+
+Foreign keys:
+
+- `merged_into_subject_id` -> `subjects.id` / `merged_into_action_id` -> `actions.id`
+
+### subject_aliases and action_aliases
+
+New in version 2. Alternative wordings of a subject or action tag. Identical shape; `action_aliases` has `action_id` where `subject_aliases` has `subject_id`.
+
+```text
+id TEXT PRIMARY KEY
+subject_id TEXT NOT NULL             -- action_aliases: action_id
+alias_text TEXT NOT NULL
+normalized_alias TEXT NOT NULL
+source TEXT NOT NULL
+created_at INTEGER NOT NULL
+```
+
+`normalized_alias` is the `TagNormalizer.key` of `alias_text`; `source` is an `AliasSource`. There is no confidence column.
+
+Indexes:
+
+- UNIQUE `(subject_id, normalized_alias)` / `(action_id, normalized_alias)` — also serves the foreign-key child column.
+
+Foreign keys:
+
+- `subject_id` -> `subjects.id` / `action_id` -> `actions.id`
 
 ### activity_aliases
 
@@ -135,7 +192,13 @@ candidate_context_hash TEXT NULL
 structured_result_json TEXT NULL
 validation_status TEXT NOT NULL
 validation_reason TEXT NULL
+extracted_subject TEXT NULL          -- v2
+extracted_action TEXT NULL           -- v2
+duration_expression TEXT NULL        -- v2
+resolved_duration_seconds INTEGER NULL  -- v2
 ```
+
+The four version-2 columns hold, for the tag path (ADR-038), the subject, action and duration words the model extracted and the duration resolved from them. They are null for v3 rows.
 
 The normalized fields support queries.
 
@@ -172,7 +235,10 @@ activity_state TEXT NOT NULL
 visibility_status TEXT NOT NULL
 created_at INTEGER NOT NULL
 updated_at INTEGER NOT NULL
+duration_seconds INTEGER NULL   -- v2
 ```
+
+`duration_seconds` is how long the activity lasted, when stated; null otherwise and for v3 rows.
 
 Indexes:
 
@@ -212,6 +278,9 @@ new_activity_state TEXT NULL
 
 previous_effective_interpretation_id TEXT NULL
 new_effective_interpretation_id TEXT NULL
+
+previous_duration_seconds INTEGER NULL   -- v2
+new_duration_seconds INTEGER NULL        -- v2
 ```
 
 Corrections create an audit trail.
@@ -253,7 +322,7 @@ last_attempt_at INTEGER NULL
 created_at INTEGER NOT NULL
 ```
 
-This can be Room/DataStore/another durable local mechanism appropriate to Wear OS. It is not part of phone schema version 1.
+This can be Room/DataStore/another durable local mechanism appropriate to Wear OS. It is not part of the phone schema.
 
 ### 2.1 Vocabularies
 
@@ -267,7 +336,8 @@ Each enum lives in `core-domain` (`com.mcfrenchpants.activityledger.core.domain.
 | `TimePrecision` | `EXACT`, `APPROXIMATE`, `DATE_ONLY`, `INFERRED_NOW` | `interpretations.time_precision`, `activity_occurrences.time_precision`, `corrections.previous_time_precision` / `new_time_precision` |
 | `VisibilityStatus` | `ACTIVE`, `HIDDEN` | `activity_occurrences.visibility_status` |
 | `CanonicalActivityStatus` | `ACTIVE`, `MERGED`, `ARCHIVED` | `canonical_activities.status` |
-| `AliasSource` | `USER_CORRECTION`, `AI_CONFIRMED`, `SEEDED`, `MANUAL` | `activity_aliases.source` |
+| `AliasSource` | `USER_CORRECTION`, `AI_CONFIRMED`, `SEEDED`, `MANUAL` | `activity_aliases.source`, `subject_aliases.source`, `action_aliases.source` |
+| `TagStatus` | `ACTIVE`, `MERGED` | `subjects.status`, `actions.status` |
 | `CorrectionSource` | `USER`, `REINTERPRETATION` | `corrections.source` |
 | `CaptureSource` | `PHONE_VOICE`, `PHONE_TEXT`, `WATCH_VOICE` | `raw_captures.source` |
 | `InterpretationOperation` | `LOG_ACTIVITY`, `QUERY_HISTORY`, `UNSUPPORTED` | `interpretations.operation` |
@@ -290,6 +360,12 @@ RawCapture
 CanonicalActivity
    |
    +------< ActivityAlias
+
+Subject -----< CanonicalActivity (pair) >----- Action      (subject_id / action_id, nullable until v3 is removed)
+   |                                             |
+   +------< SubjectAlias                         +------< ActionAlias
+
+Subject / Action ---0..1 merged_into (self)
 ```
 
 ## 4. Why RawCapture is separate
@@ -329,7 +405,7 @@ rather than:
 updateRawCapture(arbitrary object)
 ```
 
-Schema version 1 uses **no SQLite triggers**. Raw-text immutability is enforced by the shape of the data-layer API (there is no operation that replaces `raw_text`) plus tests. Triggers were rejected because Room does not track them in its exported schema, so every future migration would have to remember to recreate them by hand, and a forgotten one would silently remove the protection.
+The schema (versions 1 and 2) uses **no SQLite triggers**. Raw-text immutability is enforced by the shape of the data-layer API (there is no operation that replaces `raw_text`) plus tests. Triggers were rejected because Room does not track them in its exported schema, so every future migration would have to remember to recreate them by hand, and a forgotten one would silently remove the protection.
 
 The only writes to occurrences and corrections are the transactional operations of `LedgerWriteDao` (`core-data`), each run in one database transaction so any failure rolls back every write it made. The domain reaches them through `ActivityRepository` (created for the app by `createActivityRepository(context, clock)`):
 
@@ -338,7 +414,7 @@ The only writes to occurrences and corrections are the transactional operations 
 - `applyCorrection` — one `corrections` row plus the occurrence update, only for fields that actually change; writes nothing when nothing changes. Refuses a non-`ACTIVE` target activity.
 - `applyCorrectionCreatingActivity` — new `ACTIVE` canonical activity, then the correction and occurrence update as `applyCorrection`.
 
-These operations were added without any schema change: the database is still Room schema version 1.
+These operations were added without any schema change (in schema version 1); version 2 left them unchanged, and existing writers store NULL in every version-2 column.
 
 ## 6. Original speech vs corrected transcription
 
@@ -414,7 +490,7 @@ Recommended MVP:
 
 `visibility_status = ACTIVE | HIDDEN`
 
-Hard deletion may exist for privacy, but must be deliberate and cascade safely. Schema version 1 foreign keys never cascade (`NO ACTION`), so any future hard-delete path must remove dependent rows explicitly and in order.
+Hard deletion may exist for privacy, but must be deliberate and cascade safely. Schema foreign keys never cascade (`NO ACTION`, versions 1 and 2), so any future hard-delete path must remove dependent rows explicitly and in order.
 
 ## 10. Export and future cloud sync
 
@@ -444,6 +520,8 @@ Rules:
 - preserve raw captures
 - preserve correction history
 - document schema version changes
+
+**Version 1 -> 2 (`MIGRATION_1_2`, ADR-040).** Purely additive: it creates `subjects`, `actions`, `subject_aliases`, `action_aliases` and their indices, adds the nullable columns marked `-- v2` in section 2, and adds the `(subject_id, action_id)` unique index and the `action_id` index to `canonical_activities`. Nothing is dropped or rebuilt; every version-1 row keeps every value and gets NULL in the new columns. The pair columns are added with `ALTER TABLE ... ADD COLUMN ... REFERENCES ...` (allowed by SQLite because their default is NULL), so `canonical_activities` is not rebuilt. The migration harness runs the version-1 seed through it and validates the result against `2.json`. The owner's clean start for the tag design is done outside the code (clearing app storage once when the Stage 3 build is installed); there is no wipe. Version 2 has not been installed anywhere yet, so it may still be amended in place before Stage 3 ships.
 
 ## 12. Example lifecycle
 
