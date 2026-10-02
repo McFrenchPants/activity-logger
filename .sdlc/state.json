@@ -1170,7 +1170,7 @@
           "id": "TG2.1",
           "title": "Schema v2 + migration 1->2 (tag tables, pair columns, duration, extraction fields)",
           "status": "todo",
-          "lifecycle_state": "approved",
+          "lifecycle_state": "draft",
           "dependencies": [
             "TG1.4b"
           ],
@@ -1187,7 +1187,7 @@
           "id": "TG2.2",
           "title": "Repository: tag catalog + acceptTagged",
           "status": "todo",
-          "lifecycle_state": "approved",
+          "lifecycle_state": "draft",
           "dependencies": [
             "TG2.1"
           ],
@@ -1204,7 +1204,7 @@
           "id": "TG2.3",
           "title": "Corrections teach (aliases from corrections)",
           "status": "todo",
-          "lifecycle_state": "approved",
+          "lifecycle_state": "draft",
           "dependencies": [
             "TG2.2"
           ],
@@ -1221,7 +1221,7 @@
           "id": "TG2.4",
           "title": "Rename and merge tags (data operations)",
           "status": "todo",
-          "lifecycle_state": "approved",
+          "lifecycle_state": "draft",
           "dependencies": [
             "TG2.3"
           ],
