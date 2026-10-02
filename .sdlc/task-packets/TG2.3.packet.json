@@ -1,0 +1,65 @@
+{
+  "task_id": "TG2.3",
+  "plan_revision": "tg2",
+  "objective": "Corrections teach (design-spec requirement 4: 'Every user correction stores the user's wording as an alias') -- safely. Background: entries carry a SUBJECT tag and an ACTION tag (schema v2, ADR-040). TG2.2 added `TagRepository` (core-domain repository: `TagTarget.Existing/New`, `TaggedAcceptRequest`, `loadTagCatalog`, `acceptTagged` with a New-name convergence rule and optional alias learning, source AI_CONFIRMED) implemented by RoomActivityRepository through a LedgerWriteDao @Transaction operation. The effective interpretation of a tagged occurrence stores the AI's extracted words (interpretations.extracted_subject / extracted_action). This task adds (A) a pure core-domain rule deciding WHICH of the user's original words may be learned as aliases after a correction, and (B) the repository operation that corrects an occurrence's tags and/or duration and stores the chosen aliases.\n\nWHY (A) IS NEEDED -- learning blindly is dangerous: if the AI heard 'furnace' (an existing subject) and the user corrects the entry to 'hot tub', learning 'furnace' as an alias of hot tub would make every future furnace entry exact-match hot tub and save silently under the wrong tag. Likewise the extracted subject 'filter' in 'filter / change filter' (the real subject was dropped, ADR-039 amendment rule 4) must never become an alias of 'hot tub'. The product rule stands: a silent wrong save is far worse than an extra question.\n\n(A) core-domain `tagging` package, new file CorrectionAliases.kt: `object CorrectionAliases { fun aliasesToLearn(extractedSubject: String?, extractedAction: String?, previousSubjectId: String?, previousActionId: String?, newSubject: TagChoice, newAction: TagChoice, catalog: TagCatalog): LearnedAliases }` (names are your call; keep it pure, deterministic, no logging), where the new side is either an existing tag id or a new name, and the result is the subject words and/or action words to learn (nullable each). Rules, per side independently: learn only if that side's tag CHANGED; the extracted words are non-blank; their TagNormalizer key is not blank, not equal to the new tag's name key, not already an alias key of the new tag; the key does NOT equal the name key or an alias key of ANY other tag of the same kind in the catalog (the 'furnace' case); for an action, also not when its verb forms match another existing action's verb with identical object words (use the existing TagNormalizer/TagResolver helpers, e.g. verbsMatch / equivalentActions -- reuse, do not duplicate); for a subject, not when TagDecisionPolicy.isJunkSubject(subject, action) is true, and not when every word of the subject is among the extracted action's non-verb words (the 'filter / change filter' case); and not when the extracted words fail the existing new-name rules (NewActivityNameCheck, as the policy uses it -- filler words like 'thing'/'stuff' are never learned). Unit tests for every rule, positive and negative, including the two motivating cases above, 'Wi-Fi'/'WiFi' (equal key -> nothing to learn), a correction that keeps the subject but changes the action (only the action side may learn), and an empty catalog.\n\n(B) Domain API in core-domain `repository` (TagRepository.kt): `data class TagCorrectionRequest(occurrenceId: String, subject: TagTarget? = null, action: TagTarget? = null, duration: DurationChange? = null, learnSubjectAlias: String? = null, learnActionAlias: String? = null, source: CorrectionSource, reason: String?, now: Instant)` with `data class DurationChange(val seconds: Long?)` (null seconds = clear the duration), and `suspend fun correctTags(request: TagCorrectionRequest): CorrectionOutcome` on TagRepository. The CALLER (Stage 3 correction flow) computes the learn* words with (A); the repository only stores what it is given (repository does no product policy) -- KDoc this split on both sides.\nSemantics (one transaction through a new LedgerWriteDao @Transaction operation; nothing written on any error):\n1. Unknown occurrence -> IllegalArgumentException. Targets resolve exactly like acceptTagged (Existing must exist, be the right kind and ACTIVE; New uses the same convergence rule -- reuse/extract the TG2.2 helper, do not duplicate it). A null subject/action keeps the occurrence's current pair's tag; if the current pair is untagged (v3 entry) and either side is null -> IllegalArgumentException (a v3 entry can only be retagged with both tags).\n2. Find-or-create the ACTIVE pair as in acceptTagged (never a half-tagged pair; an existing non-ACTIVE pair -> IllegalArgumentException).\n3. Duration: DurationChange(seconds) must be null-or->=0, else IllegalArgumentException.\n4. If neither the pair nor the duration changes: return CorrectionOutcome.NothingChanged and write NOTHING -- no tag, pair or alias rows either (check before inserting; a New name that would need a new tag always means the pair changes).\n5. Otherwise write ONE corrections row (previous/new canonical activity ids only if the pair changed, previous/new duration_seconds only if the duration changed -- same null-on-both-sides convention as the existing correct()), update the occurrence's canonical_activity_id / duration_seconds / updated_at only (raw capture, captured_at, effective interpretation, visibility untouched), and insert the learn* aliases with source USER_CORRECTION using the same skip rules as acceptTagged's alias learning (blank / equal to the final tag's name key / already its alias -> skipped silently). Return Applied(correctionId).\n6. Extend the existing correction primitives rather than adding a parallel update path if that is cleaner (e.g. duration in OccurrenceChanges and updateOccurrenceCorrectableFields); existing applyCorrection / applyCorrectionCreatingActivity behaviour must stay identical for v3 callers (duration untouched by them). No @Update/@Upsert/@Delete/REPLACE/DELETE; DaoWriteSurfaceGuardTest covers the new operation. SQLiteConstraintException -> IllegalArgumentException in the repository.\nRepository tests (Robolectric): subject-only change on a tagged entry (pair switches, one correction row with previous/new activity, action kept); action-only; both New (tags + pair created); duration set / cleared / unchanged; NothingChanged writes nothing (row counts of every table unchanged) including when targets resolve to the current tags via convergence ('Wi-Fi' for current 'WiFi'); v3 entry with one side null -> error, with both -> works; MERGED/unknown/wrong-kind Existing, negative duration, unknown occurrence -> IllegalArgumentException with full rollback (no tag/pair/alias/correction rows, occurrence unchanged); alias rows inserted with USER_CORRECTION and skipped per the rules; raw capture row byte-identical before/after; correction history (listForOccurrence via existing read path) shows the new row.\n\nDOCS: ADR-041 in docs/DECISIONS.md (next number; Accepted, developer decision 2026-10-01, TG2.3): 'Corrections learn aliases only when safe' -- the rules in (A), the caller/repository split, sources USER_CORRECTION vs AI_CONFIRMED, and that the same rules should be applied by the caller before acceptTagged's learn* words in Stage 3. docs/DATA_MODEL.md: corrections section notes the duration columns and the tag-correction operation. No other doc changes.\n\nRULES: no app, pipeline, UI, core-ai or schema change; do not change existing TagResolver/TagDecisionPolicy/TagNormalizer behaviour (reading and calling their public helpers is fine; if a helper you need is private, write a documented equivalent in CorrectionAliases.kt or make the smallest visibility change -- say which in the report); TagPolicyOracleTest and TagRegressionGateTest must still pass unchanged; no logging; exception messages ids/enum names only.",
+  "non_goals": [
+    "No rename/merge (TG2.4).",
+    "No correction UI or pipeline wiring (Stage 3).",
+    "No schema change; if you believe one is needed, report scope_change_requested.",
+    "No change to tag resolution/decision behaviour or to the recordings/baseline."
+  ],
+  "dependencies": ["TG2.2"],
+  "read_paths": [
+    "core-data/**",
+    "core-domain/**",
+    "core-testing/**",
+    "docs/DECISIONS.md",
+    "docs/DATA_MODEL.md",
+    "docs/TEST_STRATEGY.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/CorrectionAliases.kt",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/CorrectionAliasesTest.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/TagNormalizer.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/TagResolver.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/**",
+    "core-data/src/test/kotlin/com/mcfrenchpants/activityledger/core/data/**",
+    "docs/DECISIONS.md",
+    "docs/DATA_MODEL.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "core-data/schemas/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/entity/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/migration/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/TagDecisionPolicy.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/TagCatalog.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/naming/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/extraction/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/services/**",
+    "core-testing/**",
+    "core-ai/**",
+    "app-phone/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "CorrectionAliases implements every rule in (A) as pure deterministic code with positive and negative unit tests, including the 'furnace -> hot tub' and 'filter / change filter' cases; TagResolver/TagNormalizer behaviour unchanged (any edit is visibility/KDoc only and reported).",
+    "correctTags implements semantics 1-6 in one transaction; NothingChanged and every error case write nothing (proven by row counts); one correction row records pair and/or duration changes; aliases stored with USER_CORRECTION per the skip rules; raw captures untouched.",
+    "Existing applyCorrection/applyCorrectionCreatingActivity/acceptTagged behaviour unchanged for their callers; DaoWriteSurfaceGuardTest covers the new operation and passes.",
+    "All core-domain, core-data, core-testing (incl. TagPolicyOracleTest, TagRegressionGateTest) and app-phone tests pass; no schema/entity/forbidden path changed.",
+    "ADR-041 and the DATA_MODEL.md corrections note are written."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test :core-data:test :core-testing:test",
+    "./gradlew :app-phone:testDebugUnitTest",
+    "git diff --stat -- core-data/schemas core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/entity core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/migration core-testing app-phone app-wear core-ai core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/TagDecisionPolicy.kt"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

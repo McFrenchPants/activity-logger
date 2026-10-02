@@ -1,0 +1,58 @@
+{
+  "task_id": "TG2.4",
+  "plan_revision": "tg2",
+  "objective": "Data operations to RENAME a subject/action tag and to MERGE one tag into another (design-spec requirement 5: tag hygiene on the phone, merge and rename in one or two taps -- this task is the data layer only; the UI is Stage 3). Background: schema v2 (ADR-040): subjects / actions (status TagStatus ACTIVE|MERGED, merged_into_subject_id / merged_into_action_id, normalized_name = TagNormalizer.key), subject_aliases / action_aliases (AliasSource), canonical_activities = the PAIR (nullable subject_id / action_id, unique together, status CanonicalActivityStatus, merged_into_activity_id), occurrences reference pairs; corrections record previous/new canonical activity. TagRepository (core-domain repository/TagRepository.kt) has loadTagCatalog, acceptTagged (New-name convergence: name key, then alias key, oldest first) and correctTags, implemented in RoomActivityRepository through LedgerWriteDao @Transaction operations with protected primitives. The pair's display_name is a cache '<subject> <action>' for legacy screens; history reads current tag names.\n\nDOMAIN API (TagRepository; KDoc'd error contract like the rest):\n- `suspend fun renameTag(kind: TagKind, tagId: String, newDisplayName: String): RenameOutcome` with `sealed interface RenameOutcome { data object Renamed; data object NothingChanged; data class ConflictsWith(val tagId: String) }`.\n- `suspend fun mergeTags(kind: TagKind, fromTagId: String, intoTagId: String): MergeOutcome` with `data class MergeOutcome(val movedOccurrences: Int, val mergedPairs: Int)` (names your call).\nTimestamps from the repository's clock.\n\nRENAME semantics (one transaction; nothing written on error):\n1. Tag must exist in that kind's table and be ACTIVE, else IllegalArgumentException. newKey = TagNormalizer.key(newDisplayName); blank -> IllegalArgumentException.\n2. If the trimmed new display name equals the current display name exactly -> NothingChanged, write nothing.\n3. If newKey equals the name key or an alias key of ANOTHER ACTIVE tag of the same kind -> ConflictsWith(that tag id, oldest first) and write nothing (the caller offers a merge instead).\n4. Otherwise update display_name, normalized_name, updated_at; if the OLD key differs from newKey and is not already an alias of this tag, insert the old display name as an alias (source MANUAL) so the words the user used before still resolve exactly; if newKey equals one of this tag's own aliases leave that alias in place (harmless). Refresh the cached display_name / normalized_name / updated_at of every pair that uses this tag (any status), same label rule as acceptTagged's pair label helper (reuse it). Raw captures, interpretations, occurrences and corrections untouched; a rename is not a correction.\n\nMERGE semantics (one transaction; nothing written on error):\n1. from != into; both exist in that kind's table and are ACTIVE, else IllegalArgumentException.\n2. Tag: from.status = MERGED, merged_into_* = into, updated_at.\n3. Words: from's display name and each of from's aliases become aliases of into (name -> source MANUAL; an alias keeps its original source), skipping any whose key is blank, equals into's name key or is already an alias key of into. from's own alias rows stay as they are (history).\n4. Pairs: for every ACTIVE pair P using from (as subject for SUBJECT, as action for ACTION) with other tag x: target T = the pair (into, x) (or (x, into)); if it exists and is ACTIVE use it; if it exists and is not ACTIVE -> IllegalArgumentException (cannot happen through these APIs; guard anyway); else insert it ACTIVE with the standard label. P.status = MERGED, merged_into_activity_id = T, updated_at.\n5. Occurrences: every occurrence on such a P (ACTIVE and HIDDEN visibility alike) moves to T through the existing correction mechanism: one corrections row each (source CorrectionSource.USER, reason = a fixed documented code constant such as \"TAG_MERGE\" -- never user text, previous/new canonical activity id), canonical_activity_id = T, updated_at. Raw captures and interpretations untouched (interpretations.matched_activity_id keeps the historical value).\n6. Afterwards: loadTagCatalog no longer contains from or P; acceptTagged New(<from's old name or any of its aliases>) resolves to into via the alias-key rule; acceptTagged/correctTags Existing(from) is refused as MERGED (already the rule).\nAll new writes go through the LedgerWriteDao pattern: @Transaction operations with protected primitives; UPDATE statements as protected @Query primitives touching only the named columns (like updateRawCaptureProcessingState); no @Update/@Upsert/@Delete/REPLACE/DELETE anywhere; extend DaoWriteSurfaceGuardTest. SQLiteConstraintException -> IllegalArgumentException in the repository.\n\nTESTS (core-data, Robolectric): rename happy path (name, key, updated_at, old name now alias MANUAL, pair labels refreshed, catalog shows new name, acceptTagged New(old name) resolves to it); case/punctuation-only rename ('wifi' -> 'Wi-Fi': display changes, no alias added); NothingChanged writes nothing; conflict with another tag's name and with another tag's alias -> ConflictsWith, nothing written; MERGED/unknown/wrong-kind id and blank name -> IllegalArgumentException, nothing written. Merge subjects (e.g. 'HVAC' into 'furnace'): with pairs (HVAC, replace filter) [target pair absent -> created] and (HVAC, change filter) [target (furnace, change filter) already exists -> reused]; occurrences incl. a HIDDEN one move with one correction row each (reason code, source USER), raw capture rows byte-identical, interpretation rows unchanged; HVAC MERGED -> furnace; aliases copied with skip rules; catalog contents after; history shows 'furnace'; acceptTagged New('HVAC') then lands on furnace. Merge actions symmetric case. Errors: from == into, either MERGED/unknown/wrong kind -> IllegalArgumentException with full rollback (row counts of every table unchanged). A merge of a tag with no pairs works (only tag + aliases change).\n\nDOCS: ADR-042 in docs/DECISIONS.md ('Tag rename and merge', Accepted, developer decision 2026-10-01, TG2.4): the semantics above, why rename keeps the old name as an alias, why merge moves occurrences by correction rows (auditable, requirement 6) rather than rewriting history, and that this supersedes DATA_MODEL section 8's 'post-MVP' note for tags. docs/DATA_MODEL.md section 8 updated accordingly. No other doc changes.\n\nRULES: no app/pipeline/UI/core-ai/schema change; no product policy beyond the rules above; no logging; exception messages ids/enum names only; existing acceptTagged/correctTags/v3 behaviour unchanged.",
+  "non_goals": [
+    "No UI (Stage 3), no automatic merge suggestions, no unmerge.",
+    "No schema change; if needed, report scope_change_requested.",
+    "No change to tag resolution/decision behaviour."
+  ],
+  "dependencies": ["TG2.3"],
+  "read_paths": [
+    "core-data/**",
+    "core-domain/**",
+    "docs/DECISIONS.md",
+    "docs/DATA_MODEL.md",
+    "docs/TEST_STRATEGY.md",
+    "docs/REQUIREMENTS.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/**",
+    "core-data/src/test/kotlin/com/mcfrenchpants/activityledger/core/data/**",
+    "docs/DECISIONS.md",
+    "docs/DATA_MODEL.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "core-data/schemas/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/entity/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/migration/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/extraction/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/services/**",
+    "core-testing/**",
+    "core-ai/**",
+    "app-phone/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "renameTag and mergeTags exist on TagRepository with KDoc'd contracts and outcome types, implemented through LedgerWriteDao @Transaction operations; the write-surface guard covers them and passes.",
+    "Rename semantics 1-4 hold, including old-name alias, conflict outcome without writes, and pair label refresh; proven by the listed tests.",
+    "Merge semantics 1-6 hold: tag MERGED with pointer, words copied as aliases with skip rules, pairs merged into found-or-created targets, every occurrence (incl. HIDDEN) moved by exactly one correction row with the fixed reason code; raw captures and interpretations untouched; proven by the listed tests.",
+    "Every error path writes nothing (row counts of every table unchanged); existing acceptTagged/correctTags/v3 tests still pass.",
+    "All core-domain, core-data, core-testing and app-phone tests pass; ADR-042 and DATA_MODEL.md section 8 written; no forbidden path changed."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test :core-data:test :core-testing:test",
+    "./gradlew :app-phone:testDebugUnitTest",
+    "git diff --stat -- core-data/schemas core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/entity core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/migration core-testing app-phone app-wear core-ai core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

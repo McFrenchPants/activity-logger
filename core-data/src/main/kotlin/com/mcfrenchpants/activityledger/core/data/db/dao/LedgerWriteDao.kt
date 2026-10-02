@@ -4,32 +4,43 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
+import com.mcfrenchpants.activityledger.core.data.db.entity.ActionAliasEntity
+import com.mcfrenchpants.activityledger.core.data.db.entity.ActionEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.ActivityOccurrenceEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.CanonicalActivityEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.CorrectionEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.RawCaptureEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.InterpretationEntity
+import com.mcfrenchpants.activityledger.core.data.db.entity.SubjectAliasEntity
+import com.mcfrenchpants.activityledger.core.data.db.entity.SubjectEntity
 import com.mcfrenchpants.activityledger.core.data.id.IdFactory
 import com.mcfrenchpants.activityledger.core.data.ledger.AcceptInterpretationRequest
+import com.mcfrenchpants.activityledger.core.data.ledger.AcceptTaggedRequest
 import com.mcfrenchpants.activityledger.core.data.ledger.NewCanonicalActivity
 import com.mcfrenchpants.activityledger.core.data.ledger.NewInterpretation
+import com.mcfrenchpants.activityledger.core.data.ledger.NewTagAlias
 import com.mcfrenchpants.activityledger.core.data.ledger.OccurrenceChanges
+import com.mcfrenchpants.activityledger.core.data.ledger.TagRef
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
+import com.mcfrenchpants.activityledger.core.domain.model.AliasSource
 import com.mcfrenchpants.activityledger.core.domain.model.CanonicalActivityStatus
 import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
 import com.mcfrenchpants.activityledger.core.domain.model.ProcessingState
+import com.mcfrenchpants.activityledger.core.domain.model.TagStatus
 import com.mcfrenchpants.activityledger.core.domain.model.TimePrecision
 import com.mcfrenchpants.activityledger.core.domain.model.VisibilityStatus
+import com.mcfrenchpants.activityledger.core.domain.naming.NameNormalizer
 
 /**
  * The ONLY place occurrences and corrections are written.
  *
  * Encapsulation: every primitive write (occurrence insert/update, correction
- * insert, and the copies of the interpretation/activity/raw-capture writes the
- * operations need) is `protected abstract`, so nothing outside this class (or
- * Room's generated subclass) can call it. The only callable entry points are the
- * five `@Transaction` operations below (acceptInterpretation, applyCorrection,
- * applyCorrectionCreatingActivity, recordOutcome, hideOccurrence); Room runs each in ONE database
+ * insert, and the copies of the interpretation/activity/tag/alias/raw-capture
+ * writes the operations need) is `protected abstract`, so nothing outside this
+ * class (or Room's generated subclass) can call it. The only callable entry points
+ * are the six `@Transaction` operations below (acceptInterpretation, acceptTagged,
+ * applyCorrection, applyCorrectionCreatingActivity, recordOutcome, hideOccurrence);
+ * Room runs each in ONE database
  * transaction, so any exception rolls back every write it made. Application code
  * reaches them through core.data.ledger.ActivityLedgerWriter, which supplies the
  * IdFactory.
@@ -55,6 +66,66 @@ internal abstract class LedgerWriteDao {
 
     @Query("SELECT status FROM canonical_activities WHERE id = :activityId")
     protected abstract fun findCanonicalActivityStatus(activityId: String): CanonicalActivityStatus?
+
+    @Query("SELECT * FROM subjects WHERE id = :id")
+    protected abstract fun findSubject(id: String): SubjectEntity?
+
+    @Query("SELECT * FROM actions WHERE id = :id")
+    protected abstract fun findAction(id: String): ActionEntity?
+
+    /** The oldest (then lowest-id) ACTIVE subject whose normalized_name is [key], or null. */
+    @Query(
+        "SELECT * FROM subjects WHERE status = 'ACTIVE' AND normalized_name = :key " +
+            "ORDER BY created_at ASC, id ASC LIMIT 1",
+    )
+    protected abstract fun findActiveSubjectByName(key: String): SubjectEntity?
+
+    /** The oldest (then lowest-id) ACTIVE action whose normalized_name is [key], or null. */
+    @Query(
+        "SELECT * FROM actions WHERE status = 'ACTIVE' AND normalized_name = :key " +
+            "ORDER BY created_at ASC, id ASC LIMIT 1",
+    )
+    protected abstract fun findActiveActionByName(key: String): ActionEntity?
+
+    /** The oldest (then lowest-id) ACTIVE subject having an alias whose key is [key], or null. */
+    @Query(
+        "SELECT * FROM subjects WHERE status = 'ACTIVE' AND EXISTS (" +
+            "SELECT 1 FROM subject_aliases WHERE subject_aliases.subject_id = subjects.id " +
+            "AND subject_aliases.normalized_alias = :key) " +
+            "ORDER BY created_at ASC, id ASC LIMIT 1",
+    )
+    protected abstract fun findActiveSubjectByAlias(key: String): SubjectEntity?
+
+    /** The oldest (then lowest-id) ACTIVE action having an alias whose key is [key], or null. */
+    @Query(
+        "SELECT * FROM actions WHERE status = 'ACTIVE' AND EXISTS (" +
+            "SELECT 1 FROM action_aliases WHERE action_aliases.action_id = actions.id " +
+            "AND action_aliases.normalized_alias = :key) " +
+            "ORDER BY created_at ASC, id ASC LIMIT 1",
+    )
+    protected abstract fun findActiveActionByAlias(key: String): ActionEntity?
+
+    @Query("SELECT COUNT(*) FROM subject_aliases WHERE subject_id = :subjectId AND normalized_alias = :key")
+    protected abstract fun countSubjectAlias(subjectId: String, key: String): Int
+
+    @Query("SELECT COUNT(*) FROM action_aliases WHERE action_id = :actionId AND normalized_alias = :key")
+    protected abstract fun countActionAlias(actionId: String, key: String): Int
+
+    /** The canonical activity that is the pair ([subjectId], [actionId]), any status, or null. */
+    @Query("SELECT * FROM canonical_activities WHERE subject_id = :subjectId AND action_id = :actionId")
+    protected abstract fun findPair(subjectId: String, actionId: String): CanonicalActivityEntity?
+
+    @Insert
+    protected abstract fun insertSubject(row: SubjectEntity)
+
+    @Insert
+    protected abstract fun insertAction(row: ActionEntity)
+
+    @Insert
+    protected abstract fun insertSubjectAlias(row: SubjectAliasEntity)
+
+    @Insert
+    protected abstract fun insertActionAlias(row: ActionAliasEntity)
 
     @Insert
     protected abstract fun insertInterpretation(row: InterpretationEntity)
@@ -160,6 +231,108 @@ internal abstract class LedgerWriteDao {
         )
         check(updateRawCaptureProcessingState(capture.id, ProcessingState.PERSISTED, request.now) == 1) {
             "Raw capture ${capture.id} was not updated"
+        }
+        return occurrenceId
+    }
+
+    /**
+     * Accepts an interpretation of a raw capture as an occurrence of a subject + action pair
+     * (ADR-040). Idempotent: if the capture already has an occurrence, its id is returned and
+     * nothing is written (no tag, pair, alias or interpretation).
+     *
+     * Each [TagRef] is resolved among tags of its OWN kind only:
+     * - [TagRef.Existing]: the tag must exist and be ACTIVE.
+     * - [TagRef.New]: the key must be non-blank; reuse the oldest (then lowest-id) ACTIVE tag
+     *   whose normalized_name is the key, else the oldest (then lowest-id) ACTIVE tag with an
+     *   alias of that key, else insert a new ACTIVE tag (display_name = the given name
+     *   trimmed, normalized_name = key). Concurrent "Wi-Fi" / "WiFi" captures converge.
+     *
+     * The pair is the canonical_activities row with that (subject_id, action_id): reused if
+     * ACTIVE, refused if not ACTIVE, else inserted ACTIVE with display_name [pairDisplayName]
+     * and normalized_name = NameNormalizer of that label.
+     *
+     * Write order: tags (if created), pair (if created), interpretation, occurrence (with
+     * duration_seconds), raw capture processing_state = PERSISTED, then aliases. An alias is
+     * inserted (source AI_CONFIRMED, text trimmed) only when its key is non-blank, differs
+     * from the tag's normalized_name and is not already an alias key of that tag; otherwise
+     * it is silently skipped.
+     *
+     * @throws IllegalArgumentException if the interpretation names a different raw capture,
+     *   the raw capture does not exist, the duration is negative, an Existing tag is unknown
+     *   or not ACTIVE, a New key is blank, or the existing pair is not ACTIVE. Everything
+     *   already written by this call is rolled back.
+     * @throws android.database.sqlite.SQLiteConstraintException if a referenced row (e.g. the
+     *   interpretation's matched activity) does not exist; everything is rolled back.
+     */
+    @Transaction
+    open fun acceptTagged(idFactory: IdFactory, request: AcceptTaggedRequest): String {
+        findOccurrenceForRawCapture(request.rawCaptureId)?.let { return it.id }
+
+        require(request.interpretation.rawCaptureId == request.rawCaptureId) {
+            "Interpretation belongs to raw capture ${request.interpretation.rawCaptureId}, " +
+                "not ${request.rawCaptureId}"
+        }
+        val capture = requireNotNull(findRawCapture(request.rawCaptureId)) {
+            "Unknown raw capture ${request.rawCaptureId}"
+        }
+        val duration = request.durationSeconds
+        require(duration == null || duration >= 0) { "Duration must be null or >= 0 (raw capture ${capture.id})" }
+
+        val subject = resolveSubject(idFactory, request.subject, request.now)
+        val action = resolveAction(idFactory, request.action, request.now)
+        val activityId = resolvePair(idFactory, subject, action, request.now)
+
+        val interpretationId = idFactory.newId()
+        insertInterpretation(request.interpretation.toEntity(interpretationId))
+
+        val occurrenceId = idFactory.newId()
+        insertOccurrence(
+            ActivityOccurrenceEntity(
+                id = occurrenceId,
+                canonicalActivityId = activityId,
+                rawCaptureId = capture.id,
+                effectiveInterpretationId = interpretationId,
+                capturedAt = capture.capturedAt,
+                occurredAt = request.occurredAt,
+                timePrecision = request.timePrecision,
+                activityState = request.activityState,
+                visibilityStatus = VisibilityStatus.ACTIVE,
+                createdAt = request.now,
+                updatedAt = request.now,
+                durationSeconds = duration,
+            ),
+        )
+        check(updateRawCaptureProcessingState(capture.id, ProcessingState.PERSISTED, request.now) == 1) {
+            "Raw capture ${capture.id} was not updated"
+        }
+
+        request.subjectAlias?.let { alias ->
+            if (isNewAlias(alias, subject.normalizedName) && countSubjectAlias(subject.id, alias.key) == 0) {
+                insertSubjectAlias(
+                    SubjectAliasEntity(
+                        id = idFactory.newId(),
+                        subjectId = subject.id,
+                        aliasText = alias.aliasText.trim(),
+                        normalizedAlias = alias.key,
+                        source = AliasSource.AI_CONFIRMED,
+                        createdAt = request.now,
+                    ),
+                )
+            }
+        }
+        request.actionAlias?.let { alias ->
+            if (isNewAlias(alias, action.normalizedName) && countActionAlias(action.id, alias.key) == 0) {
+                insertActionAlias(
+                    ActionAliasEntity(
+                        id = idFactory.newId(),
+                        actionId = action.id,
+                        aliasText = alias.aliasText.trim(),
+                        normalizedAlias = alias.key,
+                        source = AliasSource.AI_CONFIRMED,
+                        createdAt = request.now,
+                    ),
+                )
+            }
         }
         return occurrenceId
     }
@@ -289,6 +462,93 @@ internal abstract class LedgerWriteDao {
 
     // --- shared logic (not callable from outside this class) ----------------
 
+    /** A tag of either kind after [acceptTagged] resolved it. */
+    private class ResolvedTag(val id: String, val displayName: String, val normalizedName: String)
+
+    private fun resolveSubject(idFactory: IdFactory, ref: TagRef, now: Long): ResolvedTag = when (ref) {
+        is TagRef.Existing -> {
+            val row = requireNotNull(findSubject(ref.tagId)) { "Unknown subject ${ref.tagId}" }
+            require(row.status == TagStatus.ACTIVE) { "Subject ${row.id} is ${row.status}, not ACTIVE" }
+            ResolvedTag(row.id, row.displayName, row.normalizedName)
+        }
+        is TagRef.New -> {
+            require(ref.key.isNotBlank()) { "New subject name has a blank key" }
+            val found = findActiveSubjectByName(ref.key) ?: findActiveSubjectByAlias(ref.key)
+            if (found != null) {
+                ResolvedTag(found.id, found.displayName, found.normalizedName)
+            } else {
+                val row = SubjectEntity(
+                    id = idFactory.newId(),
+                    displayName = ref.displayName.trim(),
+                    normalizedName = ref.key,
+                    status = TagStatus.ACTIVE,
+                    mergedIntoSubjectId = null,
+                    createdAt = now,
+                    updatedAt = now,
+                )
+                insertSubject(row)
+                ResolvedTag(row.id, row.displayName, row.normalizedName)
+            }
+        }
+    }
+
+    private fun resolveAction(idFactory: IdFactory, ref: TagRef, now: Long): ResolvedTag = when (ref) {
+        is TagRef.Existing -> {
+            val row = requireNotNull(findAction(ref.tagId)) { "Unknown action ${ref.tagId}" }
+            require(row.status == TagStatus.ACTIVE) { "Action ${row.id} is ${row.status}, not ACTIVE" }
+            ResolvedTag(row.id, row.displayName, row.normalizedName)
+        }
+        is TagRef.New -> {
+            require(ref.key.isNotBlank()) { "New action name has a blank key" }
+            val found = findActiveActionByName(ref.key) ?: findActiveActionByAlias(ref.key)
+            if (found != null) {
+                ResolvedTag(found.id, found.displayName, found.normalizedName)
+            } else {
+                val row = ActionEntity(
+                    id = idFactory.newId(),
+                    displayName = ref.displayName.trim(),
+                    normalizedName = ref.key,
+                    status = TagStatus.ACTIVE,
+                    mergedIntoActionId = null,
+                    createdAt = now,
+                    updatedAt = now,
+                )
+                insertAction(row)
+                ResolvedTag(row.id, row.displayName, row.normalizedName)
+            }
+        }
+    }
+
+    /** The id of the ACTIVE pair (subject, action), inserted if it does not exist yet. */
+    private fun resolvePair(idFactory: IdFactory, subject: ResolvedTag, action: ResolvedTag, now: Long): String {
+        findPair(subject.id, action.id)?.let { pair ->
+            require(pair.status == CanonicalActivityStatus.ACTIVE) {
+                "Canonical activity ${pair.id} (subject ${subject.id}, action ${action.id}) is ${pair.status}, not ACTIVE"
+            }
+            return pair.id
+        }
+        val label = pairDisplayName(subject.displayName, action.displayName)
+        val id = idFactory.newId()
+        insertCanonicalActivity(
+            CanonicalActivityEntity(
+                id = id,
+                displayName = label,
+                normalizedName = NameNormalizer.normalize(label),
+                status = CanonicalActivityStatus.ACTIVE,
+                createdAt = now,
+                updatedAt = now,
+                mergedIntoActivityId = null,
+                subjectId = subject.id,
+                actionId = action.id,
+            ),
+        )
+        return id
+    }
+
+    /** False when [alias] has a blank key or the tag's own key [tagKey] (existing aliases are checked separately). */
+    private fun isNewAlias(alias: NewTagAlias, tagKey: String): Boolean =
+        alias.key.isNotBlank() && alias.key != tagKey
+
     private fun insertNewActiveActivity(idFactory: IdFactory, newActivity: NewCanonicalActivity, now: Long): String {
         val id = idFactory.newId()
         insertCanonicalActivity(
@@ -374,6 +634,14 @@ internal abstract class LedgerWriteDao {
         return correctionId
     }
 }
+
+/**
+ * The display_name cached on a newly created subject + action pair: "<subject> <action>",
+ * e.g. "Furnace change filter". Only legacy (v3) screens read it; tag-aware reads (history)
+ * use the tags' current names, so it is not refreshed when a tag is later renamed.
+ */
+internal fun pairDisplayName(subjectDisplayName: String, actionDisplayName: String): String =
+    "$subjectDisplayName $actionDisplayName"
 
 /** The only processing states [LedgerWriteDao.recordOutcome] may set. */
 private val OUTCOME_STATES = setOf(

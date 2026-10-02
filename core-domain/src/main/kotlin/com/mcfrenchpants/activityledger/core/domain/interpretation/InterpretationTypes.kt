@@ -136,6 +136,14 @@ interface ActivityInterpreter {
  * @property candidateContextHash Hash of the candidate shortlist given to the model, for audit.
  * @property structuredResultJson The raw structured model output, if any.
  * @property validationReason Machine-readable reason when [validationStatus] is not VALID.
+ * @property extractedSubject Tag path only: the subject words the model extracted, verbatim;
+ *   null for the v3 activity path.
+ * @property extractedAction Tag path only: the action words the model extracted, verbatim;
+ *   null for the v3 activity path.
+ * @property durationExpression Tag path only: the duration phrase the model extracted,
+ *   verbatim, if any.
+ * @property resolvedDurationSeconds The domain's deterministic resolution of
+ *   [durationExpression], in seconds, if any.
  */
 data class InterpretationRecord(
     val createdAt: Instant,
@@ -155,4 +163,8 @@ data class InterpretationRecord(
     val structuredResultJson: String?,
     val validationStatus: ValidationStatus,
     val validationReason: String?,
+    val extractedSubject: String? = null,
+    val extractedAction: String? = null,
+    val durationExpression: String? = null,
+    val resolvedDurationSeconds: Long? = null,
 )

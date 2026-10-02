@@ -17,12 +17,24 @@ Registered in `.sdlc/state.json` as TG1.
 | TG1.4 | Replay, score, report, gate; Pixel 10 Pro recording | done | Device recording via in-app runner; tag-baseline.json set after TG1.4b |
 | TG1.4b | Resolver/policy fixes from the device findings | done | Verifier pass (attempt 2); device UNSAFE 14 -> 0; tag-baseline.json set. STAGE 1 COMPLETE |
 | TG2.1 | Schema v2 + migration 1 -> 2 (tag tables, pair columns, duration, extraction fields) | done | Verifier pass attempt 1; additive ALTER (no rebuild); ADR-040 |
-| TG2.2 | Repository: tag catalog + saving a tagged entry | todo | after TG2.1; verifier |
+| TG2.2 | Repository: tag catalog + saving a tagged entry | done | Verifier pass attempt 1; LedgerRepository = ActivityRepository + TagRepository |
 | TG2.3 | Corrections teach (correction stores the user's words as aliases) | todo | after TG2.2; verifier |
 | TG2.4 | Rename and merge tags (data only) | todo | after TG2.3; verifier. STAGE 2 STOP |
 | TG3+ | Stages 3-4 | todo | detail after the Stage 2 report |
 
 ## Session log
+
+### 2026-10-01 — TG2.2 done
+`TagRepository` (loadTagCatalog, acceptTagged) + `LedgerRepository`; `createActivityRepository`
+returns LedgerRepository. acceptTagged: one LedgerWriteDao transaction, idempotent per capture,
+New-name convergence (name key, then alias key, oldest first), find-or-create pair (label
+"<subject> <action>", a cache), duration + extraction fields stored, AI_CONFIRMED alias
+learning. History/occurrence views carry tag names + duration (still one statement). Verifier
+pass. Stage 3 notes: (a) v3 `loadCatalog` will list tagged pairs under the cached label --
+decide whether to exclude them when switching; (b) a learned alias whose key equals ANOTHER tag's
+name/alias is not refused by the repository -- the caller must apply the TG2.3 safe-alias rules
+before passing learn* words to acceptTagged too (ADR-041). Implementer attempt 1 was spawned
+without the packet text by mistake and stopped before any edit; attempt counted as 1.
 
 ### 2026-10-01 — Stage 2 started; TG2.1 done
 Owner go-ahead for Stage 2 (accepts test data being cleared). Data shape decided (ADR-040):

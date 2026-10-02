@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-10-02T01:16:54.480Z",
+  "updated_at": "2026-10-02T01:32:13.260Z",
   "work_items": [
     {
       "id": "SS1",
@@ -1186,19 +1186,19 @@
         {
           "id": "TG2.2",
           "title": "Repository: tag catalog + acceptTagged",
-          "status": "todo",
-          "lifecycle_state": "draft",
+          "status": "done",
+          "lifecycle_state": "verifying",
           "dependencies": [
             "TG2.1"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/TG2.2.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "TagRepository/LedgerRepository, acceptTagged, loadTagCatalog. Verifier pass attempt 1."
         },
         {
           "id": "TG2.3",

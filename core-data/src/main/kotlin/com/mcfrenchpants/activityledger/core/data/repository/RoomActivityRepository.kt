@@ -8,10 +8,13 @@ import com.mcfrenchpants.activityledger.core.data.db.entity.CanonicalActivityEnt
 import com.mcfrenchpants.activityledger.core.data.db.entity.RawCaptureEntity
 import com.mcfrenchpants.activityledger.core.data.id.IdFactory
 import com.mcfrenchpants.activityledger.core.data.ledger.AcceptInterpretationRequest
+import com.mcfrenchpants.activityledger.core.data.ledger.AcceptTaggedRequest
 import com.mcfrenchpants.activityledger.core.data.ledger.ActivityLedgerWriter
 import com.mcfrenchpants.activityledger.core.data.ledger.NewCanonicalActivity
 import com.mcfrenchpants.activityledger.core.data.ledger.NewInterpretation
+import com.mcfrenchpants.activityledger.core.data.ledger.NewTagAlias
 import com.mcfrenchpants.activityledger.core.data.ledger.OccurrenceChanges
+import com.mcfrenchpants.activityledger.core.data.ledger.TagRef
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpretationRecord
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
 import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
@@ -26,9 +29,17 @@ import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionChanges
 import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionOutcome
 import com.mcfrenchpants.activityledger.core.domain.repository.HistoryEntry
 import com.mcfrenchpants.activityledger.core.domain.repository.HistoryOccurrence
+import com.mcfrenchpants.activityledger.core.domain.repository.LedgerRepository
 import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
 import com.mcfrenchpants.activityledger.core.domain.repository.OccurrenceView
 import com.mcfrenchpants.activityledger.core.domain.repository.StoredCapture
+import com.mcfrenchpants.activityledger.core.domain.repository.TagTarget
+import com.mcfrenchpants.activityledger.core.domain.repository.TaggedAcceptRequest
+import com.mcfrenchpants.activityledger.core.domain.tagging.KnownPair
+import com.mcfrenchpants.activityledger.core.domain.tagging.KnownTag
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagCatalog
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagNormalizer
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -37,8 +48,10 @@ import java.time.Instant
 import java.time.ZoneId
 
 /**
- * [ActivityRepository] on top of the Room ledger. Enforces data integrity only (see the
- * error contract on [ActivityRepository]); product policy lives in the domain layer.
+ * [LedgerRepository] (activities plus subject + action tags) on top of the Room ledger.
+ * Enforces data integrity only (see the error contracts on [ActivityRepository] and
+ * [com.mcfrenchpants.activityledger.core.domain.repository.TagRepository]); product policy,
+ * including any fuzzy tag matching, lives in the domain layer.
  *
  * Every function runs its blocking DAO work on [dispatcher]. Instants are stored as epoch
  * milliseconds and zones as IANA id strings. Rows this class creates take their timestamps
@@ -51,7 +64,7 @@ internal class RoomActivityRepository(
     private val idFactory: IdFactory,
     private val clock: Clock,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
-) : ActivityRepository {
+) : LedgerRepository {
 
     private val writer = ActivityLedgerWriter(database, idFactory)
 
@@ -118,6 +131,54 @@ internal class RoomActivityRepository(
                     lastOccurredAt = lastOccurred[activity.id]?.let(Instant::ofEpochMilli),
                 )
             }
+        }
+    }
+
+    override suspend fun loadTagCatalog(): TagCatalog = io {
+        // Five queries regardless of row counts; all in one read transaction for a consistent view.
+        database.runInTransaction<TagCatalog> {
+            val subjectAliases = database.subjectAliasDao().listForActiveSubjects()
+                .groupBy({ it.subjectId }, { it.aliasText })
+            val actionAliases = database.actionAliasDao().listForActiveActions()
+                .groupBy({ it.actionId }, { it.aliasText })
+            val subjects = database.subjectDao().listActive().map { row ->
+                KnownTag(row.id, TagKind.SUBJECT, row.displayName, subjectAliases[row.id].orEmpty())
+            }
+            val actions = database.actionDao().listActive().map { row ->
+                KnownTag(row.id, TagKind.ACTION, row.displayName, actionAliases[row.id].orEmpty())
+            }
+            val activeSubjectIds = subjects.mapTo(HashSet()) { it.id }
+            val activeActionIds = actions.mapTo(HashSet()) { it.id }
+            val pairs = database.canonicalActivityDao().listActive().mapNotNull { activity ->
+                val subjectId = activity.subjectId
+                val actionId = activity.actionId
+                if (subjectId in activeSubjectIds && actionId in activeActionIds) {
+                    KnownPair(checkNotNull(subjectId), checkNotNull(actionId))
+                } else {
+                    null
+                }
+            }
+            TagCatalog(subjects = subjects, actions = actions, pairs = pairs)
+        }
+    }
+
+    override suspend fun acceptTagged(request: TaggedAcceptRequest): String = io {
+        translatingMissingReferences {
+            writer.acceptTagged(
+                AcceptTaggedRequest(
+                    rawCaptureId = request.captureId,
+                    interpretation = request.interpretation.toNew(request.captureId),
+                    subject = request.subject.toRef(),
+                    action = request.action.toRef(),
+                    occurredAt = request.occurredAt.toEpochMilli(),
+                    timePrecision = request.timePrecision,
+                    activityState = request.activityState,
+                    durationSeconds = request.durationSeconds,
+                    subjectAlias = request.learnSubjectAlias?.toAlias(),
+                    actionAlias = request.learnActionAlias?.toAlias(),
+                    now = clock.millis(),
+                ),
+            )
         }
     }
 
@@ -237,7 +298,18 @@ internal class RoomActivityRepository(
         structuredResultJson = structuredResultJson,
         validationStatus = validationStatus,
         validationReason = validationReason,
+        extractedSubject = extractedSubject,
+        extractedAction = extractedAction,
+        durationExpression = durationExpression,
+        resolvedDurationSeconds = resolvedDurationSeconds,
     )
+
+    private fun TagTarget.toRef(): TagRef = when (this) {
+        is TagTarget.Existing -> TagRef.Existing(tagId)
+        is TagTarget.New -> TagRef.New(displayName = displayName, key = TagNormalizer.key(displayName))
+    }
+
+    private fun String.toAlias() = NewTagAlias(aliasText = trim(), key = TagNormalizer.key(this))
 
     private fun ActivityTarget.New.toNew() =
         NewCanonicalActivity(displayName = displayName, normalizedName = NameNormalizer.normalize(displayName))
@@ -252,6 +324,7 @@ internal class RoomActivityRepository(
         timePrecision = timePrecision,
         activityState = activityState,
         visibilityStatus = visibilityStatus,
+        durationSeconds = durationSeconds,
     )
 
     private fun HistoryRow.toEntry(): HistoryEntry {
@@ -263,6 +336,9 @@ internal class RoomActivityRepository(
                 occurredAt = Instant.ofEpochMilli(checkNotNull(occurredAt) { "Occurrence $id has no occurred_at" }),
                 timePrecision = checkNotNull(timePrecision) { "Occurrence $id has no time_precision" },
                 activityState = checkNotNull(activityState) { "Occurrence $id has no activity_state" },
+                subjectName = subjectName,
+                actionName = actionName,
+                durationSeconds = durationSeconds,
             )
         }
         return HistoryEntry(
@@ -282,5 +358,7 @@ internal class RoomActivityRepository(
         displayName = displayName,
         normalizedName = normalizedName,
         status = status,
+        subjectId = subjectId,
+        actionId = actionId,
     )
 }

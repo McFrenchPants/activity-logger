@@ -11,6 +11,8 @@ import com.mcfrenchpants.activityledger.core.domain.model.ValidationStatus
 /**
  * An interpretation to store. It has no id: the id is always assigned by the
  * write operation. [rawCaptureId] must equal the capture being accepted.
+ * The four tag-path extraction fields (schema v2) default to null, as they are
+ * for every v3-path interpretation.
  */
 internal data class NewInterpretation(
     val rawCaptureId: String,
@@ -31,6 +33,10 @@ internal data class NewInterpretation(
     val structuredResultJson: String?,
     val validationStatus: ValidationStatus,
     val validationReason: String?,
+    val extractedSubject: String? = null,
+    val extractedAction: String? = null,
+    val durationExpression: String? = null,
+    val resolvedDurationSeconds: Long? = null,
 ) {
     internal fun toEntity(id: String) = InterpretationEntity(
         id = id,
@@ -52,6 +58,10 @@ internal data class NewInterpretation(
         structuredResultJson = structuredResultJson,
         validationStatus = validationStatus,
         validationReason = validationReason,
+        extractedSubject = extractedSubject,
+        extractedAction = extractedAction,
+        durationExpression = durationExpression,
+        resolvedDurationSeconds = resolvedDurationSeconds,
     )
 }
 
@@ -88,4 +98,48 @@ internal data class OccurrenceChanges(
     val timePrecision: TimePrecision? = null,
     val activityState: ActivityState? = null,
     val effectiveInterpretationId: String? = null,
+)
+
+/**
+ * One tag (subject or action) of a tagged entry, as the write operation receives it: either an
+ * existing tag id, or a display name with its precomputed TagNormalizer key. Which table it
+ * refers to is given by the field of [AcceptTaggedRequest] it appears in.
+ */
+internal sealed interface TagRef {
+    /** An existing tag; it must exist in the right table and be ACTIVE. */
+    data class Existing(val tagId: String) : TagRef
+
+    /**
+     * Find-or-create by [key] (must be non-blank): an ACTIVE tag with normalized_name == key,
+     * else an ACTIVE tag with an alias of that key, else a new tag named [displayName].
+     */
+    data class New(val displayName: String, val key: String) : TagRef
+}
+
+/** An alias to remember for a tag: its text (trimmed) and its TagNormalizer key (may be blank: then skipped). */
+internal data class NewTagAlias(
+    val aliasText: String,
+    val key: String,
+)
+
+/**
+ * Input of [ActivityLedgerWriter.acceptTagged]: one capture saved as an occurrence of the
+ * subject + action pair named by [subject] and [action].
+ *
+ * @property durationSeconds null or >= 0.
+ * @property subjectAlias Alias to learn for the final subject tag, or null.
+ * @property actionAlias Alias to learn for the final action tag, or null.
+ */
+internal data class AcceptTaggedRequest(
+    val rawCaptureId: String,
+    val interpretation: NewInterpretation,
+    val subject: TagRef,
+    val action: TagRef,
+    val occurredAt: Long,
+    val timePrecision: TimePrecision,
+    val activityState: ActivityState,
+    val durationSeconds: Long?,
+    val subjectAlias: NewTagAlias?,
+    val actionAlias: NewTagAlias?,
+    val now: Long,
 )

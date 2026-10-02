@@ -41,6 +41,9 @@ internal interface RawCaptureDao {
      * pending_matched_activity_id is computed only for captures without an occurrence: the
      * matched_activity_id of the capture's most recently created interpretation (created_at
      * descending, id breaks ties), or null.
+     *
+     * subject_name / action_name are the CURRENT display names of the occurrence's pair's
+     * tags (null for an untagged, v3-path activity); duration_seconds is the occurrence's.
      */
     @Query(
         "SELECT raw_captures.id AS capture_id, raw_captures.raw_text AS raw_text, " +
@@ -53,6 +56,9 @@ internal interface RawCaptureDao {
             "activity_occurrences.occurred_at AS occurred_at, " +
             "activity_occurrences.time_precision AS time_precision, " +
             "activity_occurrences.activity_state AS activity_state, " +
+            "activity_occurrences.duration_seconds AS duration_seconds, " +
+            "subjects.display_name AS subject_name, " +
+            "actions.display_name AS action_name, " +
             "CASE WHEN activity_occurrences.id IS NULL THEN (" +
             "SELECT interpretations.matched_activity_id FROM interpretations " +
             "WHERE interpretations.raw_capture_id = raw_captures.id " +
@@ -61,6 +67,8 @@ internal interface RawCaptureDao {
             "FROM raw_captures " +
             "LEFT JOIN activity_occurrences ON activity_occurrences.raw_capture_id = raw_captures.id " +
             "LEFT JOIN canonical_activities ON canonical_activities.id = activity_occurrences.canonical_activity_id " +
+            "LEFT JOIN subjects ON subjects.id = canonical_activities.subject_id " +
+            "LEFT JOIN actions ON actions.id = canonical_activities.action_id " +
             "WHERE activity_occurrences.id IS NULL OR activity_occurrences.visibility_status = 'ACTIVE' " +
             "ORDER BY COALESCE(activity_occurrences.occurred_at, raw_captures.captured_at) DESC, " +
             "raw_captures.id DESC",
@@ -86,4 +94,7 @@ internal data class HistoryRow(
     @ColumnInfo(name = "time_precision") val timePrecision: TimePrecision?,
     @ColumnInfo(name = "activity_state") val activityState: ActivityState?,
     @ColumnInfo(name = "pending_matched_activity_id") val pendingMatchedActivityId: String?,
+    @ColumnInfo(name = "duration_seconds") val durationSeconds: Long?,
+    @ColumnInfo(name = "subject_name") val subjectName: String?,
+    @ColumnInfo(name = "action_name") val actionName: String?,
 )

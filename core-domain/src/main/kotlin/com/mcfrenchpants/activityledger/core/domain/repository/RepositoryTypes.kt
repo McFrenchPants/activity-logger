@@ -42,7 +42,12 @@ data class StoredCapture(
     val hasOccurrence: Boolean,
 )
 
-/** Read view of one activity occurrence. */
+/**
+ * Read view of one activity occurrence.
+ *
+ * @property durationSeconds How long the activity lasted, in seconds, if stated (tag path
+ *   only); null for occurrences without a duration and for v3-path occurrences.
+ */
 data class OccurrenceView(
     val id: String,
     val canonicalActivityId: String,
@@ -53,14 +58,24 @@ data class OccurrenceView(
     val timePrecision: TimePrecision,
     val activityState: ActivityState,
     val visibilityStatus: VisibilityStatus,
+    val durationSeconds: Long? = null,
 )
 
-/** Read view of one canonical activity. */
+/**
+ * Read view of one canonical activity.
+ *
+ * @property subjectId The subject tag of this subject + action pair, or null for an untagged
+ *   (v3-path) activity.
+ * @property actionId The action tag of this pair, or null for an untagged activity. Either
+ *   both are set or both are null.
+ */
 data class ActivityView(
     val id: String,
     val displayName: String,
     val normalizedName: String,
     val status: CanonicalActivityStatus,
+    val subjectId: String? = null,
+    val actionId: String? = null,
 )
 
 /**
@@ -144,6 +159,11 @@ data class HistoryEntry(
  *
  * @property activityId The occurrence's CURRENT canonical activity (after any correction).
  * @property activityDisplayName That activity's display name.
+ * @property subjectName CURRENT display name of the activity's subject tag, or null for an
+ *   untagged (v3-path) activity.
+ * @property actionName CURRENT display name of the activity's action tag, or null for an
+ *   untagged activity.
+ * @property durationSeconds How long the activity lasted, in seconds, if stated.
  */
 data class HistoryOccurrence(
     val occurrenceId: String,
@@ -152,4 +172,7 @@ data class HistoryOccurrence(
     val occurredAt: Instant,
     val timePrecision: TimePrecision,
     val activityState: ActivityState,
+    val subjectName: String? = null,
+    val actionName: String? = null,
+    val durationSeconds: Long? = null,
 )

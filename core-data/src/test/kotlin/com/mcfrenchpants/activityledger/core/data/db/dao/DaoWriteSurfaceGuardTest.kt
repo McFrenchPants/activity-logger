@@ -100,8 +100,38 @@ class DaoWriteSurfaceGuardTest {
         }
         assertEquals(emptyList(), violations, "DAO write-surface violations")
         // Sanity: the scan really saw the annotations (a reader bug must not pass vacuously).
-        assertTrue(inserts >= 11, "expected to see the @Insert methods, saw $inserts")
+        // 11 before TG2.2, plus LedgerWriteDao's subject/action/alias inserts used by acceptTagged.
+        assertTrue(inserts >= 15, "expected to see the @Insert methods, saw $inserts")
         assertTrue(updates >= 3, "expected to see the UPDATE queries, saw $updates")
+    }
+
+    /**
+     * LedgerWriteDao's only callable members are its @Transaction operations (including
+     * acceptTagged, TG2.2); every Room primitive (@Insert / @Query) in it is protected, so tag,
+     * alias, pair and occurrence writes cannot be reached outside a transaction.
+     */
+    @Test
+    fun ledgerWriteDaoExposesOnlyTransactionOperations() {
+        val info = ClassFileAnnotations.read(LedgerWriteDao::class.java)
+        val reflected = LedgerWriteDao::class.java.declaredMethods.filter { !it.isSynthetic && '$' !in it.name }
+        val public = reflected.filter { Modifier.isPublic(it.modifiers) }.map { it.name }.toSet()
+        assertEquals(TRANSACTION_OPERATIONS, public)
+
+        val violations = mutableListOf<String>()
+        for (name in TRANSACTION_OPERATIONS) {
+            val method = info.methods.single { it.name == name }
+            if (method.annotations.none { it.descriptor == TRANSACTION }) violations += "$name is not @Transaction"
+        }
+        val primitives = info.methods.filter { m -> m.annotations.any { it.descriptor == INSERT || it.descriptor == QUERY } }
+        assertTrue(primitives.size >= 25, "expected to see LedgerWriteDao's primitives, saw ${primitives.size}")
+        for (primitive in primitives) {
+            val method = reflected.single { it.name == primitive.name }
+            if (!Modifier.isProtected(method.modifiers)) violations += "${primitive.name} is not protected"
+        }
+        for (name in TAG_PRIMITIVES) {
+            if (primitives.none { it.name == name }) violations += "tag primitive $name missing"
+        }
+        assertEquals(emptyList(), violations)
     }
 
     /** Returns a violation description, or null if the UPDATE statement is allowed. */
@@ -130,6 +160,15 @@ class DaoWriteSurfaceGuardTest {
         const val UPSERT = "Landroidx/room/Upsert;"
         const val DELETE = "Landroidx/room/Delete;"
         const val RAW_QUERY = "Landroidx/room/RawQuery;"
+        const val TRANSACTION = "Landroidx/room/Transaction;"
+
+        private val TRANSACTION_OPERATIONS = setOf(
+            "acceptInterpretation", "acceptTagged", "applyCorrection", "applyCorrectionCreatingActivity",
+            "recordOutcome", "hideOccurrence",
+        )
+        private val TAG_PRIMITIVES = listOf(
+            "insertSubject", "insertAction", "insertSubjectAlias", "insertActionAlias", "findPair",
+        )
 
         // UPDATE <table> SET <assignments> WHERE <condition>; any "OR <conflict>" clause fails to match.
         private val UPDATE_SQL = Regex("^UPDATE `?(\\w+)`? SET (.+?) WHERE .+$", RegexOption.IGNORE_CASE)

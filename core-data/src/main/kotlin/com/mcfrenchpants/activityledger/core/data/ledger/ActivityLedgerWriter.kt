@@ -32,6 +32,21 @@ internal class ActivityLedgerWriter(
         database.ledgerWriteDao().acceptInterpretation(idFactory, request)
 
     /**
+     * In one transaction: finds or creates the subject tag, the action tag and their pair,
+     * stores the interpretation, creates the occurrence (with its duration), marks the raw
+     * capture PERSISTED and records any requested AI_CONFIRMED aliases. Idempotent per raw
+     * capture: a repeat call returns the existing occurrence id and writes nothing. Returns
+     * the occurrence id.
+     *
+     * @throws IllegalArgumentException for a malformed request, an unknown or non-ACTIVE tag
+     *   or pair (see LedgerWriteDao.acceptTagged); nothing is written.
+     * @throws android.database.sqlite.SQLiteConstraintException if a referenced row is missing;
+     *   nothing is written.
+     */
+    fun acceptTagged(request: AcceptTaggedRequest): String =
+        database.ledgerWriteDao().acceptTagged(idFactory, request)
+
+    /**
      * In one transaction: records one corrections row with previous/new values of
      * every field that actually changes, and updates the occurrence. Returns the
      * correction id, or **null if nothing would change** (then nothing is written).

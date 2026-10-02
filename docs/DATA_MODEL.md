@@ -143,6 +143,17 @@ Foreign keys:
 
 - `subject_id` -> `subjects.id` / `action_id` -> `actions.id`
 
+### How a tagged entry is written
+
+One repository operation (`acceptTagged`, one transaction) saves an entry under a subject tag and an action tag (ADR-040 and its TG2.2 amendment). If the capture already has an occurrence it returns that occurrence and writes nothing. Otherwise:
+
+1. **Each tag is found or created among tags of its own kind** (a subject never matches an action). A tag given by id must exist and be `ACTIVE`. A tag given by name uses key = `TagNormalizer.key(name)` (blank key: refused) and reuses, in order: the `ACTIVE` tag whose `normalized_name` is the key, then the `ACTIVE` tag with an alias of that key (oldest `created_at`, then lowest id), else inserts a new `ACTIVE` tag with the trimmed name. This **convergence rule** is what keeps `ACTIVE` tags unique by key: "Wi-Fi" and "WiFi" end up on one tag.
+2. **The pair** is the `canonical_activities` row with that `(subject_id, action_id)`: reused if `ACTIVE`, refused if not, else inserted `ACTIVE` with display name "<subject> <action>" (a cache for legacy screens; history shows the tags' current names). Both columns are always set together, never half.
+3. **Interpretation, occurrence, capture state** follow exactly as for the v3 accept: the interpretation (including `extracted_subject`, `extracted_action`, `duration_expression`, `resolved_duration_seconds`), the occurrence (with `duration_seconds`, null or >= 0) and `processing_state = PERSISTED`.
+4. **Alias learning**: when the caller passes the words the user confirmed ("did you mean X?"), an alias is inserted with `source = AI_CONFIRMED`, unless its key is blank, equals the tag's own key, or is already an alias of that tag (then it is silently skipped).
+
+Any error writes nothing, including a tag the other half of the request would have created. The tag catalog read (`loadTagCatalog`) returns only `ACTIVE` tags with their aliases and only pairs whose two tags are both `ACTIVE`.
+
 ### activity_aliases
 
 ```text
