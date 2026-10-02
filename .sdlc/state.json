@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-10-01T23:10:12.070Z",
+  "updated_at": "2026-10-02T01:00:53.487Z",
   "work_items": [
     {
       "id": "SS1",
@@ -1165,6 +1165,74 @@
           "task_packet_path": ".sdlc/task-packets/TG1.4b.packet.json",
           "report_path": null,
           "notes": "Verifier pass on attempt 2. Device: C62 SM6 NM4 U0 F0 (was 49/5/4/14). Stand-in: 53/7/8/3/1. tag-baseline.json: 62 mustStayCorrect, maxUnsafe 0, maxUnsafeRealEntry 0."
+        },
+        {
+          "id": "TG2.1",
+          "title": "Schema v2 + migration 1->2 (tag tables, pair columns, duration, extraction fields)",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "TG1.4b"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/TG2.1.packet.json",
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "TG2.2",
+          "title": "Repository: tag catalog + acceptTagged",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "TG2.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/TG2.2.packet.json",
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "TG2.3",
+          "title": "Corrections teach (aliases from corrections)",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "TG2.2"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/TG2.3.packet.json",
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "TG2.4",
+          "title": "Rename and merge tags (data operations)",
+          "status": "todo",
+          "lifecycle_state": "approved",
+          "dependencies": [
+            "TG2.3"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/TG2.4.packet.json",
+          "report_path": null,
+          "notes": ""
         }
       ]
     }

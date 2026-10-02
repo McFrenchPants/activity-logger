@@ -16,7 +16,11 @@ Registered in `.sdlc/state.json` as TG1.
 | TG1.4a | On-phone debug-only runner, APK via owner's Google Drive | done | APK in G:/My Drive/ActivityLogger; awaiting owner's run |
 | TG1.4 | Replay, score, report, gate; Pixel 10 Pro recording | done | Device recording via in-app runner; tag-baseline.json set after TG1.4b |
 | TG1.4b | Resolver/policy fixes from the device findings | done | Verifier pass (attempt 2); device UNSAFE 14 -> 0; tag-baseline.json set. STAGE 1 COMPLETE |
-| TG1.5+ | Stages 2-4 | todo | detail written after the Stage 1 report |
+| TG2.1 | Schema v2 + migration 1 -> 2 (tag tables, pair columns, duration, extraction fields) | todo | Verifier |
+| TG2.2 | Repository: tag catalog + saving a tagged entry | todo | after TG2.1; verifier |
+| TG2.3 | Corrections teach (correction stores the user's words as aliases) | todo | after TG2.2; verifier |
+| TG2.4 | Rename and merge tags (data only) | todo | after TG2.3; verifier. STAGE 2 STOP |
+| TG3+ | Stages 3-4 | todo | detail after the Stage 2 report |
 
 ## Session log
 

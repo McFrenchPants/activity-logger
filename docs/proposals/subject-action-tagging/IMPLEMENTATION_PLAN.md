@@ -52,9 +52,57 @@ entries saved silently under a wrong tag. Needs one short Pixel 10 Pro recording
 
 **STOP after TG1.4:** report the numbers and a go/no-go for Stage 2.
 
-## Stage 2 — Data (outline; detail after Stage 1)
-Tag tables, migration and migration test; repository; corrections store aliases;
-wipe/start-clean path; ADR for the data shape. Verifier required.
+## Stage 2 — Data (detail written 2026-10-01 after the Stage 1 report)
+
+Owner go-ahead for Stage 2 given 2026-10-01 ("I accept that the current test data in the
+application database will be cleared"). Verifier required for every task (data-persistence floor).
+
+**Data-shape decision (ADR-040, written in TG2.1).** A *pair* is the existing
+`canonical_activities` row: it gains nullable `subject_id` / `action_id` (unique together).
+Occurrences, interpretations and corrections keep pointing at a canonical activity, so the v3
+path keeps compiling and working until Stage 3 switches the pipeline, and Stage 4 lookup is a
+join (both tags = the pair; subject-only = `subject_id`; action-only = `action_id`). New
+tables `subjects`, `actions`, `subject_aliases`, `action_aliases`. The columns stay nullable
+because rows written by the v3 path have no tags; tightening is a later cleanup once v3 is
+deleted. **Migration 1 -> 2 is additive and data-preserving** (DB-003 and the migration harness
+stand). The owner's clean start is NOT code: when the Stage 3 build is installed, the owner
+clears the app's storage once (Android settings), which the owner accepted on 2026-10-01. No
+in-app "delete everything" feature is built. Schema v2 has never been installed anywhere, so
+Stage 3 may still amend v2 before it ships (regenerate 2.json) rather than adding v3.
+
+### TG2.1 — Schema v2 + migration 1 -> 2
+Entities/DAOs for subjects, actions and their aliases (status ACTIVE/MERGED via new domain enum
+`TagStatus`, self merge pointer, normalized name = `TagNormalizer` key); new nullable columns:
+`canonical_activities.subject_id/action_id` (FKs, unique pair index, action index),
+`activity_occurrences.duration_seconds`, `interpretations.extracted_subject/extracted_action/
+duration_expression/resolved_duration_seconds`, `corrections.previous/new_duration_seconds`.
+Explicit migration, exported `2.json`, v1 -> v2 data-survival test through the harness, schema
+integrity/version/write-surface guard tests updated. Docs: ADR-040, DATA_MODEL.md v2.
+
+### TG2.2 — Repository: tag catalog + saving a tagged entry
+`loadTagCatalog()` -> `TagCatalog` (ACTIVE tags with aliases; pairs = ACTIVE activities with both
+tags). `acceptTagged(...)`: subject and action each Existing(id) or New(name); in one
+transaction create new tags (a New name whose key equals an ACTIVE tag's name key reuses that
+tag), find-or-create the pair, store the interpretation (with extraction fields) and the
+occurrence (with duration), mark the capture PERSISTED; idempotent per capture. Optional alias
+words to learn (used when the user accepts a "did you mean X?" card). History/occurrence views
+carry subject/action names and duration.
+
+### TG2.3 — Corrections teach
+`correctTags(...)`: change subject and/or action (Existing or New) and/or duration of an
+occurrence as one correction row (pair change + duration), and store the user's original words
+(the effective interpretation's extracted subject/action) as aliases of the chosen tags when
+they differ from the tag's name and existing aliases (source USER_CORRECTION). Raw captures
+never change.
+
+### TG2.4 — Rename and merge tags (data operations only; UI is Stage 3)
+Rename a subject/action (old name kept as an alias; refuse a name that equals another ACTIVE
+tag's key -- the caller offers merge instead). Merge tag A into B: A becomes MERGED pointing at
+B, A's name and aliases become B's aliases, each pair (A, x) is merged into the found-or-created
+pair (B, x), and every occurrence on a merged pair is moved by a correction row. All in one
+transaction; history stays auditable.
+
+**STOP after TG2.4:** plain-English report to the owner; Stage 3 needs their go-ahead.
 
 ## Stage 3 — App (outline)
 Wire phone and watch capture to the new pipeline; confirm-close-match card; merge/rename
