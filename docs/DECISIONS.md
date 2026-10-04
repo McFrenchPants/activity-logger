@@ -819,3 +819,19 @@ After TG3.4 to TG3.6 the Log, History and Tags screens and the watch receiver al
 **Kept:** the core-domain v3 classes (`CaptureInterpretationOrchestrator`, `ReviewResolutionService`, `CorrectionService`, the interpretation types) and the core-testing semantic corpus gate that replays them, plus the v3 repository methods they use. Phone tests may still use them as helpers.
 
 **Result:** the phone app has one capture pipeline, `CapturePipeline` (extractor and `TaggedCaptureOrchestrator`). Also in this task: the Saved card's draining progress bar no longer draws the Material3 end dot, and the `TagDecision.resplit` KDoc now mentions the object-noun guard (ADR-049).
+
+## ADR-051 — Ask your history: last-time lookups, ranked by tag match
+
+**Status:** Accepted (developer decision, 2026-10-04; Ask your history, TG4.1)
+
+The app can answer "when did I last change the furnace filter?" from the logged history. This ADR fixes the pure program-logic half in `core-domain` (`core.domain.lookup`); nothing here touches the database, the model or the UI.
+
+**Tier order (best first).** (1) the entry matches BOTH the question's subject and action tag, (2) subject only, (3) action only. A side matches when the entry's tag id equals the target tag id; a side the question did not name never matches. A one-sided question can only produce its own tier. Entries matching nothing are dropped.
+
+**Within a tier.** Entries matched through EXACT target tags come before entries matched through near (closest-candidate) tags, then newest first, then occurrence id descending as a deterministic tie-break. The same input always gives the same order. A near target uses only the first (closest) candidate of the resolver.
+
+**Answer shape.** The top match, the previous match in the same tier and exactness, and the interval between them (never negative). Question detection is deterministic: a trailing '?' or a first word from a small provisional list (when, how, what, which, where, who, did, do, does, have, has, show, tell, list). A statement starting with such a word ("Did the laundry") is a known false positive and is not special-cased.
+
+**Out of scope for this stage.** Counting questions ("how many times") and date-window questions ("in March", "this year") are not answered; they still rank as a last-time lookup if they name tags.
+
+**Who decides what.** The model may supply the question words (subject and action phrases), but matching, ranking and the answer itself are program logic over stored data, never model output (ADR-011, ADR-038).
