@@ -4,6 +4,7 @@ import com.mcfrenchpants.activityledger.core.data.db.entity.InterpretationEntity
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityResolution
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
 import com.mcfrenchpants.activityledger.core.domain.model.ConfidenceBand
+import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
 import com.mcfrenchpants.activityledger.core.domain.model.InterpretationOperation
 import com.mcfrenchpants.activityledger.core.domain.model.TimePrecision
 import com.mcfrenchpants.activityledger.core.domain.model.ValidationStatus
@@ -98,6 +99,27 @@ internal data class OccurrenceChanges(
     val timePrecision: TimePrecision? = null,
     val activityState: ActivityState? = null,
     val effectiveInterpretationId: String? = null,
+)
+
+/** A new duration for an occurrence: [seconds] (null or >= 0; null clears the duration). */
+internal data class DurationSet(val seconds: Long?)
+
+/**
+ * Input of [ActivityLedgerWriter.correctTags]: a correction of an occurrence's subject + action
+ * pair and/or duration. A null [subject] / [action] keeps the occurrence's current tag; a null
+ * [duration] leaves the duration alone. [subjectAlias] / [actionAlias] are learned (as
+ * USER_CORRECTION) for the final tags, subject to the skip rules of LedgerWriteDao.correctTags.
+ */
+internal data class TagCorrectionWrite(
+    val occurrenceId: String,
+    val subject: TagRef?,
+    val action: TagRef?,
+    val duration: DurationSet?,
+    val subjectAlias: NewTagAlias?,
+    val actionAlias: NewTagAlias?,
+    val source: CorrectionSource,
+    val reason: String?,
+    val now: Long,
 )
 
 /**

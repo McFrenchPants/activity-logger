@@ -20,6 +20,7 @@ import com.mcfrenchpants.activityledger.core.data.ledger.NewCanonicalActivity
 import com.mcfrenchpants.activityledger.core.data.ledger.NewInterpretation
 import com.mcfrenchpants.activityledger.core.data.ledger.NewTagAlias
 import com.mcfrenchpants.activityledger.core.data.ledger.OccurrenceChanges
+import com.mcfrenchpants.activityledger.core.data.ledger.TagCorrectionWrite
 import com.mcfrenchpants.activityledger.core.data.ledger.TagRef
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
 import com.mcfrenchpants.activityledger.core.domain.model.AliasSource
@@ -38,8 +39,8 @@ import com.mcfrenchpants.activityledger.core.domain.naming.NameNormalizer
  * insert, and the copies of the interpretation/activity/tag/alias/raw-capture
  * writes the operations need) is `protected abstract`, so nothing outside this
  * class (or Room's generated subclass) can call it. The only callable entry points
- * are the six `@Transaction` operations below (acceptInterpretation, acceptTagged,
- * applyCorrection, applyCorrectionCreatingActivity, recordOutcome, hideOccurrence);
+ * are the seven `@Transaction` operations below (acceptInterpretation, acceptTagged,
+ * applyCorrection, applyCorrectionCreatingActivity, correctTags, recordOutcome, hideOccurrence);
  * Room runs each in ONE database
  * transaction, so any exception rolls back every write it made. Application code
  * reaches them through core.data.ledger.ActivityLedgerWriter, which supplies the
@@ -63,6 +64,9 @@ internal abstract class LedgerWriteDao {
 
     @Query("SELECT raw_capture_id FROM interpretations WHERE id = :interpretationId")
     protected abstract fun findRawCaptureIdOfInterpretation(interpretationId: String): String?
+
+    @Query("SELECT * FROM canonical_activities WHERE id = :id")
+    protected abstract fun findCanonicalActivity(id: String): CanonicalActivityEntity?
 
     @Query("SELECT status FROM canonical_activities WHERE id = :activityId")
     protected abstract fun findCanonicalActivityStatus(activityId: String): CanonicalActivityStatus?
@@ -142,11 +146,15 @@ internal abstract class LedgerWriteDao {
     @Query("UPDATE raw_captures SET processing_state = :state, updated_at = :updatedAt WHERE id = :id")
     protected abstract fun updateRawCaptureProcessingState(id: String, state: ProcessingState, updatedAt: Long): Int
 
-    /** Touches only the correctable columns (never raw_capture_id, captured_at, created_at, visibility). */
+    /**
+     * Touches only the correctable columns (never raw_capture_id, captured_at, created_at,
+     * visibility). Callers that do not correct the duration pass the current value back.
+     */
     @Query(
         "UPDATE activity_occurrences SET canonical_activity_id = :canonicalActivityId, " +
             "occurred_at = :occurredAt, time_precision = :timePrecision, activity_state = :activityState, " +
-            "effective_interpretation_id = :effectiveInterpretationId, updated_at = :updatedAt WHERE id = :id",
+            "effective_interpretation_id = :effectiveInterpretationId, duration_seconds = :durationSeconds, " +
+            "updated_at = :updatedAt WHERE id = :id",
     )
     protected abstract fun updateOccurrenceCorrectableFields(
         id: String,
@@ -155,6 +163,7 @@ internal abstract class LedgerWriteDao {
         timePrecision: TimePrecision,
         activityState: ActivityState,
         effectiveInterpretationId: String,
+        durationSeconds: Long?,
         updatedAt: Long,
     ): Int
 
@@ -306,34 +315,8 @@ internal abstract class LedgerWriteDao {
             "Raw capture ${capture.id} was not updated"
         }
 
-        request.subjectAlias?.let { alias ->
-            if (isNewAlias(alias, subject.normalizedName) && countSubjectAlias(subject.id, alias.key) == 0) {
-                insertSubjectAlias(
-                    SubjectAliasEntity(
-                        id = idFactory.newId(),
-                        subjectId = subject.id,
-                        aliasText = alias.aliasText.trim(),
-                        normalizedAlias = alias.key,
-                        source = AliasSource.AI_CONFIRMED,
-                        createdAt = request.now,
-                    ),
-                )
-            }
-        }
-        request.actionAlias?.let { alias ->
-            if (isNewAlias(alias, action.normalizedName) && countActionAlias(action.id, alias.key) == 0) {
-                insertActionAlias(
-                    ActionAliasEntity(
-                        id = idFactory.newId(),
-                        actionId = action.id,
-                        aliasText = alias.aliasText.trim(),
-                        normalizedAlias = alias.key,
-                        source = AliasSource.AI_CONFIRMED,
-                        createdAt = request.now,
-                    ),
-                )
-            }
-        }
+        learnSubjectAlias(idFactory, subject, request.subjectAlias, AliasSource.AI_CONFIRMED, request.now)
+        learnActionAlias(idFactory, action, request.actionAlias, AliasSource.AI_CONFIRMED, request.now)
         return occurrenceId
     }
 
@@ -394,6 +377,123 @@ internal abstract class LedgerWriteDao {
         return checkNotNull(
             correct(idFactory, current, changes.copy(canonicalActivityId = activityId), source, reason, now),
         ) { "Correction of occurrence $occurrenceId to new activity $activityId wrote nothing" }
+    }
+
+    /**
+     * Corrects the subject + action pair and/or the duration of an occurrence and records it in
+     * ONE corrections row. Returns the new correction id, or **null if neither the pair nor the
+     * duration changes** -- in that case nothing at all is written (no tag, pair, alias or
+     * correction row).
+     *
+     * Targets resolve as in [acceptTagged] (see [TagRef]); a null target keeps the occurrence's
+     * current tag of that kind. An untagged (v3) occurrence can only be retagged with BOTH
+     * targets. If the pair changes, a kept tag must still be ACTIVE. The target pair is the
+     * canonical_activities row for (subject, action): reused if ACTIVE, refused if not ACTIVE,
+     * else inserted ACTIVE. Whether the pair changes is decided BEFORE anything is inserted (a
+     * New name that needs a new tag always changes it).
+     *
+     * The corrections row has previous/new canonical activity only if the pair changed and
+     * previous/new duration_seconds only if the duration changed (null on both sides
+     * otherwise). The occurrence's canonical_activity_id, duration_seconds and updated_at are
+     * updated; the raw capture, captured_at, effective interpretation and visibility never are.
+     * Then aliases are inserted (source USER_CORRECTION, text trimmed) only when the key is
+     * non-blank, differs from the final tag's normalized_name and is not already its alias;
+     * otherwise silently skipped. Which words deserve to be learned is the caller's policy.
+     *
+     * Write order: tags (if created), pair (if created), correction, occurrence update, aliases.
+     *
+     * @throws IllegalArgumentException if the occurrence does not exist, an Existing tag is
+     *   unknown, of the other kind or not ACTIVE, a New key is blank, an untagged occurrence
+     *   gets only one tag, the duration is negative, or the target pair is not ACTIVE. Nothing
+     *   is written.
+     * @throws android.database.sqlite.SQLiteConstraintException if a referenced row is missing;
+     *   everything is rolled back.
+     */
+    @Transaction
+    open fun correctTags(idFactory: IdFactory, request: TagCorrectionWrite): String? {
+        val current = requireNotNull(findOccurrence(request.occurrenceId)) {
+            "Unknown occurrence ${request.occurrenceId}"
+        }
+        val newDuration = request.duration?.seconds
+        require(newDuration == null || newDuration >= 0) {
+            "Duration must be null or >= 0 (occurrence ${current.id})"
+        }
+        val currentActivity = checkNotNull(findCanonicalActivity(current.canonicalActivityId)) {
+            "Occurrence ${current.id} has no canonical activity ${current.canonicalActivityId}"
+        }
+        val currentSubjectId = currentActivity.subjectId
+        val currentActionId = currentActivity.actionId
+        val subjectRef = request.subject
+        val actionRef = request.action
+        require((currentSubjectId != null && currentActionId != null) || (subjectRef != null && actionRef != null)) {
+            "Occurrence ${current.id} is untagged; both a subject and an action are required"
+        }
+
+        // Look targets up without creating anything: a miss means a tag would have to be created.
+        val foundSubject = if (subjectRef != null) lookupSubject(subjectRef) else keptSubject(currentSubjectId)
+        val foundAction = if (actionRef != null) lookupAction(actionRef) else keptAction(currentActionId)
+        val existingPair = if (foundSubject != null && foundAction != null) {
+            findPair(foundSubject.id, foundAction.id)?.also { pair ->
+                require(pair.status == CanonicalActivityStatus.ACTIVE) {
+                    "Canonical activity ${pair.id} (subject ${foundSubject.id}, action ${foundAction.id}) " +
+                        "is ${pair.status}, not ACTIVE"
+                }
+            }
+        } else {
+            null
+        }
+        val pairChanged = existingPair == null || existingPair.id != current.canonicalActivityId
+        val durationChanged = request.duration != null && newDuration != current.durationSeconds
+        if (!pairChanged && !durationChanged) return null
+
+        // From here on something is written (an error still rolls everything back).
+        val subject = foundSubject ?: createSubject(idFactory, subjectRef as TagRef.New, request.now)
+        val action = foundAction ?: createAction(idFactory, actionRef as TagRef.New, request.now)
+        val activityId = if (pairChanged) {
+            if (subjectRef == null) requireActive(subject, "Subject")
+            if (actionRef == null) requireActive(action, "Action")
+            existingPair?.id ?: resolvePair(idFactory, subject, action, request.now)
+        } else {
+            current.canonicalActivityId
+        }
+
+        val correctionId = idFactory.newId()
+        insertCorrection(
+            CorrectionEntity(
+                id = correctionId,
+                occurrenceId = current.id,
+                createdAt = request.now,
+                source = request.source,
+                reason = request.reason,
+                previousCanonicalActivityId = if (pairChanged) current.canonicalActivityId else null,
+                newCanonicalActivityId = if (pairChanged) activityId else null,
+                previousOccurredAt = null,
+                newOccurredAt = null,
+                previousTimePrecision = null,
+                newTimePrecision = null,
+                previousActivityState = null,
+                newActivityState = null,
+                previousEffectiveInterpretationId = null,
+                newEffectiveInterpretationId = null,
+                previousDurationSeconds = if (durationChanged) current.durationSeconds else null,
+                newDurationSeconds = if (durationChanged) newDuration else null,
+            ),
+        )
+        val updated = updateOccurrenceCorrectableFields(
+            id = current.id,
+            canonicalActivityId = activityId,
+            occurredAt = current.occurredAt,
+            timePrecision = current.timePrecision,
+            activityState = current.activityState,
+            effectiveInterpretationId = current.effectiveInterpretationId,
+            durationSeconds = if (durationChanged) newDuration else current.durationSeconds,
+            updatedAt = request.now,
+        )
+        check(updated == 1) { "Occurrence ${current.id} was not updated" }
+
+        learnSubjectAlias(idFactory, subject, request.subjectAlias, AliasSource.USER_CORRECTION, request.now)
+        learnActionAlias(idFactory, action, request.actionAlias, AliasSource.USER_CORRECTION, request.now)
+        return correctionId
     }
 
     /**
@@ -463,60 +563,130 @@ internal abstract class LedgerWriteDao {
     // --- shared logic (not callable from outside this class) ----------------
 
     /** A tag of either kind after [acceptTagged] resolved it. */
-    private class ResolvedTag(val id: String, val displayName: String, val normalizedName: String)
+    private class ResolvedTag(val id: String, val displayName: String, val normalizedName: String, val status: TagStatus)
 
-    private fun resolveSubject(idFactory: IdFactory, ref: TagRef, now: Long): ResolvedTag = when (ref) {
+    private fun resolveSubject(idFactory: IdFactory, ref: TagRef, now: Long): ResolvedTag =
+        lookupSubject(ref) ?: createSubject(idFactory, ref as TagRef.New, now)
+
+    private fun resolveAction(idFactory: IdFactory, ref: TagRef, now: Long): ResolvedTag =
+        lookupAction(ref) ?: createAction(idFactory, ref as TagRef.New, now)
+
+    /**
+     * The subject [ref] names, or null when a [TagRef.New] needs a new tag. Writes nothing.
+     * Existing: must exist and be ACTIVE. New: the key must be non-blank; reuses an ACTIVE
+     * subject with that name key, else one with that alias key.
+     */
+    private fun lookupSubject(ref: TagRef): ResolvedTag? = when (ref) {
         is TagRef.Existing -> {
             val row = requireNotNull(findSubject(ref.tagId)) { "Unknown subject ${ref.tagId}" }
             require(row.status == TagStatus.ACTIVE) { "Subject ${row.id} is ${row.status}, not ACTIVE" }
-            ResolvedTag(row.id, row.displayName, row.normalizedName)
+            ResolvedTag(row.id, row.displayName, row.normalizedName, row.status)
         }
         is TagRef.New -> {
             require(ref.key.isNotBlank()) { "New subject name has a blank key" }
-            val found = findActiveSubjectByName(ref.key) ?: findActiveSubjectByAlias(ref.key)
-            if (found != null) {
-                ResolvedTag(found.id, found.displayName, found.normalizedName)
-            } else {
-                val row = SubjectEntity(
-                    id = idFactory.newId(),
-                    displayName = ref.displayName.trim(),
-                    normalizedName = ref.key,
-                    status = TagStatus.ACTIVE,
-                    mergedIntoSubjectId = null,
-                    createdAt = now,
-                    updatedAt = now,
-                )
-                insertSubject(row)
-                ResolvedTag(row.id, row.displayName, row.normalizedName)
-            }
+            (findActiveSubjectByName(ref.key) ?: findActiveSubjectByAlias(ref.key))
+                ?.let { ResolvedTag(it.id, it.displayName, it.normalizedName, it.status) }
         }
     }
 
-    private fun resolveAction(idFactory: IdFactory, ref: TagRef, now: Long): ResolvedTag = when (ref) {
+    /** As [lookupSubject], for actions. */
+    private fun lookupAction(ref: TagRef): ResolvedTag? = when (ref) {
         is TagRef.Existing -> {
             val row = requireNotNull(findAction(ref.tagId)) { "Unknown action ${ref.tagId}" }
             require(row.status == TagStatus.ACTIVE) { "Action ${row.id} is ${row.status}, not ACTIVE" }
-            ResolvedTag(row.id, row.displayName, row.normalizedName)
+            ResolvedTag(row.id, row.displayName, row.normalizedName, row.status)
         }
         is TagRef.New -> {
             require(ref.key.isNotBlank()) { "New action name has a blank key" }
-            val found = findActiveActionByName(ref.key) ?: findActiveActionByAlias(ref.key)
-            if (found != null) {
-                ResolvedTag(found.id, found.displayName, found.normalizedName)
-            } else {
-                val row = ActionEntity(
-                    id = idFactory.newId(),
-                    displayName = ref.displayName.trim(),
-                    normalizedName = ref.key,
-                    status = TagStatus.ACTIVE,
-                    mergedIntoActionId = null,
-                    createdAt = now,
-                    updatedAt = now,
-                )
-                insertAction(row)
-                ResolvedTag(row.id, row.displayName, row.normalizedName)
-            }
+            (findActiveActionByName(ref.key) ?: findActiveActionByAlias(ref.key))
+                ?.let { ResolvedTag(it.id, it.displayName, it.normalizedName, it.status) }
         }
+    }
+
+    /** The occurrence's current subject (any status), kept by a correction that names none. */
+    private fun keptSubject(subjectId: String?): ResolvedTag? = subjectId?.let { id ->
+        val row = checkNotNull(findSubject(id)) { "Unknown subject $id" }
+        ResolvedTag(row.id, row.displayName, row.normalizedName, row.status)
+    }
+
+    /** The occurrence's current action (any status), kept by a correction that names none. */
+    private fun keptAction(actionId: String?): ResolvedTag? = actionId?.let { id ->
+        val row = checkNotNull(findAction(id)) { "Unknown action $id" }
+        ResolvedTag(row.id, row.displayName, row.normalizedName, row.status)
+    }
+
+    private fun requireActive(tag: ResolvedTag, label: String) {
+        require(tag.status == TagStatus.ACTIVE) { "$label ${tag.id} is ${tag.status}, not ACTIVE" }
+    }
+
+    private fun createSubject(idFactory: IdFactory, ref: TagRef.New, now: Long): ResolvedTag {
+        val row = SubjectEntity(
+            id = idFactory.newId(),
+            displayName = ref.displayName.trim(),
+            normalizedName = ref.key,
+            status = TagStatus.ACTIVE,
+            mergedIntoSubjectId = null,
+            createdAt = now,
+            updatedAt = now,
+        )
+        insertSubject(row)
+        return ResolvedTag(row.id, row.displayName, row.normalizedName, row.status)
+    }
+
+    private fun createAction(idFactory: IdFactory, ref: TagRef.New, now: Long): ResolvedTag {
+        val row = ActionEntity(
+            id = idFactory.newId(),
+            displayName = ref.displayName.trim(),
+            normalizedName = ref.key,
+            status = TagStatus.ACTIVE,
+            mergedIntoActionId = null,
+            createdAt = now,
+            updatedAt = now,
+        )
+        insertAction(row)
+        return ResolvedTag(row.id, row.displayName, row.normalizedName, row.status)
+    }
+
+    /** Inserts [alias] for [subject] unless it is null, blank-keyed, the tag's own key or already an alias. */
+    private fun learnSubjectAlias(
+        idFactory: IdFactory,
+        subject: ResolvedTag,
+        alias: NewTagAlias?,
+        source: AliasSource,
+        now: Long,
+    ) {
+        if (alias == null || !isNewAlias(alias, subject.normalizedName) || countSubjectAlias(subject.id, alias.key) != 0) return
+        insertSubjectAlias(
+            SubjectAliasEntity(
+                id = idFactory.newId(),
+                subjectId = subject.id,
+                aliasText = alias.aliasText.trim(),
+                normalizedAlias = alias.key,
+                source = source,
+                createdAt = now,
+            ),
+        )
+    }
+
+    /** As [learnSubjectAlias], for an action. */
+    private fun learnActionAlias(
+        idFactory: IdFactory,
+        action: ResolvedTag,
+        alias: NewTagAlias?,
+        source: AliasSource,
+        now: Long,
+    ) {
+        if (alias == null || !isNewAlias(alias, action.normalizedName) || countActionAlias(action.id, alias.key) != 0) return
+        insertActionAlias(
+            ActionAliasEntity(
+                id = idFactory.newId(),
+                actionId = action.id,
+                aliasText = alias.aliasText.trim(),
+                normalizedAlias = alias.key,
+                source = source,
+                createdAt = now,
+            ),
+        )
     }
 
     /** The id of the ACTIVE pair (subject, action), inserted if it does not exist yet. */
@@ -628,6 +798,7 @@ internal abstract class LedgerWriteDao {
             timePrecision = newPrecision ?: current.timePrecision,
             activityState = newState ?: current.activityState,
             effectiveInterpretationId = newInterpretation ?: current.effectiveInterpretationId,
+            durationSeconds = current.durationSeconds,
             updatedAt = now,
         )
         check(updated == 1) { "Occurrence $occurrenceId was not updated" }

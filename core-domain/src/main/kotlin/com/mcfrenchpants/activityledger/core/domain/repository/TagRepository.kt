@@ -2,6 +2,7 @@ package com.mcfrenchpants.activityledger.core.domain.repository
 
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpretationRecord
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
+import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
 import com.mcfrenchpants.activityledger.core.domain.model.TimePrecision
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagCatalog
 import java.time.Instant
@@ -40,6 +41,33 @@ data class TaggedAcceptRequest(
     val durationSeconds: Long?,
     val learnSubjectAlias: String? = null,
     val learnActionAlias: String? = null,
+)
+
+/** A new duration for an entry: [seconds] (>= 0), or null to clear the duration. */
+data class DurationChange(val seconds: Long?)
+
+/**
+ * Input of [TagRepository.correctTags]: change the tags and/or duration of one occurrence.
+ *
+ * @property subject The subject to move the entry to, or null to keep its current subject.
+ * @property action Likewise for the action.
+ * @property duration The new duration, or null to leave the duration alone (see [DurationChange]).
+ * @property learnSubjectAlias Words to remember as an alias of the final subject tag, or null.
+ *   The CALLER decides which words are safe to learn (see
+ *   `com.mcfrenchpants.activityledger.core.domain.tagging.CorrectionAliases`); the repository
+ *   applies no product policy and only skips aliases that are redundant for the final tag.
+ * @property learnActionAlias Likewise for the final action tag.
+ */
+data class TagCorrectionRequest(
+    val occurrenceId: String,
+    val subject: TagTarget? = null,
+    val action: TagTarget? = null,
+    val duration: DurationChange? = null,
+    val learnSubjectAlias: String? = null,
+    val learnActionAlias: String? = null,
+    val source: CorrectionSource,
+    val reason: String?,
+    val now: Instant,
 )
 
 /**
@@ -91,6 +119,33 @@ interface TagRepository {
      *   written.
      */
     suspend fun acceptTagged(request: TaggedAcceptRequest): String
+
+    /**
+     * Corrects the subject + action tags and/or the duration of an occurrence, in one
+     * transaction. Targets resolve exactly as in [acceptTagged] (Existing: must exist, be of the
+     * right kind and ACTIVE; New: same-key / alias convergence, else a new tag). A null
+     * [TagCorrectionRequest.subject] / action keeps the occurrence's current tag; an untagged
+     * (v3) entry can only be retagged with BOTH targets given. The final ACTIVE pair is found or
+     * created; an existing non-ACTIVE pair is an error.
+     *
+     * If neither the pair nor the duration changes (including a New name that converges on the
+     * current tag), returns [CorrectionOutcome.NothingChanged] and writes NOTHING -- no tag,
+     * pair, alias or correction row. Otherwise writes ONE corrections row (previous/new activity
+     * only if the pair changed; previous/new duration only if the duration changed), updates only
+     * the occurrence's activity, duration and updated_at (never the raw capture, captured_at,
+     * effective interpretation or visibility) and records the requested aliases as
+     * USER_CORRECTION, skipping silently any that are blank, equal to the final tag's key, or
+     * already its alias.
+     *
+     * Split of responsibility: the repository stores the alias words it is given; deciding which
+     * words are safe to learn is the caller's product policy
+     * (`tagging.CorrectionAliases.aliasesToLearn`).
+     *
+     * @throws IllegalArgumentException for an unknown occurrence, an unknown / wrong-kind /
+     *   non-ACTIVE Existing tag, a blank New key, a half-specified correction of an untagged
+     *   entry, a negative duration, or a non-ACTIVE existing pair. Nothing is written.
+     */
+    suspend fun correctTags(request: TagCorrectionRequest): CorrectionOutcome
 }
 
 /** The full ledger: the activity contract plus subject + action tags. */

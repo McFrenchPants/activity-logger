@@ -47,6 +47,20 @@ internal class ActivityLedgerWriter(
         database.ledgerWriteDao().acceptTagged(idFactory, request)
 
     /**
+     * In one transaction: corrects an occurrence's subject + action pair and/or duration,
+     * recording one corrections row and any requested USER_CORRECTION aliases. Returns the
+     * correction id, or **null if nothing would change** (then nothing at all is written).
+     *
+     * @throws IllegalArgumentException for an unknown occurrence, an unknown / wrong-kind /
+     *   non-ACTIVE tag, a blank New key, a half-specified correction of an untagged entry, a
+     *   negative duration or a non-ACTIVE pair; nothing is written.
+     * @throws android.database.sqlite.SQLiteConstraintException if a referenced row is missing;
+     *   nothing is written.
+     */
+    fun correctTags(request: TagCorrectionWrite): String? =
+        database.ledgerWriteDao().correctTags(idFactory, request)
+
+    /**
      * In one transaction: records one corrections row with previous/new values of
      * every field that actually changes, and updates the occurrence. Returns the
      * correction id, or **null if nothing would change** (then nothing is written).

@@ -10,7 +10,9 @@ import com.mcfrenchpants.activityledger.core.data.id.IdFactory
 import com.mcfrenchpants.activityledger.core.data.ledger.AcceptInterpretationRequest
 import com.mcfrenchpants.activityledger.core.data.ledger.AcceptTaggedRequest
 import com.mcfrenchpants.activityledger.core.data.ledger.ActivityLedgerWriter
+import com.mcfrenchpants.activityledger.core.data.ledger.DurationSet
 import com.mcfrenchpants.activityledger.core.data.ledger.NewCanonicalActivity
+import com.mcfrenchpants.activityledger.core.data.ledger.TagCorrectionWrite
 import com.mcfrenchpants.activityledger.core.data.ledger.NewInterpretation
 import com.mcfrenchpants.activityledger.core.data.ledger.NewTagAlias
 import com.mcfrenchpants.activityledger.core.data.ledger.OccurrenceChanges
@@ -33,6 +35,7 @@ import com.mcfrenchpants.activityledger.core.domain.repository.LedgerRepository
 import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
 import com.mcfrenchpants.activityledger.core.domain.repository.OccurrenceView
 import com.mcfrenchpants.activityledger.core.domain.repository.StoredCapture
+import com.mcfrenchpants.activityledger.core.domain.repository.TagCorrectionRequest
 import com.mcfrenchpants.activityledger.core.domain.repository.TagTarget
 import com.mcfrenchpants.activityledger.core.domain.repository.TaggedAcceptRequest
 import com.mcfrenchpants.activityledger.core.domain.tagging.KnownPair
@@ -180,6 +183,25 @@ internal class RoomActivityRepository(
                 ),
             )
         }
+    }
+
+    override suspend fun correctTags(request: TagCorrectionRequest): CorrectionOutcome = io {
+        val correctionId = translatingMissingReferences {
+            writer.correctTags(
+                TagCorrectionWrite(
+                    occurrenceId = request.occurrenceId,
+                    subject = request.subject?.toRef(),
+                    action = request.action?.toRef(),
+                    duration = request.duration?.let { DurationSet(it.seconds) },
+                    subjectAlias = request.learnSubjectAlias?.toAlias(),
+                    actionAlias = request.learnActionAlias?.toAlias(),
+                    source = request.source,
+                    reason = request.reason,
+                    now = request.now.toEpochMilli(),
+                ),
+            )
+        }
+        if (correctionId == null) CorrectionOutcome.NothingChanged else CorrectionOutcome.Applied(correctionId)
     }
 
     override suspend fun recordOutcome(

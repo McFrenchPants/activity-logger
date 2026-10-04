@@ -18,11 +18,23 @@ Registered in `.sdlc/state.json` as TG1.
 | TG1.4b | Resolver/policy fixes from the device findings | done | Verifier pass (attempt 2); device UNSAFE 14 -> 0; tag-baseline.json set. STAGE 1 COMPLETE |
 | TG2.1 | Schema v2 + migration 1 -> 2 (tag tables, pair columns, duration, extraction fields) | done | Verifier pass attempt 1; additive ALTER (no rebuild); ADR-040 |
 | TG2.2 | Repository: tag catalog + saving a tagged entry | done | Verifier pass attempt 1; LedgerRepository = ActivityRepository + TagRepository |
-| TG2.3 | Corrections teach (correction stores the user's words as aliases) | todo | after TG2.2; verifier |
+| TG2.3 | Corrections teach (correction stores the user's words as aliases) | done | Verifier pass attempt 1; ADR-041 |
 | TG2.4 | Rename and merge tags (data only) | todo | after TG2.3; verifier. STAGE 2 STOP |
 | TG3+ | Stages 3-4 | todo | detail after the Stage 2 report |
 
 ## Session log
+
+### 2026-10-04 — TG2.3 done
+`CorrectionAliases.aliasesToLearn` (core-domain, pure): learns the user's original words as an alias only
+when that side's tag changed and the words are not another tag's name/alias, not a junk subject, not
+just the action's object, not an equivalent existing action, not filler (the 'furnace -> hot tub' and
+'filter / change filter' cases). `TagRepository.correctTags` (one transaction; NothingChanged and all
+errors write nothing; one corrections row for pair and/or duration; aliases USER_CORRECTION; raw
+captures untouched). Shared update query gained duration_seconds; old callers pass it back. ADR-041.
+Verifier pass. Notes: CorrectionAliases.kt/test appeared in the tree mid-run and the implementer
+could not say who wrote them (timing suggests itself); content verified on merit. Minor: alias
+rule uses catalog order, repository convergence uses oldest-first -- edge case errs safe. Stage 3:
+caller must apply CorrectionAliases before passing learn* words to correctTags or acceptTagged.
 
 ### 2026-10-01 — TG2.2 done
 `TagRepository` (loadTagCatalog, acceptTagged) + `LedgerRepository`; `createActivityRepository`

@@ -164,10 +164,11 @@ class DaoWriteSurfaceGuardTest {
 
         private val TRANSACTION_OPERATIONS = setOf(
             "acceptInterpretation", "acceptTagged", "applyCorrection", "applyCorrectionCreatingActivity",
-            "recordOutcome", "hideOccurrence",
+            "correctTags", "recordOutcome", "hideOccurrence",
         )
         private val TAG_PRIMITIVES = listOf(
             "insertSubject", "insertAction", "insertSubjectAlias", "insertActionAlias", "findPair",
+            "findCanonicalActivity",
         )
 
         // UPDATE <table> SET <assignments> WHERE <condition>; any "OR <conflict>" clause fails to match.
