@@ -34,10 +34,13 @@ Registered in `.sdlc/state.json` as TG1.
 | TG4.3 | Lookup service + question-extractor seam | done | Spot-check + full core-domain rerun; ADR-051 amended |
 | TG4.4 | Gemini Nano question extractor (core-ai) | done | Verifier pass attempt 1; ADR-052; prompt q1 not yet recorded on a device (TG4.6) |
 | TG4.5 | Ask wiring + view model (phone, no UI) | done | Orchestrator rerun of app-phone/core tests; 274 app-phone tests; questions never persisted (tested) |
-| TG4.6 | Ask screen (phone UI) | todo | |
+| TG4.6 | Ask screen (phone UI) | done | Orchestrator rerun (all app-phone tests, assembleDebug, androidTest compile); 4th tab; not seen on a device |
 | TG4.7 | Device pass | todo | needs the Pixel 10 Pro; owner report after |
 
 ## Session log
+
+### 2026-10-04 - TG4.6 done (Ask screen + fourth tab)
+AskScreen/AskContent (thread of question bubbles + answer cards, pending indicator, input bar with Send and mic, Clear), AskAnswerFormatting (intervalWords, matchNote), nav tab Ask, ic_nav_ask. Answer card: 'Last logged: subject · action', date/time, duration, previous + gap, up to 5 other matches, closest-match note. No logging from Ask (statements point to the Log tab). Implementer edited MainActivityNavigationTest (outside packet paths) because the old test asserted no Ask tab; accepted. Unchecked on device: keyboard/imePadding in the input bar; tall answer cards scroll to their start. Next: TG4.7 device pass (Pixel 10 Pro).
 
 ### 2026-10-04 - Stage 4 started: TG4.1-TG4.5 done (run budget of 5 tasks reached)
 Branch `feature/ask-history`. Done: ranking + question detector (TG4.1, ADR-051), repository read of lookup entries (TG4.2, verifier pass), lookup service + question-extractor seam (TG4.3), Gemini Nano question extractor with its own prompt q1 (TG4.4, verifier pass, ADR-052), Ask wiring + view model (TG4.5). Scope: last-time questions only; counting/date-window questions are a later backlog item. Prompt q1 has NOT yet run on a device. Remaining: TG4.6 Ask screen + fourth tab, TG4.7 device pass on the Pixel 10 Pro (also record q1 answers) then owner report. Not merged to main yet (feature incomplete: no screen).

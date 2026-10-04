@@ -6,6 +6,7 @@
     <string name="nav_log">Log</string>
     <string name="nav_history">History</string>
     <string name="nav_tags">Tags</string>
+    <string name="nav_ask">Ask</string>
 
     <!-- Row state tags (UX_VISUAL_SPEC D3 state vocabulary). -->
     <string name="state_in_progress">In progress</string>
@@ -192,4 +193,37 @@
     <string name="ask_mic_permission_blocked">The microphone is switched off for this app in Settings, so asking by voice can\'t start. You can still type your question.</string>
     <string name="ask_voice_unavailable">This phone can\'t listen for your question. You can still type it.</string>
     <string name="ask_voice_nothing_heard">I didn\'t catch that. Try again, or type your question.</string>
+
+    <!-- Ask your history: the screen. -->
+    <string name="ask_empty_hint">Ask when you last did something, like: When did I last change the furnace filter?</string>
+    <string name="ask_input_label">Ask about your history</string>
+    <string name="ask_send">Send</string>
+    <string name="ask_mic">Ask by voice</string>
+    <string name="ask_mic_stop">Stop listening</string>
+    <string name="ask_listening">Listening...</string>
+    <string name="ask_clear">Clear</string>
+    <string name="ask_dismiss">Dismiss</string>
+    <string name="ask_pending">Looking through your history</string>
+    <string name="ask_last_logged">Last logged: %1$s · %2$s</string>
+    <string name="ask_duration">Lasted %1$s</string>
+    <string name="ask_before_that">Before that: %1$s</string>
+    <string name="ask_gap">Gap between the two: %1$s</string>
+    <string name="ask_other_matches">Other matches</string>
+    <string name="ask_other_match">%1$s · %2$s</string>
+    <string name="ask_note_not_exact">Closest match: your question did not match a logged item exactly.</string>
+    <string name="ask_note_partial">Closest match: showing entries that only partly match your question.</string>
+    <string name="ask_not_enough_history">There isn\'t enough history yet to answer that.</string>
+    <string name="ask_not_a_question">That sounds like something you did, not a question.</string>
+    <string name="ask_not_a_question_pointer">To log it, use the Log tab.</string>
+    <string name="ask_ai_unavailable">This phone can\'t read questions on its own yet, so Ask isn\'t available here.</string>
+    <string name="ask_try_again_later">I couldn\'t read that question just now. Try again in a moment.</string>
+    <string name="ask_interval_less_than_hour">less than an hour</string>
+    <plurals name="ask_interval_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="ask_interval_hours">
+        <item quantity="one">%1$d hour</item>
+        <item quantity="other">%1$d hours</item>
+    </plurals>
 </resources>
