@@ -17,6 +17,7 @@ import com.mcfrenchpants.activityledger.core.domain.model.ValidationStatus
 import com.mcfrenchpants.activityledger.core.domain.repository.ActivityRepository
 import com.mcfrenchpants.activityledger.core.domain.repository.ActivityTarget
 import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionOutcome
+import com.mcfrenchpants.activityledger.core.domain.repository.ExtractedWords
 import com.mcfrenchpants.activityledger.core.domain.repository.LedgerRepository
 import com.mcfrenchpants.activityledger.core.domain.repository.MergeOutcome
 import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
@@ -65,6 +66,8 @@ private class FakeLedgerRepository(
     override suspend fun correctTags(request: TagCorrectionRequest): CorrectionOutcome = error("not used")
     override suspend fun renameTag(kind: TagKind, tagId: String, newDisplayName: String): RenameOutcome = error("not used")
     override suspend fun mergeTags(kind: TagKind, fromTagId: String, intoTagId: String): MergeOutcome = error("not used")
+    override suspend fun loadExtractedWordsForCapture(captureId: String): ExtractedWords? = error("not used")
+    override suspend fun loadExtractedWordsForOccurrence(occurrenceId: String): ExtractedWords? = error("not used")
 }
 
 private class FakeExtractor : ActivityExtractor {

@@ -96,6 +96,17 @@ sealed interface RenameOutcome {
 data class MergeOutcome(val movedOccurrences: Int, val mergedPairs: Int)
 
 /**
+ * The words the model extracted from a capture, as stored on an interpretation (verbatim).
+ * Used only to decide which words may be learned as aliases (see
+ * `tagging.CorrectionAliases`); never shown as a decision.
+ *
+ * @property subject The extracted subject words, or null.
+ * @property action The extracted action words, or null.
+ * @property durationExpression The extracted duration phrase, or null.
+ */
+data class ExtractedWords(val subject: String?, val action: String?, val durationExpression: String?)
+
+/**
  * The domain's persistence contract for subject + action tags, implemented by the data layer.
  *
  * Names: callers always pass display names / the user's words. The repository computes
@@ -203,6 +214,21 @@ interface TagRepository {
      *   written.
      */
     suspend fun mergeTags(kind: TagKind, fromTagId: String, intoTagId: String): MergeOutcome
+
+    /**
+     * The extracted words of the capture's most recently created interpretation that has any
+     * extracted subject, action or duration expression set (newest first, id breaks ties), or
+     * null if the capture is unknown or no interpretation has any. Read only; never throws for
+     * an unknown id.
+     */
+    suspend fun loadExtractedWordsForCapture(captureId: String): ExtractedWords?
+
+    /**
+     * The extracted words of the occurrence's EFFECTIVE interpretation, or null if the
+     * occurrence is unknown or that interpretation has no extracted words (an untagged v3
+     * entry). Read only; never throws for an unknown id.
+     */
+    suspend fun loadExtractedWordsForOccurrence(occurrenceId: String): ExtractedWords?
 }
 
 /** The fixed reason code stored on the correction rows a tag merge writes (never user text). */

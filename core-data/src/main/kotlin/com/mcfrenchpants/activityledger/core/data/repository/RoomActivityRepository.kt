@@ -2,6 +2,7 @@ package com.mcfrenchpants.activityledger.core.data.repository
 
 import android.database.sqlite.SQLiteConstraintException
 import com.mcfrenchpants.activityledger.core.data.db.ActivityLedgerDatabase
+import com.mcfrenchpants.activityledger.core.data.db.dao.ExtractedWordsRow
 import com.mcfrenchpants.activityledger.core.data.db.dao.HistoryRow
 import com.mcfrenchpants.activityledger.core.data.db.entity.ActivityOccurrenceEntity
 import com.mcfrenchpants.activityledger.core.data.db.entity.CanonicalActivityEntity
@@ -29,6 +30,7 @@ import com.mcfrenchpants.activityledger.core.domain.repository.ActivityView
 import com.mcfrenchpants.activityledger.core.domain.repository.CatalogActivity
 import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionChanges
 import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionOutcome
+import com.mcfrenchpants.activityledger.core.domain.repository.ExtractedWords
 import com.mcfrenchpants.activityledger.core.domain.repository.HistoryEntry
 import com.mcfrenchpants.activityledger.core.domain.repository.HistoryOccurrence
 import com.mcfrenchpants.activityledger.core.domain.repository.LedgerRepository
@@ -216,6 +218,14 @@ internal class RoomActivityRepository(
         translatingConstraintFailures { writer.mergeTags(kind, fromTagId, intoTagId, clock.millis()) }
     }
 
+    override suspend fun loadExtractedWordsForCapture(captureId: String): ExtractedWords? = io {
+        database.interpretationDao().latestExtractedWordsForCapture(captureId)?.toWords()
+    }
+
+    override suspend fun loadExtractedWordsForOccurrence(occurrenceId: String): ExtractedWords? = io {
+        database.interpretationDao().extractedWordsForOccurrence(occurrenceId)?.toWords()
+    }
+
     override suspend fun recordOutcome(
         captureId: String,
         interpretation: InterpretationRecord?,
@@ -350,6 +360,14 @@ internal class RoomActivityRepository(
         is TagTarget.Existing -> TagRef.Existing(tagId)
         is TagTarget.New -> TagRef.New(displayName = displayName, key = TagNormalizer.key(displayName))
     }
+
+    /** Null when the interpretation carries no extracted words at all (an untagged v3 entry). */
+    private fun ExtractedWordsRow.toWords(): ExtractedWords? =
+        if (extractedSubject == null && extractedAction == null && durationExpression == null) {
+            null
+        } else {
+            ExtractedWords(extractedSubject, extractedAction, durationExpression)
+        }
 
     private fun String.toAlias() = NewTagAlias(aliasText = trim(), key = TagNormalizer.key(this))
 

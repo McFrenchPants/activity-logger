@@ -211,6 +211,8 @@ resolved_duration_seconds INTEGER NULL  -- v2
 
 The four version-2 columns hold, for the tag path (ADR-038), the subject, action and duration words the model extracted and the duration resolved from them. They are null for v3 rows.
 
+Two plain reads expose the words (`TagRepository`, TG3.2, ADR-044; no write surface): `loadExtractedWordsForCapture(captureId)` returns the `extracted_subject` / `extracted_action` / `duration_expression` of the capture's most recently created interpretation that has any of the three non-null (else null), and `loadExtractedWordsForOccurrence(occurrenceId)` returns them for the occurrence's effective interpretation (null if that has none). Both return null for unknown ids. They exist only so the alias rule (ADR-041) can be applied when the user resolves or corrects an entry.
+
 The normalized fields support queries.
 
 The optional structured JSON supports audit/debug, but should not replace typed columns.
