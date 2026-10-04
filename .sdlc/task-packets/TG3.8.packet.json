@@ -1,0 +1,57 @@
+{
+  "task_id": "TG3.8",
+  "plan_revision": "tg3",
+  "objective": "Fix the 'object noun lands in the subject' problem found on the real phone and watch on 2026-10-04. Real sentences, recorded by the real Gemini Nano (prompt v4): 'I just changed the hot tub filter' -> subject 'hot tub filter', action 'change'; 'I changed the furnace filter yesterday' -> subject 'furnace filter', action 'change'; 'Clean the hot tub filter' -> subject 'filter', action 'clean'; 'Adjust cleaned the hot tub filter' (speech engine misheard 'I just') -> subject 'hot tub filter', action 'adjust'. Expected: subject 'hot tub' / action 'change filter', subject 'furnace' / action 'change filter', etc. Why it matters: the owner's core goal is telling 'furnace filter' from 'hot tub filter'. With the bad split the first entry from an empty catalog is saved silently under the subject 'hot tub filter', and every later sentence that shares the word 'filter' (furnace filter, hot tub) lands as a NEAR match on it and needs a Check card. TagDecisionPolicy (core-domain tagging/TagDecisionPolicy.kt, read ALL its KDoc: rules 1-8, the TG1.4b repairs: junk subject, re-split, subject-only-object) re-splits only when BOTH resulting sides are already Exact existing tags, so from an empty or unrelated catalog nothing repairs the split.\n\nTWO CHANGES, both required:\n\nA. DETERMINISTIC GUARD in TagDecisionPolicy (pure; no model; documented in the class KDoc as a new numbered repair beside the others; ADR below). When ALL hold: the action words are a single word (a bare verb, after the normal cleaning/trimming the policy already does), the subject words are 2+ words, the LAST subject word (singularised the way the resolver does, e.g. via TagNormalizer) is in a documented, deliberately conservative `OBJECT_NOUNS` set of part/consumable nouns that are almost always the object of the action and almost never the thing acted on by themselves when preceded by another noun phrase (start with: filter, oil, battery, bulb, belt, hose, tire, fuse, blade, wiper, gasket, cartridge, strainer -- no ambiguous nouns such as pump, tank, cover, screen, bag, light, mower, door; explain the exclusion rule in the KDoc and keep the set a plain public val so it can be extended), the policy has NOT already re-split (TG1.4b rule 2) and the FULL subject words do NOT resolve Exact or Near to an existing subject (an owner who really has a subject 'air filter' keeps it, exactly like the junk-subject rule keeps an existing subject): then move that last word into the action ('hot tub filter' / 'change' -> subject 'hot tub', action 'change filter'; the action is verb + space + noun, keeping the verb the model gave, e.g. 'adjust filter'). Resolve both new word groups with TagResolver against the catalog like every other side, set TagDecision.resplit = true, and then let the unchanged rules 1-8 decide (so an existing 'hot tub' subject and 'change filter' action become Exact, a close name becomes Near/CONFIRM, nothing close stays New and auto-saves from an empty catalog, the new-name check, vague/filler checks and subject-only-object rules still apply to the repaired words). The guard never makes a silent save that the repaired words would not earn on their own, never touches a one-word subject, never touches a multi-word action, and leaves operation/time/duration/state alone. The replay scorer (core-testing TagReplay) calls TagDecisionPolicy.decide, so it automatically scores the repair; do NOT change core-testing main code.\n\nB. PROMPT v5 in core-ai ExtractionPrompt.kt: bump EXTRACTION_PROMPT_VERSION to \"5\" and fix the root cause in the prompt text: add to the Action rule one sentence that the object part (a filter, oil, bulb, belt, hose... on something) belongs in the ACTION and the subject is only the thing it belongs to, and add ONE new worked example that is NOT corpus text and shares no distinctive words with the corpus sentences (the repo has a guard against corpus text in prompts, see ExtractionPromptDriftTest and docs/SEMANTIC_CORPUS.md section 10; do not use hot tub, furnace, lawn, mower, dogs, garden, dishes, mail, vehicles, oil change on a lawn mower, or any owner sentence): use 'Changed the filter on the pool pump.' -> subject 'pool pump', action 'change filter', COMPLETED, no time, no duration (or an equally neutral sentence you check against the corpus). Keep the example list's format. Update the drift-guard test and every test that pins the prompt version/text; update provenance expectations. Do not change the response schema, decoder or extractor logic.\n\nTESTS: (1) core-domain unit tests for the guard covering: the four real sentences above from an EMPTY catalog (guard splits; first three AUTO_SAVE with new tags 'hot tub'/'change filter', 'furnace'/'change filter', and 'filter'/'clean' unchanged because it is a one-word subject; 'adjust' sentence AUTO_SAVE new tags 'hot tub'/'adjust filter'); with an existing subject 'hot tub' and action 'change filter' both become Exact -> AUTO_SAVE; with an existing subject 'air filter' (Exact on the full words 'air filter') no split; with a Near full subject no split; sump pump / replace and lawn mower / sharpen (not in OBJECT_NOUNS) no split; multi-word action ('change oil' with subject 'lawn mower oil') no split; subject whose last word is an object noun but the repaired subject would be a junk/filler/time word -> the normal checks decide; idempotence (a decision for already-correct words 'hot tub' / 'change filter' is unchanged); resplit flag set only when the guard or rule 2 fired. (2) Re-run, unchanged, the whole existing tag suites: TagPolicyOracleTest (49 cases, no gaps), TagRegressionGateTest against the committed device recording tag-device-latest.json and baseline tag-baseline.json (prompt v4 recording; must still pass: UNSAFE 0, mustStayCorrect 62 stay correct; report the new CORRECT/SAFE_MISS/NAME_MISMATCH counts printed by the report test (tag-device.md) -- an improvement is welcome and is NOT written into the baseline by this task), and the stand-in replay if present. If the gate FAILS or any previously correct case flips to UNSAFE, do not weaken the gate: report status blocked with the case ids (codes only). (3) core-ai tests: prompt drift/version tests green; no corpus text in the new prompt.\n\nDOCS: ADR-049 in docs/DECISIONS.md ('Object-in-subject repair and prompt v5', Accepted, developer decision 2026-10-04, TG3.8): the real-device evidence above (sentences are the owner's own words from the owner's own test; fine to cite in an ADR, keep it to the four), why a deterministic guard AND a prompt change, the OBJECT_NOUNS rule and exclusions, that the v4 device recording/baseline stay valid for the policy gate and the prompt change must be re-measured on the Pixel (orchestrator does that next), and that the guard can be extended by adding words. Update docs/AI_INTERPRETATION_SPEC.md ONLY if it documents the extraction prompt text/version (small factual edit). No other doc changes.\n\nRULES: no change to core-testing main sources or corpus resources (tag-corpus.json hash must not change), tag-baseline.json, recordings, schema, repositories, orchestrator/services, app code; no logging; no owner sentences added to prompts; tests may contain the four real sentences (they are already in the device recording context) but keep them to those.",
+  "non_goals": [
+    "No corpus, baseline or recording change; no device run (the orchestrator re-records on the Pixel afterwards).",
+    "No change to the extraction schema, decoder or extractor behaviour, services, repositories or UI.",
+    "No speech-recognition tuning (the 'adjust' mishearing is a speech-engine issue the owner corrects on the phone)."
+  ],
+  "dependencies": ["TG3.7"],
+  "read_paths": [
+    "core-domain/**",
+    "core-ai/**",
+    "core-testing/**",
+    "docs/DECISIONS.md",
+    "docs/AI_INTERPRETATION_SPEC.md",
+    "docs/SEMANTIC_CORPUS.md",
+    "docs/TEST_STRATEGY.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/**",
+    "core-domain/src/test/kotlin/**",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/ExtractionPrompt.kt",
+    "core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai/**",
+    "core-testing/src/test/kotlin/**",
+    "docs/DECISIONS.md",
+    "docs/AI_INTERPRETATION_SPEC.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "core-testing/src/main/**",
+    "core-data/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-phone/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "The guard exists in TagDecisionPolicy with KDoc (conditions, OBJECT_NOUNS set and its exclusion rule), applies only for a bare-verb action with a 2+ word subject ending in an object noun whose full words are not an existing/near subject and that was not already re-split, sets resplit, resolves both repaired sides with TagResolver and leaves rules 1-8 to decide; it never produces a silent save the repaired words would not earn.",
+    "The four real sentences behave as specified from an empty catalog, existing hot tub / change filter tags become Exact, and the listed negative cases (air filter exact, near subject, sump pump, lawn mower, multi-word action, junk/filler repaired subject) do not split; idempotence holds.",
+    "Prompt v5 adds the action-owns-the-object rule and one non-corpus example, EXTRACTION_PROMPT_VERSION is \"5\", drift/version tests are updated and green, no corpus or owner sentence is in the prompt, schema/decoder/extractor logic unchanged.",
+    "TagPolicyOracleTest and TagRegressionGateTest still pass against the unchanged tag-corpus.json, tag-baseline.json and committed device recording (UNSAFE 0, the 62 must-stay-correct cases still correct); the new CORRECT/SAFE_MISS/NAME_MISMATCH counts are reported; if the gate cannot pass the task reports blocked instead of weakening anything.",
+    "ADR-049 is written (and the AI spec only if it documents the prompt); no forbidden path changed (git diff --stat over them is empty, tag-corpus.json hash unchanged); all core-domain, core-ai, core-testing, core-data and app-phone unit tests pass."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test :core-ai:test :core-testing:test",
+    "./gradlew :core-data:test :app-phone:testDebugUnitTest",
+    "git diff --stat -- core-testing/src/main core-data core-speech core-wear-protocol app-phone app-wear"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
