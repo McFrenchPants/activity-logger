@@ -324,7 +324,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/DS1.6.packet.json",
           "report_path": null,
-          "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE Ãƒâ€šÃ‚Â§5/Ãƒâ€šÃ‚Â§6/Ãƒâ€šÃ‚Â§15/Ãƒâ€šÃ‚Â§16, AI_INTERPRETATION_SPEC Ãƒâ€šÃ‚Â§10/Ãƒâ€šÃ‚Â§11/Ãƒâ€šÃ‚Â§17, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
+          "notes": "Done (orchestrator spot-check, docs only). ARCHITECTURE \u00c3\u0192\u00c6\u2019\u00c3\u00a2\u00e2\u201a\u00ac\u00c5\u00a1\u00c3\u0192\u00e2\u20ac\u0161\u00c3\u201a\u00c2\u00a75/\u00c3\u0192\u00c6\u2019\u00c3\u00a2\u00e2\u201a\u00ac\u00c5\u00a1\u00c3\u0192\u00e2\u20ac\u0161\u00c3\u201a\u00c2\u00a76/\u00c3\u0192\u00c6\u2019\u00c3\u00a2\u00e2\u201a\u00ac\u00c5\u00a1\u00c3\u0192\u00e2\u20ac\u0161\u00c3\u201a\u00c2\u00a715/\u00c3\u0192\u00c6\u2019\u00c3\u00a2\u00e2\u201a\u00ac\u00c5\u00a1\u00c3\u0192\u00e2\u20ac\u0161\u00c3\u201a\u00c2\u00a716, AI_INTERPRETATION_SPEC \u00c3\u0192\u00c6\u2019\u00c3\u00a2\u00e2\u201a\u00ac\u00c5\u00a1\u00c3\u0192\u00e2\u20ac\u0161\u00c3\u201a\u00c2\u00a710/\u00c3\u0192\u00c6\u2019\u00c3\u00a2\u00e2\u201a\u00ac\u00c5\u00a1\u00c3\u0192\u00e2\u20ac\u0161\u00c3\u201a\u00c2\u00a711/\u00c3\u0192\u00c6\u2019\u00c3\u00a2\u00e2\u201a\u00ac\u00c5\u00a1\u00c3\u0192\u00e2\u20ac\u0161\u00c3\u201a\u00c2\u00a717, ADR-027, ADR-028, DATA_MODEL, PROJECT_STATUS; orchestrator fixed REQUIREMENTS AI-007 inline. DS1 complete, pending owner merge."
         }
       ]
     },
@@ -1074,7 +1074,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/TG1.1.packet.json",
           "report_path": null,
-          "notes": "Separate tag-corpus.json (72 cases: 48 ported, 12 real, 8 sibling, 4 empty-start); corpus.json untouched. Car wash now new action 'wash' (old Wax-car ruling superseded by tags). SEMANTIC_CORPUS §10 amended for owner-approved real sentences."
+          "notes": "Separate tag-corpus.json (72 cases: 48 ported, 12 real, 8 sibling, 4 empty-start); corpus.json untouched. Car wash now new action 'wash' (old Wax-car ruling superseded by tags). SEMANTIC_CORPUS \u00c2\u00a710 amended for owner-approved real sentences."
         },
         {
           "id": "TG1.2",
@@ -1506,6 +1506,181 @@
           "task_packet_path": ".sdlc/task-packets/TG4.7.packet.json",
           "report_path": null,
           "notes": "see PROGRESS.md"
+        }
+      ]
+    },
+    {
+      "id": "DH1",
+      "title": "Explore: Ask, search and dashboard in one screen (backlog 19)",
+      "lifecycle_state": "planned",
+      "tasks": [
+        {
+          "id": "DH1.1",
+          "title": "stats package: filter model + calculator",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/DH1.1.packet.json",
+          "report_path": null,
+          "notes": "see docs/proposals/explore/PROGRESS.md"
+        },
+        {
+          "id": "DH2.1",
+          "title": "loadExploreEntries repository read",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "DH1.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/DH2.1.packet.json",
+          "report_path": null,
+          "notes": "see docs/proposals/explore/PROGRESS.md"
+        },
+        {
+          "id": "DH3.1",
+          "title": "Explore view model + state",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "DH2.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/DH3.1.packet.json",
+          "report_path": null,
+          "notes": "see docs/proposals/explore/PROGRESS.md"
+        },
+        {
+          "id": "DH3.2",
+          "title": "Explore screen UI + tab rename",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "DH3.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/DH3.2.packet.json",
+          "report_path": null,
+          "notes": "see docs/proposals/explore/PROGRESS.md"
+        },
+        {
+          "id": "DH3.3",
+          "title": "Device check Moto G; merge stage 3",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "DH3.2"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/DH3.3.packet.json",
+          "report_path": null,
+          "notes": "see docs/proposals/explore/PROGRESS.md"
+        },
+        {
+          "id": "DH4.1",
+          "title": "Temporal ranges",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "DH3.3"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/DH4.1.packet.json",
+          "report_path": null,
+          "notes": "see docs/proposals/explore/PROGRESS.md"
+        },
+        {
+          "id": "DH4.2",
+          "title": "Question reader q2",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "DH4.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/DH4.2.packet.json",
+          "report_path": null,
+          "notes": "see docs/proposals/explore/PROGRESS.md"
+        },
+        {
+          "id": "DH4.3",
+          "title": "Lookup -> Explore question result",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "DH4.2"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/DH4.3.packet.json",
+          "report_path": null,
+          "notes": "see docs/proposals/explore/PROGRESS.md"
+        },
+        {
+          "id": "DH4.4",
+          "title": "Question corpus + replay gate",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "DH4.3"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/DH4.4.packet.json",
+          "report_path": null,
+          "notes": "see docs/proposals/explore/PROGRESS.md"
+        },
+        {
+          "id": "DH5.1",
+          "title": "Device pass, docs, owner report",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "DH4.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/DH5.1.packet.json",
+          "report_path": null,
+          "notes": "see docs/proposals/explore/PROGRESS.md"
         }
       ]
     }
