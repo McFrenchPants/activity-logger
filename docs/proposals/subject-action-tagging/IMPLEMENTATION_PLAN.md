@@ -166,6 +166,35 @@ Install on the Pixel 10 Pro and the watch, clear app storage, log real sentences
 phone, check Saved/confirm/review cards, correction, rename and merge; record findings. Fix what
 is found (deterministic fixes can be replayed without the phone). STOP: report to the owner.
 
-## Stage 4 — Lookup (outline)
-Ranked query logic in `core-domain` (both tags, then subject-only, then action-only; newest
-first), unit-tested; watch top-result helper. No Ask UI.
+## Stage 4 — Ask your history (detail written 2026-10-04; owner chose it as the next work)
+
+Branch `feature/ask-history` (off `main`). Owner's wish: type (or say) "when did I last change the
+furnace filter?" and get an answer from the logged entries. Scope decided by the developer:
+**last-time lookups only**. Counting and date-window questions ("how many times in August") are
+NOT in this stage (record as a backlog item at the end). The model only extracts words from the
+question (ADR-011, ADR-038); program logic matches them to tags, queries Room and words the answer.
+
+- **TG4.1 — Ranking + question detector (core-domain, pure).** `LookupEntry` (occurrence id, subject
+  + action ids and names, occurredAt, durationSeconds), `HistoryLookup.rank`: both tags first, then
+  subject-only, then action-only; newest first inside each tier; exact tag matches beat near ones;
+  `LookupResult` with `top` (the watch helper) and previous-occurrence + interval for the top
+  entry. `QuestionDetector`: deterministic "is this a question or a statement?" (ends with "?",
+  or starts with when/how/what/did/do/does/show/have/has/which/where). No model, no I/O.
+- **TG4.2 — Repository read.** `TagRepository.loadLookupEntries()`: every VISIBLE occurrence on a
+  tagged pair whose two tags are ACTIVE, with current tag ids/names (read only; bounded queries).
+  core-data + domain interface + fakes. Verifier (persistence).
+- **TG4.3 — Lookup service + question-extractor seam (core-domain).** `QuestionExtractor` interface
+  (words only: subject, action; untrusted), `LookupService.ask(text)`: statement -> `NotAQuestion`;
+  extractor failure -> unavailable/retryable; resolve words with `TagResolver` against
+  `loadTagCatalog()`; nothing resolvable or no entries -> `NotEnoughHistory`; else `Answer`.
+- **TG4.4 — Gemini Nano question extractor (core-ai).** Prompt v1 for questions (no catalog shown),
+  response schema + decoder, same session/retry/failure mapping as the activity extractor, tests
+  with the fake session. Verifier (AI output). Replay recording on the Pixel happens in TG4.6.
+- **TG4.5 — Ask screen (app-phone).** Fourth bottom tab "Ask": session thread (question bubble ->
+  answer card), text field + mic (reuse the Log screen's speech path if it is reusable without
+  large refactoring, else typed only and say so), copy from UX_SPEC 9/13 and UX_VISUAL_SPEC D6,
+  statement message "That sounds like something you did, not a question.", Clear button, thread
+  in memory only. Answer card: database fact first ("Last logged furnace filter change: Sept 15,
+  2026 at 8:42 AM"), previous occurrence and interval, then the ranked list.
+- **TG4.6 — Device pass.** Install on the Pixel 10 Pro, ask real questions on the real catalog,
+  record findings; fix deterministic problems. STOP: plain-English report to the owner.

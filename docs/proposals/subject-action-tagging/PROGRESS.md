@@ -29,7 +29,12 @@ Registered in `.sdlc/state.json` as TG1.
 | TG3.7 | Device pass (Pixel 10 Pro + watch) | done | Phone typed pass, owner's watch + phone voice tests (14 entries), migration on real data, cards, Tags screen all seen working on device 2026-10-04; finding -> TG3.8. Not exercised by me on device: Change subject/action, History edit sheet, rename/merge (all covered by JVM tests) |
 | TG3.8 | Extraction split: object noun lands in the subject ("hot tub filter" / "change") | done | Verifier pass; deterministic guard (rule 5, OBJECT_NOUNS) adopted; prompt v5 measured on the Pixel and NOT adopted (reverted to v4); ADR-049 |
 | TG3.9 | Clean-up: remove old single-activity UI and wiring from the phone app | done | Orchestrator-checked (clean full rerun incl. release compile, androidTest compile); ADR-050 |
-| TG4+ | Stage 4 | todo | detail after the Stage 3 report |
+| TG4.1 | Lookup ranking + question detector (core-domain) | todo | |
+| TG4.2 | Repository read: loadLookupEntries | todo | verifier (persistence) |
+| TG4.3 | Lookup service + question-extractor seam | todo | |
+| TG4.4 | Gemini Nano question extractor (core-ai) | todo | verifier (AI output) |
+| TG4.5 | Ask screen (phone) | todo | |
+| TG4.6 | Device pass | todo | needs the Pixel 10 Pro; owner report after |
 
 ## Session log
 
