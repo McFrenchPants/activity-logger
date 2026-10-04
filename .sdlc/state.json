@@ -1339,8 +1339,8 @@
         {
           "id": "TG3.7",
           "title": "Device pass",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "in-progress",
+          "lifecycle_state": "implementing",
           "dependencies": [
             "TG3.6"
           ],
@@ -1351,7 +1351,24 @@
           },
           "task_packet_path": ".sdlc/task-packets/TG3.7.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Phone typed pass done; watch/voice/edit flows not yet exercised; finding TG3.8"
+        },
+        {
+          "id": "TG3.8",
+          "title": "Extraction split: object noun in subject",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "TG3.7"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/TG3.8.packet.json",
+          "report_path": null,
+          "notes": "found on device 2026-10-04"
         }
       ]
     }
