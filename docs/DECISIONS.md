@@ -759,3 +759,19 @@ The Log screen (typed and spoken capture) now runs through `TaggedCaptureOrchest
 **Tests use the real ledger.** `core-data` gained `createInMemoryActivityRepository` (same code and schema as `createActivityRepository`, in-memory, work on the caller's thread, for tests only). The Log view-model and screen tests run on it with the real orchestrator and services and a scripted extractor, so tag meaning is not re-invented in a fake.
 
 **Consequences.** The v3 interpreter, orchestrator and services stay in `CapturePipeline` and `ActivityLedgerApplication` for History. The old Log result-card strings stay in `strings.xml` (additive) until the History switch removes the last users.
+
+## ADR-047 — History on the tag pipeline
+
+**Status:** Accepted (developer decision, 2026-10-04; subject + action tagging redesign, TG3.5)
+
+The History screen now runs on `LedgerRepository`, `TaggedResolutionService` and `TaggedCorrectionService`. No v3 service, activity picker or resolution sheet is used by History any more (the v3 classes themselves stay until clean-up).
+
+**Rows.** A saved tagged entry shows "Subject · Action" (the current tag names from `HistoryOccurrence.subjectName` / `actionName`, the same separator as the Saved card), its time, an in-progress tag as before, and its duration (`DurationFormatter`) beside the time; the screen-reader sentence reads subject, action, optional duration, time, then the owner's words. An entry saved by the old pipeline (no tag names) keeps its activity name and is not clickable. Waiting captures keep the NEEDS_REVIEW / NOT_CATEGORIZED look and the filters. The Log Recent list uses the same row.
+
+**Waiting captures are finished without the model and at capture time.** Tapping a waiting row opens a sheet holding the same Check card as Log. The starting point is rebuilt from `loadExtractedWordsForCapture`: an `ExtractionCandidate` (LOG_ACTIVITY, the stored subject and action words, only the stored duration expression) goes through `TagDecisionPolicy.decide` against the CURRENT catalog, giving pre-chosen, Near (candidates plus "Keep mine") or blank sides. The duration is `DurationResolver` of the stored expression (minutes x 60). History does not have the stored resolved time, so the entry is saved at the capture time (`INFERRED_NOW`), which is what `resolve` does when given no time. With no stored words (the AI was unavailable) both sides start blank. No model is called. Save needs both sides chosen and goes through `TaggedResolutionService.resolve`, which alone learns aliases (ADR-044); "Decide later" closes the sheet and the capture stays waiting. Refusals and storage failures keep the sheet and show plain messages that never contain the owner's words.
+
+**Correcting a saved row.** Tapping a saved tagged row opens a small "Edit entry" sheet: the owner's words, the subject and action with "Change subject" / "Change action" (shared `TagPicker`, `TaggedCorrectionService.correct`, one correction row per change, names refresh) and "Remove from history" (`hideOccurrence`; the raw words stay stored) with a one-line explanation.
+
+**Shared draft logic.** The pure Check-card rules (how a side starts from a resolution, blank drafts, candidate / "Keep mine" / picker choices) were extracted from the Log view model into `ui/review/CheckDraft`; Log and History both use it, Log behaviour and its tests are unchanged. `CheckCard` stays in `ui/log` (module-internal) and History reuses it with its test tags.
+
+**Consequences.** `ActivityPicker`, `ReviewSuggestions`, `PickerState` and `refusalMessageFor` stay in the code base, unused by History, for TG3.7 clean-up. Old strings stay (additive only).

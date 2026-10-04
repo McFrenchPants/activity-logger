@@ -131,6 +131,15 @@
     <string name="history_empty_not_categorized">Nothing is waiting to be categorized.</string>
     <string name="history_not_loaded">Couldn\'t load your history. Try again.</string>
     <string name="history_row_action">Choose an activity</string>
+    <string name="history_row_action_check">Check this entry</string>
+    <string name="history_row_action_edit">Edit this entry</string>
+    <string name="history_row_tags_title">%1$s · %2$s</string>
+    <string name="history_row_tagged_a11y">%1$s, %2$s, %3$s. %4$s</string>
+    <string name="history_row_tagged_a11y_with_duration">%1$s, %2$s, %3$s, %4$s. %5$s</string>
+    <string name="history_edit_title">Edit entry</string>
+    <string name="history_edit_done">Done</string>
+    <string name="history_edit_remove">Remove from history</string>
+    <string name="history_edit_remove_explain">This hides the entry from your history. Your words stay saved.</string>
 
     <!-- Shared activity picker. -->
     <string name="picker_title">Choose an activity</string>

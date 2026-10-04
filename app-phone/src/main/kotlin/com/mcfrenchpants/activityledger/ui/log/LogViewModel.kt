@@ -21,12 +21,12 @@ import com.mcfrenchpants.activityledger.core.domain.services.TaggedResolutionRes
 import com.mcfrenchpants.activityledger.core.domain.services.TaggedResolutionService
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagChoice
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
-import com.mcfrenchpants.activityledger.core.domain.tagging.TagResolution
 import com.mcfrenchpants.activityledger.core.domain.validation.ValidationReason
 import com.mcfrenchpants.activityledger.core.speech.SpeechEvent
 import com.mcfrenchpants.activityledger.core.speech.SpeechFailure
 import com.mcfrenchpants.activityledger.core.speech.SpeechTranscriber
 import com.mcfrenchpants.activityledger.ui.components.toHistoryRow
+import com.mcfrenchpants.activityledger.ui.review.CheckDraft
 import com.mcfrenchpants.activityledger.ui.review.UserMessage
 import com.mcfrenchpants.activityledger.ui.review.refusalMessage
 import com.mcfrenchpants.activityledger.ui.review.tagRefusalMessage
@@ -261,12 +261,7 @@ class LogViewModel(
     private suspend fun existingOccurrenceId(captureId: String): String? =
         repository.loadHistory().firstOrNull { it.captureId == captureId }?.occurrence?.occurrenceId
 
-    private fun blankCheckCard(captureId: String, rawText: String) = ResultCard.Check(
-        captureId = captureId,
-        rawText = rawText,
-        subject = CheckSide(TagKind.SUBJECT),
-        action = CheckSide(TagKind.ACTION),
-    )
+    private fun blankCheckCard(captureId: String, rawText: String) = CheckDraft.blank(captureId, rawText)
 
     /**
      * The Check card for [proposal]. A side that resolved exactly or as a new name starts chosen;
@@ -285,28 +280,19 @@ class LogViewModel(
         } else {
             null
         }
-        return ResultCard.Check(
+        return CheckDraft.from(
             captureId = proposal.captureId,
             rawText = rawText,
-            subject = sideOf(TagKind.SUBJECT, proposal.extractedSubject, proposal.subject, proposal.subjectInferred),
-            action = sideOf(TagKind.ACTION, proposal.extractedAction, proposal.action, false),
+            subjectWords = proposal.extractedSubject,
+            actionWords = proposal.extractedAction,
+            subject = proposal.subject,
+            action = proposal.action,
+            subjectInferred = proposal.subjectInferred,
             time = time,
             durationSeconds = proposal.durationSeconds,
             activityState = proposal.activityState,
         )
     }
-
-    private fun sideOf(kind: TagKind, words: String?, resolution: TagResolution, inferred: Boolean): CheckSide =
-        when (resolution) {
-            TagResolution.Empty -> CheckSide(kind, words)
-            is TagResolution.Exact -> CheckSide(
-                kind, words, ChosenTag(TagChoice.Existing(resolution.tag.id), resolution.tag.displayName), assumed = inferred,
-            )
-            is TagResolution.New ->
-                CheckSide(kind, words, ChosenTag(TagChoice.New(resolution.name), resolution.name), assumed = inferred)
-            is TagResolution.Near ->
-                CheckSide(kind, words, candidates = resolution.candidates, keepMine = resolution.newName)
-        }
 
     // ---- Saved card ---------------------------------------------------------------------
 
@@ -411,15 +397,15 @@ class LogViewModel(
     /** Chooses the offered close-match tag [tagId] for the [kind] side of the Check card. */
     fun chooseCandidate(kind: TagKind, tagId: String) {
         val card = _state.value.card as? ResultCard.Check ?: return
-        val tag = card.side(kind).candidates.firstOrNull { it.id == tagId } ?: return
-        updateCheck(card.captureId) { it.choose(kind, ChosenTag(TagChoice.Existing(tag.id), tag.displayName)) }
+        val chosen = CheckDraft.candidateChoice(card, kind, tagId) ?: return
+        updateCheck(card.captureId) { it.choose(kind, chosen) }
     }
 
     /** "Keep mine": chooses a new tag from the owner's words for the [kind] side. */
     fun keepMine(kind: TagKind) {
         val card = _state.value.card as? ResultCard.Check ?: return
-        val name = card.side(kind).keepMine ?: return
-        updateCheck(card.captureId) { it.choose(kind, ChosenTag(TagChoice.New(name), name)) }
+        val chosen = CheckDraft.keepMineChoice(card, kind) ?: return
+        updateCheck(card.captureId) { it.choose(kind, chosen) }
     }
 
     private fun updateCheck(captureId: String, transform: (ResultCard.Check) -> ResultCard.Check) {
@@ -649,15 +635,11 @@ class LogViewModel(
         when (val card = _state.value.card) {
             is ResultCard.Saved -> changeTag(picker.kind, choice)
             is ResultCard.Check -> {
-                val name = when (choice) {
-                    is TagChoice.Existing -> picker.tags.firstOrNull { it.id == choice.tagId }?.displayName
-                    is TagChoice.New -> choice.name.trim().takeIf { it.isNotEmpty() }
-                }
-                if (name == null) {
+                val chosen = CheckDraft.pickedChoice(picker, choice)
+                if (chosen == null) {
                     closePicker()
                 } else {
-                    val stored = if (choice is TagChoice.New) TagChoice.New(name) else choice
-                    updateCheck(card.captureId) { it.choose(picker.kind, ChosenTag(stored, name)) }
+                    updateCheck(card.captureId) { it.choose(picker.kind, chosen) }
                 }
             }
             // No picker can be opened over a card with no capture, or over no card at all.

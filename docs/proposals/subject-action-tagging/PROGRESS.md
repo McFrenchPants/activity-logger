@@ -24,12 +24,15 @@ Registered in `.sdlc/state.json` as TG1.
 | TG3.2 | Tagged resolution + correction + tag management services (core-domain) | done | Verifier pass attempt 1; ADR-044 |
 | TG3.3 | Phone wiring (pipeline, application, watch receiver) | done | Verifier pass attempt 1; ADR-045; not yet run on a device |
 | TG3.4 | Log screen on tags (cards, confirm, correct) | done | Verifier pass attempt 1 (first spawn stopped on a packet path overlap, my error; resumed); ADR-046; not yet seen on a device |
-| TG3.5 | History on tags | todo | |
+| TG3.5 | History on tags | done | Verifier pass attempt 1; ADR-047; waiting captures finish at CAPTURE time (History lacks the stored resolved time) |
 | TG3.6 | Tag management screen (rename, merge) | todo | |
 | TG3.7 | Device pass (Pixel 10 Pro + watch) | todo | STOP for owner report after |
 | TG4+ | Stage 4 | todo | detail after the Stage 3 report |
 
 ## Session log
+
+### 2026-10-04 — TG3.5 done (5th task of the run: run budget reached, stop)
+History on tags: rows 'Subject · Action' + duration (old-pipeline rows unchanged, non-clickable); waiting captures open the same Check-card experience, starting sides REBUILT from stored extracted words via TagDecisionPolicy against the current catalog (no model call; blank when no words), saved through TaggedResolutionService at capture time (INFERRED_NOW) -- a time the owner spoke ("yesterday") is therefore not applied when finishing from History (known limitation, ADR-047; fix = expose stored resolved time); Edit sheet for saved rows (Change subject/action, Remove from history = hideOccurrence). Shared `CheckDraft` (ui/review, depends on ui/log types -- mild layering oddity). 229 app-phone tests. Leftovers for TG3.7 clean-up: ActivityPicker, ReviewSuggestions, PickerState, refusalMessageFor, ReviewResolutionService/CorrectionService wiring, v3 interpreter/orchestrator in CapturePipeline, `LegacyActivityFixtures.kt`, old card strings. Next: TG3.6 tag management screen, then TG3.7 device pass (Pixel 10 Pro + watch; owner clears app storage once).
 
 ### 2026-10-04 — TG3.4 done
 Log screen on tags: Saved card (subject · action · duration · time; Undo, Change subject, Change action via TaggedCorrectionService), ONE Check card for NeedsConfirm/NeedsReview/Rejected/AI-unavailable (pre-chosen sides, Near candidates + "Keep mine", blank sides need a pick, Save only with both sides chosen, nothing saved before Save, proposal time only when clean), shared `TagPicker`, `DurationFormatter`, `tagRefusalMessage`. Tests on the REAL Room ledger via new `createInMemoryActivityRepository` (core-data main, test-only function, KDoc'd); 218 app-phone tests. Old v3 card strings kept (History). `LegacyActivityFixtures.kt` holds old test fixtures History tests still need. ADR-046, UX_VISUAL_SPEC 4.1 updated. Verifier pass. Layout/wording never seen on screen: eyeball at TG3.7. Next: TG3.5 History.

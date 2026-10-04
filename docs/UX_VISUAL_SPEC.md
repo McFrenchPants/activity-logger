@@ -292,8 +292,17 @@ short (4 s) and long (10 s) durations.
 
 - Interpreted rows: canonical name (titleMedium) → time (+ state tag) →
   quoted words.
+- *Tagged rows (ADR-047):* the title is "Subject · Action" and the duration,
+  when known, sits beside the time. Entries from the old pipeline keep their
+  activity name and are not clickable.
 - Uninterpreted rows lead with the state tag and the user's words in place of
   a name.
+- *History taps (ADR-047):* a waiting row opens a sheet with the same Check
+  card as Log (both sides chosen before *Save*, close matches with *Keep mine*,
+  *Decide later*); its starting point is rebuilt from the stored words
+  without the model, and it saves at the capture time. A saved tagged row
+  opens a small *Edit entry* sheet: the words, *Change subject*, *Change
+  action* and *Remove from history* (hides it; the words stay saved).
 - Trailing source-device icon (phone/watch) with content description.
 - Newest first.
 

@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import com.mcfrenchpants.activityledger.ActivityLedgerApplication
 
 /**
- * Builds [HistoryViewModel] from the repository and services held by [ActivityLedgerApplication].
- * Hand-written on purpose: there is no DI framework (ADR-032).
+ * Builds [HistoryViewModel] from the repository and tagged services held by
+ * [ActivityLedgerApplication]. Hand-written on purpose: there is no DI framework (ADR-032).
  */
 class HistoryViewModelFactory(private val application: ActivityLedgerApplication) : ViewModelProvider.Factory {
 
@@ -16,7 +16,8 @@ class HistoryViewModelFactory(private val application: ActivityLedgerApplication
         val pipeline = application.capturePipeline
         return HistoryViewModel(
             repository = pipeline.repository,
-            reviewResolutionService = application.reviewResolutionService,
+            resolution = application.taggedResolutionService,
+            correction = application.taggedCorrectionService,
             clock = pipeline.clock,
         ) as T
     }

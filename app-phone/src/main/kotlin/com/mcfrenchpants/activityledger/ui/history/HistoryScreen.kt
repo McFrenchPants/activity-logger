@@ -18,7 +18,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -38,15 +37,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mcfrenchpants.activityledger.ActivityLedgerApplication
 import com.mcfrenchpants.activityledger.R
-import com.mcfrenchpants.activityledger.core.domain.repository.ActivityTarget
-import com.mcfrenchpants.activityledger.ui.components.ActivityPicker
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
 import com.mcfrenchpants.activityledger.ui.components.EvidenceText
 import com.mcfrenchpants.activityledger.ui.components.HistoryRow
-import com.mcfrenchpants.activityledger.ui.components.RowState
-import com.mcfrenchpants.activityledger.ui.components.StateTag
+import com.mcfrenchpants.activityledger.ui.components.TagPicker
+import com.mcfrenchpants.activityledger.ui.log.CheckCard
+import com.mcfrenchpants.activityledger.ui.log.ResultCard
 import com.mcfrenchpants.activityledger.ui.review.UserMessage
 import com.mcfrenchpants.activityledger.ui.review.resolve
-import com.mcfrenchpants.activityledger.ui.theme.LedgerShapes
 
 /** Test tag of the History screen's root. */
 const val HISTORY_SCREEN_TAG = "HistoryScreen"
@@ -54,17 +52,26 @@ const val HISTORY_SCREEN_TAG = "HistoryScreen"
 /** Test tag of the History list. */
 const val HISTORY_LIST_TAG = "HistoryList"
 
-/** Test tag of the resolution sheet's content. */
-const val RESOLUTION_SHEET_TAG = "ResolutionSheet"
+/** Test tag of the waiting-capture sheet's content (it holds the shared Check card). */
+const val CHECK_SHEET_TAG = "HistoryCheckSheet"
+
+/** Test tag of the Edit sheet's content. */
+const val EDIT_SHEET_TAG = "HistoryEditSheet"
+
+/** Test tags of the Edit sheet's buttons. */
+const val EDIT_CHANGE_SUBJECT_TAG = "HistoryEditChangeSubject"
+const val EDIT_CHANGE_ACTION_TAG = "HistoryEditChangeAction"
+const val EDIT_REMOVE_TAG = "HistoryEditRemove"
+const val EDIT_DONE_TAG = "HistoryEditDone"
 
 /** Test tag of the filter chip for [filter]. */
 fun historyFilterTag(filter: HistoryFilter): String = "HistoryFilter:${filter.name}"
 
 /**
  * The History destination (UX_VISUAL_SPEC D1, D7, 4.2): every logged or pending capture, newest
- * first, with the All / Needs review / Not categorized chips. Needs-review and Not-categorized
- * rows open a resolution sheet; interpreted rows are not clickable yet (the occurrence sheet is
- * a later slice).
+ * first, with the All / Needs review / Not categorized chips. A waiting row opens the same Check
+ * card the Log screen uses; a saved tagged row opens a small Edit sheet; a row from the old
+ * pipeline is not clickable (ADR-047).
  */
 @Composable
 fun HistoryScreen(
@@ -81,28 +88,42 @@ fun HistoryScreen(
     HistoryContent(
         state = state,
         onSelectFilter = viewModel::selectFilter,
-        onOpenRow = viewModel::openResolution,
+        onOpenCheck = viewModel::openCheck,
+        onOpenEdit = viewModel::openEdit,
         modifier = modifier,
     )
 
-    val resolution = state.resolution
+    val check = state.check
+    val edit = state.edit
     val picker = state.picker
     if (picker != null) {
-        ActivityPicker(
-            activities = picker.activities,
+        TagPicker(
+            kind = picker.kind,
+            tags = picker.tags,
             onChoose = viewModel::onPickerChoice,
             onDismiss = viewModel::closePicker,
-            startWithNewActivity = picker.startWithNewActivity,
+            startWithNewName = picker.startWithNewName,
         )
-    } else if (resolution != null) {
-        ResolutionSheet(
-            resolution = resolution,
+    } else if (check != null) {
+        CheckSheet(
+            card = check,
             message = state.message,
             enabled = !state.actionInFlight,
-            onSuggestion = { viewModel.resolve(ActivityTarget.Existing(it)) },
-            onChooseActivity = { viewModel.openPicker() },
-            onCreateActivity = { viewModel.openPicker(startWithNewActivity = true) },
+            onChooseCandidate = viewModel::chooseCandidate,
+            onKeepMine = viewModel::keepMine,
+            onPick = { viewModel.openPicker(it) },
+            onSave = viewModel::save,
             onDecideLater = viewModel::decideLater,
+        )
+    } else if (edit != null) {
+        EditSheet(
+            edit = edit,
+            message = state.message,
+            enabled = !state.actionInFlight,
+            onChangeSubject = { viewModel.openPicker(TagKind.SUBJECT) },
+            onChangeAction = { viewModel.openPicker(TagKind.ACTION) },
+            onRemove = viewModel::removeFromHistory,
+            onDone = viewModel::closeEdit,
         )
     }
 }
@@ -118,7 +139,8 @@ private fun defaultHistoryViewModel(): HistoryViewModel {
 internal fun HistoryContent(
     state: HistoryUiState,
     onSelectFilter: (HistoryFilter) -> Unit,
-    onOpenRow: (String) -> Unit,
+    onOpenCheck: (String) -> Unit,
+    onOpenEdit: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -136,8 +158,8 @@ internal fun HistoryContent(
         )
         FilterChips(selected = state.filter, onSelect = onSelectFilter)
 
-        // A message about the sheet is shown in the sheet; anything else here.
-        if (state.resolution == null) {
+        // A message about a sheet is shown in the sheet; anything else here.
+        if (!state.sheetOpen) {
             state.message?.let { message ->
                 Text(
                     text = message.resolve(),
@@ -168,7 +190,8 @@ internal fun HistoryContent(
             )
         }
 
-        val actionLabel = stringResource(R.string.history_row_action)
+        val checkLabel = stringResource(R.string.history_row_action_check)
+        val editLabel = stringResource(R.string.history_row_action_edit)
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -177,7 +200,9 @@ internal fun HistoryContent(
         ) {
             items(rows, key = { it.captureId }) { row ->
                 if (row.isAwaitingActivity) {
-                    HistoryRow(row, onClick = { onOpenRow(row.captureId) }, onClickLabel = actionLabel)
+                    HistoryRow(row, onClick = { onOpenCheck(row.captureId) }, onClickLabel = checkLabel)
+                } else if (row.isTagged) {
+                    HistoryRow(row, onClick = { onOpenEdit(row.captureId) }, onClickLabel = editLabel)
                 } else {
                     HistoryRow(row)
                 }
@@ -211,100 +236,146 @@ private fun HistoryFilter.labelRes(): Int = when (this) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ResolutionSheet(
-    resolution: Resolution,
+private fun CheckSheet(
+    card: ResultCard.Check,
     message: UserMessage?,
     enabled: Boolean,
-    onSuggestion: (String) -> Unit,
-    onChooseActivity: () -> Unit,
-    onCreateActivity: () -> Unit,
+    onChooseCandidate: (TagKind, String) -> Unit,
+    onKeepMine: (TagKind) -> Unit,
+    onPick: (TagKind) -> Unit,
+    onSave: () -> Unit,
     onDecideLater: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDecideLater, sheetState = sheetState) {
-        ResolutionSheetContent(
-            resolution = resolution,
-            message = message,
-            enabled = enabled,
-            onSuggestion = onSuggestion,
-            onChooseActivity = onChooseActivity,
-            onCreateActivity = onCreateActivity,
-            onDecideLater = onDecideLater,
-        )
+        CheckSheetContent(card, message, enabled, onChooseCandidate, onKeepMine, onPick, onSave, onDecideLater)
     }
 }
 
 /**
- * The resolution sheet's body: the state, the words, the reassurance (Needs review only),
- * "Which activity was this?" with up to three suggestions, Choose another activity, Create new
- * activity and Decide later. Any refusal is shown here, in the sheet.
+ * The waiting-capture sheet's body: the same Check card the Log screen shows (both sides chosen
+ * before Save, close matches with "Keep mine", Decide later), then any refusal in plain words.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun ResolutionSheetContent(
-    resolution: Resolution,
+internal fun CheckSheetContent(
+    card: ResultCard.Check,
     message: UserMessage?,
     enabled: Boolean,
-    onSuggestion: (String) -> Unit,
-    onChooseActivity: () -> Unit,
-    onCreateActivity: () -> Unit,
+    onChooseCandidate: (TagKind, String) -> Unit,
+    onKeepMine: (TagKind) -> Unit,
+    onPick: (TagKind) -> Unit,
+    onSave: () -> Unit,
     onDecideLater: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .testTag(RESOLUTION_SHEET_TAG)
+            .testTag(CHECK_SHEET_TAG)
             .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        StateTag(if (resolution.needsReview) RowState.NEEDS_REVIEW else RowState.NOT_CATEGORIZED)
-        EvidenceText(resolution.rawText)
-        if (resolution.needsReview) {
-            Text(
-                text = stringResource(R.string.log_needs_review_reassurance),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-        Text(
-            text = stringResource(R.string.log_which_activity),
-            style = MaterialTheme.typography.titleMedium,
+        CheckCard(
+            card = card,
+            enabled = enabled,
+            onChooseCandidate = onChooseCandidate,
+            onKeepMine = onKeepMine,
+            onPick = onPick,
+            onSave = onSave,
+            onDecideLater = onDecideLater,
+            onTouched = {},
         )
-        if (resolution.suggestions.isNotEmpty()) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                resolution.suggestions.forEach { suggestion ->
-                    OutlinedButton(
-                        onClick = { onSuggestion(suggestion.activityId) },
-                        enabled = enabled,
-                        shape = LedgerShapes.button,
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) {
-                        Text(suggestion.displayName)
-                    }
-                }
-            }
-        }
-        message?.let {
-            Text(
-                text = it.resolve(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            )
-        }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SheetTextButton(stringResource(R.string.log_choose_another_activity), onChooseActivity, enabled)
-            SheetTextButton(stringResource(R.string.log_create_new_activity), onCreateActivity, enabled)
-            SheetTextButton(stringResource(R.string.log_decide_later), onDecideLater)
-        }
+        SheetMessage(message)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditSheet(
+    edit: EditEntry,
+    message: UserMessage?,
+    enabled: Boolean,
+    onChangeSubject: () -> Unit,
+    onChangeAction: () -> Unit,
+    onRemove: () -> Unit,
+    onDone: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDone, sheetState = sheetState) {
+        EditSheetContent(edit, message, enabled, onChangeSubject, onChangeAction, onRemove, onDone)
+    }
+}
+
+/**
+ * The Edit sheet's body: the owner's words, the subject and action with Change subject / Change
+ * action, Remove from history with a one-line explanation, and Done. Any refusal is shown here.
+ */
+@Composable
+internal fun EditSheetContent(
+    edit: EditEntry,
+    message: UserMessage?,
+    enabled: Boolean,
+    onChangeSubject: () -> Unit,
+    onChangeAction: () -> Unit,
+    onRemove: () -> Unit,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(EDIT_SHEET_TAG)
+            .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.history_edit_title),
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
+        )
+        EvidenceText(edit.rawText)
+        Text(
+            text = stringResource(R.string.log_check_subject_label),
+            style = MaterialTheme.typography.labelLarge,
+        )
+        Text(text = edit.subjectName, style = MaterialTheme.typography.titleMedium)
+        SheetTextButton(stringResource(R.string.log_change_subject), onChangeSubject, enabled, EDIT_CHANGE_SUBJECT_TAG)
+        Text(
+            text = stringResource(R.string.log_check_action_label),
+            style = MaterialTheme.typography.labelLarge,
+        )
+        Text(text = edit.actionName, style = MaterialTheme.typography.titleMedium)
+        SheetTextButton(stringResource(R.string.log_change_action), onChangeAction, enabled, EDIT_CHANGE_ACTION_TAG)
+        HorizontalDivider()
+        Text(
+            text = stringResource(R.string.history_edit_remove_explain),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        SheetTextButton(stringResource(R.string.history_edit_remove), onRemove, enabled, EDIT_REMOVE_TAG)
+        SheetMessage(message)
+        SheetTextButton(stringResource(R.string.history_edit_done), onDone, true, EDIT_DONE_TAG)
     }
 }
 
 @Composable
-private fun SheetTextButton(text: String, onClick: () -> Unit, enabled: Boolean = true) {
-    TextButton(onClick = onClick, enabled = enabled, modifier = Modifier.heightIn(min = 48.dp)) {
+private fun SheetMessage(message: UserMessage?) {
+    message?.let {
+        Text(
+            text = it.resolve(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+    }
+}
+
+@Composable
+private fun SheetTextButton(text: String, onClick: () -> Unit, enabled: Boolean, tag: String) {
+    TextButton(onClick = onClick, enabled = enabled, modifier = Modifier.heightIn(min = 48.dp).testTag(tag)) {
         Text(text)
     }
 }

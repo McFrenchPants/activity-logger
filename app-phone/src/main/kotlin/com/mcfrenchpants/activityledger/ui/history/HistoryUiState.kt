@@ -2,8 +2,8 @@ package com.mcfrenchpants.activityledger.ui.history
 
 import com.mcfrenchpants.activityledger.ui.components.HistoryRowModel
 import com.mcfrenchpants.activityledger.ui.components.RowState
-import com.mcfrenchpants.activityledger.ui.review.PickerState
-import com.mcfrenchpants.activityledger.ui.review.Suggestion
+import com.mcfrenchpants.activityledger.ui.log.ResultCard
+import com.mcfrenchpants.activityledger.ui.log.TagPickerState
 import com.mcfrenchpants.activityledger.ui.review.UserMessage
 
 /** The History filter chips (UX_VISUAL_SPEC D7). Single-select; no counts. */
@@ -27,17 +27,17 @@ enum class HistoryFilter {
 }
 
 /**
- * The capture being resolved from its History row.
+ * The saved entry whose Edit sheet is open.
  *
- * @property needsReview True for a Needs-review capture (shows the reassurance), false for Not
- *   categorized.
- * @property suggestions At most three existing activities to offer.
+ * @property rawText The owner's own words (shown in the evidence style, never in a message).
+ * @property subjectName The entry's current subject name.
+ * @property actionName The entry's current action name.
  */
-data class Resolution(
-    val captureId: String,
+data class EditEntry(
+    val occurrenceId: String,
     val rawText: String,
-    val needsReview: Boolean,
-    val suggestions: List<Suggestion>,
+    val subjectName: String,
+    val actionName: String,
 )
 
 /**
@@ -47,8 +47,10 @@ data class Resolution(
  * @property allRows Every history row, newest first, in `loadHistory()` order.
  * @property loaded False until the first history load succeeded (so "empty" is never shown
  *   before anything was read).
- * @property resolution The capture whose resolution sheet is open, or null.
- * @property picker The open activity picker, or null.
+ * @property check The waiting capture being finished (the same Check card the Log screen uses),
+ *   or null.
+ * @property edit The saved entry whose Edit sheet is open, or null.
+ * @property picker The open tag picker (subject or action), or null.
  * @property actionInFlight A write (or picker load) is running; further ones are ignored.
  * @property message A plain-words message (a refusal or storage failure), or null.
  */
@@ -56,11 +58,15 @@ data class HistoryUiState(
     val filter: HistoryFilter = HistoryFilter.ALL,
     val allRows: List<HistoryRowModel> = emptyList(),
     val loaded: Boolean = false,
-    val resolution: Resolution? = null,
-    val picker: PickerState? = null,
+    val check: ResultCard.Check? = null,
+    val edit: EditEntry? = null,
+    val picker: TagPickerState? = null,
     val actionInFlight: Boolean = false,
     val message: UserMessage? = null,
 ) {
     /** The rows shown under [filter], newest first. */
     val rows: List<HistoryRowModel> get() = allRows.filter(filter::matches)
+
+    /** Whether a sheet is open (its messages are shown in it, not on the screen). */
+    val sheetOpen: Boolean get() = check != null || edit != null
 }
