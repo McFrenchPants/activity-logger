@@ -282,17 +282,19 @@ Status vocabulary:
 18. **Ask: counting and date-window questions** — `merged into item 19` (2026-10-04)
     Ask answers "when did I last ..." only. Questions like "how many times did I mow in August?" or "how often do I change the oil?" need the model to also extract a time window / question type and program logic to count. Also open: a recorded set of real questions to guard the question reader against regressions, and asking by voice has not been tried on a device.
 
-19. **Explore: Ask, search and dashboard in one screen** — `ready` (2026-10-04)
+19. **Explore: Ask, search and dashboard in one screen** — `ready` (design approved 2026-10-04)
     Added 2026-10-04 by the owner as a dashboard; same day the owner chose to
-    fold it into the Ask tab. One screen: a single box that takes a question
-    or search words, a filter row (date range, subject, action) that
-    everything obeys, an answer line, three numbers that react to the
-    filters, one entries-over-time chart, and a switch between Entries
-    (sortable list), Activities (most logged / recurring, "usually every N
-    days") and Patterns (weekday, part of day, time mentioned). A question
-    just sets the filters, so what the AI understood stays visible and
-    editable; the AI never produces numbers or answers. No streaks, scores,
-    goals or reminders; averages and typical gaps newly allowed here
-    (UX_VISUAL_SPEC §4.5/§7 to amend, ADR to record). Absorbs item 18. Design:
-    `docs/proposals/dashboard/DESIGN_SPEC.md` (work item DH1). Open owner
-    questions: tab name (recommended "Explore"); "longer than usual" label.
+    fold it into the Ask tab and approved the design. The Ask tab becomes
+    **Explore**: one box for a question or search words, a filter row (date
+    range, subject, action) that everything obeys, an answer line, three
+    numbers that react to the filters, one entries-over-time chart, and a
+    switch between Entries (sortable list), Activities (most logged, with
+    "usually every N days") and Patterns (weekday, part of day, time
+    mentioned). A question just sets the filters, so what the AI understood
+    stays visible and editable; the AI never produces numbers or answers.
+    Owner decisions: name Explore; "usually every N days" in; no overdue /
+    "longer than usual" label; no streaks, scores, goals or reminders.
+    Absorbs item 18. Full design (self-contained, with stages, counting
+    rules, code pointers and test plan) and mockup:
+    `docs/proposals/explore/DESIGN_SPEC.md`, `docs/proposals/explore/mockup.html`
+    (work item DH1). Next: `/continue-development` to plan and build.

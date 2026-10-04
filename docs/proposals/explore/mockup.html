@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Explore mockup</title>
+<!-- Low-fidelity layout mockup for docs/proposals/explore/DESIGN_SPEC.md. Not a visual spec: real colours and type come from UX_VISUAL_SPEC.md tokens. -->
+<style>
+:root{--bg:#f4f3ef;--card:#fff;--tile:#f1f0ec;--text:#1f1f1d;--muted:#6b6a65;--line:#dcdad3;--accent:#185FA5;--accent-bg:#E6F1FB}
+@media (prefers-color-scheme:dark){:root{--bg:#1b1b1a;--card:#262624;--tile:#30302d;--text:#ecebe6;--muted:#a3a29b;--line:#45443f;--accent:#85B7EB;--accent-bg:#0C447C}}
+body{background:var(--bg);color:var(--text);font:14px/1.4 system-ui,sans-serif;margin:0;padding:16px}
+.wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,360px));gap:24px;justify-content:center}
+.lbl{color:var(--muted);font-size:13px;margin:0 0 6px}
+.ph{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px}
+.sb{display:flex;gap:8px;border:1px solid var(--line);border-radius:20px;padding:8px 12px;color:var(--muted)}
+.sb span{flex:1}.sb.q{color:var(--text)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.ch{border:1px solid var(--line);border-radius:8px;padding:3px 8px;font-size:12px;color:var(--muted)}
+.ch.on{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.t{background:var(--tile);border-radius:8px;padding:7px 8px}.t b{display:block;font-size:17px;font-weight:500}.t span{font-size:11px;color:var(--muted)}
+.bars{display:flex;align-items:flex-end;gap:2px;height:44px;margin:12px 0 4px}.bars i{flex:1;background:var(--accent);border-radius:2px 2px 0 0}
+.cap{font-size:11px;color:var(--muted)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:8px;margin:12px 0 6px;font-size:12px;text-align:center}.seg div{padding:5px 0}.seg .on{background:var(--accent-bg);color:var(--accent);border-radius:7px}
+.row{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line)}.row small{color:var(--muted);font-size:11px}
+.nav{display:grid;grid-template-columns:repeat(4,1fr);text-align:center;font-size:11px;color:var(--muted);border-top:1px solid var(--line);margin-top:10px;padding-top:8px}.nav .on{color:var(--accent);font-weight:600}
+</style></head><body><div class="wrap">
+<div><p class="lbl">Opens like this (no filters = dashboard)</p><div class="ph">
+<div class="sb"><span>Ask or search your history</span>🎤</div>
+<div class="chips"><span class="ch">Last 30 days ▾</span><span class="ch">Subject ▾</span><span class="ch">Action ▾</span></div>
+<div>47 entries in the last 30 days.</div>
+<div class="tiles"><div class="t"><b>47</b><span>entries · previous 41</span></div><div class="t"><b>18 of 30</b><span>days with an entry</span></div><div class="t"><b>14</b><span>activities</span></div></div>
+<div class="bars"><i style="height:20%"></i><i style="height:45%"></i><i style="height:0"></i><i style="height:70%"></i><i style="height:30%"></i><i style="height:10%"></i><i style="height:95%"></i><i style="height:40%"></i><i style="height:0"></i><i style="height:25%"></i><i style="height:60%"></i><i style="height:15%"></i><i style="height:40%"></i><i style="height:30%"></i><i style="height:80%"></i><i style="height:0"></i><i style="height:15%"></i><i style="height:45%"></i><i style="height:50%"></i><i style="height:25%"></i><i style="height:60%"></i><i style="height:15%"></i><i style="height:30%"></i><i style="height:0"></i><i style="height:40%"></i><i style="height:55%"></i><i style="height:20%"></i><i style="height:35%"></i><i style="height:0"></i><i style="height:30%"></i></div>
+<div class="cap">Average 2.6 per day on days you logged something · Show as list</div>
+<div class="seg"><div>Entries</div><div class="on">Activities</div><div>Patterns</div></div>
+<div class="cap" style="text-align:right">Sort: Most logged ▾</div>
+<div class="row"><span>Hot tub · add chlorine<br><small>usually every 3 days</small></span><span style="text-align:right">9<br><small>2 days ago</small></span></div>
+<div class="row"><span>Dogs · walk</span><span style="text-align:right">8<br><small>today</small></span></div>
+<div class="row"><span>Lawn · mow<br><small>usually every 7 days</small></span><span style="text-align:right">4<br><small>6 days ago</small></span></div>
+<div class="nav"><span>Log</span><span>History</span><span>Tags</span><span class="on">Explore</span></div></div></div>
+<div><p class="lbl">After asking a question (it fills in the filters)</p><div class="ph">
+<div class="sb q"><span>How many times did I mow in August?</span>✕</div>
+<div class="chips"><span class="ch on">August 2026 ✕</span><span class="ch on">Lawn ✕</span><span class="ch on">mow ✕</span><span class="ch" style="border:none;color:var(--accent)">Clear</span></div>
+<div>You mowed the lawn 4 times in August 2026. Last: August 28.</div>
+<div class="tiles"><div class="t"><b>4</b><span>times</span></div><div class="t"><b>37 days</b><span>since last</span></div><div class="t"><b>7 days</b><span>usually every</span></div></div>
+<div class="bars"><i style="height:50%"></i><i style="height:50%"></i><i style="height:50%"></i><i style="height:50%"></i><i style="height:0"></i></div>
+<div class="cap">Per week · Show as list</div>
+<div class="seg"><div class="on">Entries</div><div>Activities</div><div>Patterns</div></div>
+<div class="cap" style="text-align:right">Sort: Newest ▾</div>
+<div class="row"><span>Aug 28 · Lawn · mow<br><small>"Mowed the front and back"</small></span></div>
+<div class="row"><span>Aug 21 · Lawn · mow<br><small>"Cut the grass this morning"</small></span></div>
+<div class="row"><span>Aug 14 · Lawn · mow<br><small>"Mowed the lawn"</small></span></div>
+<div class="nav"><span>Log</span><span>History</span><span>Tags</span><span class="on">Explore</span></div></div></div>
+</div></body></html>
