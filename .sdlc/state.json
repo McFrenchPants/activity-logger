@@ -1458,15 +1458,15 @@
         {
           "id": "TG4.5",
           "title": "Ask wiring + view model (phone, no UI)",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "implemented",
           "dependencies": [
             "TG4.3"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/TG4.5.packet.json",
           "report_path": null,

@@ -186,4 +186,10 @@
     <string name="tags_confirm_title">Merge these?</string>
     <string name="tags_confirm_body">Everything logged under “%1$s” will count as “%2$s” instead. Your original words are kept. This can\'t be undone yet.</string>
     <string name="tags_confirm_merge">Merge</string>
+
+    <!-- Ask your history: voice notices (same meaning as the Log ones, worded for questions). -->
+    <string name="ask_mic_permission_denied">Asking by voice needs the microphone. You can still type your question.</string>
+    <string name="ask_mic_permission_blocked">The microphone is switched off for this app in Settings, so asking by voice can\'t start. You can still type your question.</string>
+    <string name="ask_voice_unavailable">This phone can\'t listen for your question. You can still type it.</string>
+    <string name="ask_voice_nothing_heard">I didn\'t catch that. Try again, or type your question.</string>
 </resources>

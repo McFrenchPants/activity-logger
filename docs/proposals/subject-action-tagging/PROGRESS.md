@@ -33,11 +33,14 @@ Registered in `.sdlc/state.json` as TG1.
 | TG4.2 | Repository read: loadLookupEntries | done | Verifier pass attempt 1; orchestrator added the method to two core-domain test fakes and one test for non-ACTIVE subject/action |
 | TG4.3 | Lookup service + question-extractor seam | done | Spot-check + full core-domain rerun; ADR-051 amended |
 | TG4.4 | Gemini Nano question extractor (core-ai) | done | Verifier pass attempt 1; ADR-052; prompt q1 not yet recorded on a device (TG4.6) |
-| TG4.5 | Ask wiring + view model (phone, no UI) | todo | |
+| TG4.5 | Ask wiring + view model (phone, no UI) | done | Orchestrator rerun of app-phone/core tests; 274 app-phone tests; questions never persisted (tested) |
 | TG4.6 | Ask screen (phone UI) | todo | |
 | TG4.7 | Device pass | todo | needs the Pixel 10 Pro; owner report after |
 
 ## Session log
+
+### 2026-10-04 - Stage 4 started: TG4.1-TG4.5 done (run budget of 5 tasks reached)
+Branch `feature/ask-history`. Done: ranking + question detector (TG4.1, ADR-051), repository read of lookup entries (TG4.2, verifier pass), lookup service + question-extractor seam (TG4.3), Gemini Nano question extractor with its own prompt q1 (TG4.4, verifier pass, ADR-052), Ask wiring + view model (TG4.5). Scope: last-time questions only; counting/date-window questions are a later backlog item. Prompt q1 has NOT yet run on a device. Remaining: TG4.6 Ask screen + fourth tab, TG4.7 device pass on the Pixel 10 Pro (also record q1 answers) then owner report. Not merged to main yet (feature incomplete: no screen).
 
 ### 2026-10-04 — TG3.9 clean-up done
 Removed from the phone app: ActivityPicker (+test), ReviewSuggestions, PickerState, old ServiceRefusal message functions (two remaining callers switched to tagRefusalMessage(OccurrenceNotFound), same string), LegacyActivityFixtures, BusyRetryInterpreter (+test; RETRY_WAITS moved into BusyRetryExtractor), v3 interpreter/orchestrator and review/correction services from CapturePipeline/ActivityLedgerApplication, 25 unused strings. Stray dot on the Saved card bar removed; TagDecision.resplit KDoc fixed. CaptureVerticalSliceTest (device test, not run) now uses the tagged orchestrator. core-domain v3 classes stay (old corpus gate). ADR-050. -968/+109 lines. Full rerun green. Open: CaptureVerticalSliceTest never run on a device since the rewrite.

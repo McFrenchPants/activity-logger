@@ -1,9 +1,12 @@
 package com.mcfrenchpants.activityledger
 
 import android.app.Application
+import com.mcfrenchpants.activityledger.core.ai.GeminiNanoQuestionExtractor
+import com.mcfrenchpants.activityledger.core.domain.lookup.LookupService
 import com.mcfrenchpants.activityledger.core.domain.services.TagManagementService
 import com.mcfrenchpants.activityledger.core.domain.services.TaggedCorrectionService
 import com.mcfrenchpants.activityledger.core.domain.services.TaggedResolutionService
+import com.mcfrenchpants.activityledger.pipeline.BusyRetryQuestionExtractor
 import com.mcfrenchpants.activityledger.pipeline.CapturePipeline
 
 /**
@@ -52,5 +55,17 @@ class ActivityLedgerApplication : Application() {
     /** Renames, merges and lists tags; shares the pipeline's repository. */
     val tagManagementService: TagManagementService by lazy {
         TagManagementService(capturePipeline.repository)
+    }
+
+    /**
+     * Answers "Ask your history" questions; shares the pipeline's repository and its on-device
+     * model capability (so there is still one model client per process, never closed here, and
+     * built lazily on first use) behind the same short busy retry the capture path uses.
+     */
+    val lookupService: LookupService by lazy {
+        LookupService(
+            capturePipeline.repository,
+            BusyRetryQuestionExtractor(GeminiNanoQuestionExtractor(capturePipeline.capability)),
+        )
     }
 }
