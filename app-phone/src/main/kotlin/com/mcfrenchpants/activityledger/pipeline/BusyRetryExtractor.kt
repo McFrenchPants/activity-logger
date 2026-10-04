@@ -7,11 +7,22 @@ import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterFa
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterProvenance
 import kotlinx.coroutines.delay
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
- * The extractor twin of [BusyRetryInterpreter]: gives an [ActivityExtractor] the same short,
- * bounded second chance when it refuses a request without running inference (in practice, the
- * on-device model being busy with the previous request), using the same [RETRY_WAITS] schedule.
+ * The waits [BusyRetryExtractor] makes between attempts, in order: one entry per retry, so at
+ * most `RETRY_WAITS.size + 1` delegate calls and at most the sum of these waits (~6 s) in total.
+ *
+ * Short on purpose: the person has just typed or spoken a capture and is looking at the screen.
+ * If the model is still refusing after this, the capture is left for a later attempt instead of
+ * holding them up.
+ */
+internal val RETRY_WAITS: List<Duration> = listOf(2.seconds, 4.seconds)
+
+/**
+ * Gives an [ActivityExtractor] a short, bounded second chance when it refuses a request without
+ * running inference (in practice, the on-device model being busy with the previous request),
+ * on the [RETRY_WAITS] schedule.
  *
  * Only an [ExtractionResult.Failure] of kind [InterpreterFailureKind.RETRYABLE] is retried; any
  * other result is returned at once, so an answer is never re-asked (ADR-030). The delegate makes

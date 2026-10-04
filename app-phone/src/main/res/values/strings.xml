@@ -19,7 +19,6 @@
     <string name="log_capturing">Categorizing your words</string>
     <string name="log_capture_not_saved">Couldn\'t save your words. Nothing was saved. Try again.</string>
     <string name="log_action_failed">Couldn\'t save that change. Nothing was changed. Try again.</string>
-    <string name="log_activities_not_loaded">Couldn\'t load your activities. Try again.</string>
     <string name="log_ai_not_ready">On-device AI isn\'t ready. Captures are still saved.</string>
     <string name="log_recent">Recent</string>
     <string name="log_all_history">All history</string>
@@ -47,27 +46,12 @@
     <string name="log_try_again">Try again</string>
     <string name="log_type_instead">Type instead</string>
 
-    <!-- Saved card (UX_SPEC 4.1 feedback, UX_VISUAL_SPEC D5; owner decision: Undo + Change activity). -->
-    <string name="log_saved_title">✓ %1$s — %2$s</string>
-    <string name="log_saved_a11y">Saved. %1$s, %2$s. Undo available.</string>
+    <!-- Saved card (UX_SPEC 4.1 feedback, UX_VISUAL_SPEC D5; Undo). -->
     <string name="log_undo">Undo</string>
-    <string name="log_change_activity">Change activity</string>
 
     <!-- Needs-review card (UX_VISUAL_SPEC 4.1, 6). -->
     <string name="log_needs_review_reassurance">Your words are saved. Nothing was guessed.</string>
-    <string name="log_needs_review_a11y">Needs review. Your words are saved. Nothing was guessed.</string>
-    <string name="log_which_activity">Which activity was this?</string>
-    <string name="log_choose_another_activity">Choose another activity</string>
-    <string name="log_create_new_activity">Create new activity</string>
     <string name="log_decide_later">Decide later</string>
-
-    <!-- Not-categorized card (UX_VISUAL_SPEC 4.1, UX_SPEC 14). The spec's follow-up sentence
-         ("They'll be categorized on this phone when on-device AI is available.") is deliberately
-         not used yet: automatic later categorization is not built. -->
-    <string name="log_not_categorized_steps">Captured ✓ — Categorized: not yet</string>
-    <string name="log_not_categorized_body">Saved your words, but couldn\'t categorize them yet.</string>
-    <string name="log_not_categorized_a11y">Captured, not categorized yet. Saved your words, but couldn\'t categorize them yet.</string>
-    <string name="log_choose_an_activity">Choose an activity</string>
 
     <!-- Log result cards on the subject + action tags (ADR-046). A tag is a subject (the thing)
          or an action (what was done to it); the card shows both. -->
@@ -89,7 +73,6 @@
     <string name="log_check_keep_mine">Keep mine: %1$s</string>
     <string name="log_check_choose_subject">Choose subject</string>
     <string name="log_check_choose_action">Choose action</string>
-    <string name="log_check_choose_another">Choose another</string>
     <string name="log_check_change">Change</string>
     <string name="log_check_nothing_chosen">Nothing chosen yet</string>
     <string name="log_check_new_tag">New</string>
@@ -97,8 +80,6 @@
     <string name="log_check_chosen">Chosen</string>
     <string name="log_check_duration">Duration: %1$s</string>
     <string name="log_check_save">Save</string>
-    <string name="log_check_side_a11y_chosen">%1$s: %2$s</string>
-    <string name="log_check_side_a11y_empty">%1$s: nothing chosen yet</string>
 
     <!-- Durations in plain words. -->
     <string name="duration_minutes">%1$d min</string>
@@ -124,14 +105,13 @@
     <string name="refusal_tag_same">The subject and the action can\'t be the same.</string>
 
     <!-- History screen (UX_VISUAL_SPEC D1, D7, 4.2; UX_SPEC 6, 13, 15). The "nothing logged"
-         empty state reuses log_recent_empty; the resolution sheet reuses the Needs-review copy. -->
+         empty state reuses log_recent_empty; the resolution sheet reuses the Log screen's copy. -->
     <string name="history_filter_all">All</string>
     <string name="history_filter_needs_review">Needs review</string>
     <string name="history_filter_not_categorized">Not categorized</string>
     <string name="history_empty_needs_review">Nothing needs review.</string>
     <string name="history_empty_not_categorized">Nothing is waiting to be categorized.</string>
     <string name="history_not_loaded">Couldn\'t load your history. Try again.</string>
-    <string name="history_row_action">Choose an activity</string>
     <string name="history_row_action_check">Check this entry</string>
     <string name="history_row_action_edit">Edit this entry</string>
     <string name="history_row_tags_title">%1$s · %2$s</string>
@@ -142,25 +122,16 @@
     <string name="history_edit_remove">Remove from history</string>
     <string name="history_edit_remove_explain">This hides the entry from your history. Your words stay saved.</string>
 
-    <!-- Shared activity picker. -->
-    <string name="picker_title">Choose an activity</string>
-    <string name="picker_search">Search activities</string>
-    <string name="picker_no_matches">No matching activities.</string>
-    <string name="picker_new_activity">New activity</string>
-    <string name="picker_new_activity_name">Activity name</string>
+    <!-- Shared tag picker: create and back buttons. -->
     <string name="picker_create">Create</string>
     <string name="picker_back">Back to the list</string>
 
-    <!-- Refusals from corrections and review resolutions, in plain words. -->
+    <!-- Refusals from corrections and resolutions, in plain words. -->
     <string name="refusal_occurrence_not_found">That entry no longer exists.</string>
     <string name="refusal_occurrence_hidden">That entry was removed from history, so it can\'t be changed.</string>
     <string name="refusal_capture_not_found">Those words are no longer saved.</string>
     <string name="refusal_capture_already_logged">These words are already logged.</string>
-    <string name="refusal_activity_not_found">That activity no longer exists. Choose another one.</string>
-    <string name="refusal_activity_not_active">That activity is no longer in use. Choose another one.</string>
     <string name="refusal_occurred_after_now">That time hasn\'t happened yet. Choose a time in the past.</string>
-    <string name="refusal_name_matches_existing">An activity called “%1$s” already exists. Choose it from the list instead.</string>
-    <string name="refusal_name_matches_existing_unnamed">An activity with that name already exists. Choose it from the list instead.</string>
     <string name="refusal_name_empty">Type a name for the new activity.</string>
     <string name="refusal_name_too_long">That name is too long. Use %1$d characters or fewer.</string>
     <string name="refusal_name_no_meaningful_text">Use letters or numbers in the name.</string>

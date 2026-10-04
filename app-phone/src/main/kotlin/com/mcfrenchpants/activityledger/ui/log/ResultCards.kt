@@ -124,6 +124,8 @@ internal fun SavedCard(
                 .fillMaxWidth()
                 // The remaining time is already announced by "Undo available"; the bar is visual.
                 .clearAndSetSemantics {},
+            // No stop-indicator dot at the bar's end: a draining bar needs no target marker.
+            drawStopIndicator = {},
         )
     }
 }

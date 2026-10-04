@@ -7,7 +7,6 @@ import com.mcfrenchpants.activityledger.core.domain.extraction.ExtractionCandida
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
 import com.mcfrenchpants.activityledger.core.domain.model.InterpretationOperation
 import com.mcfrenchpants.activityledger.core.domain.repository.LedgerRepository
-import com.mcfrenchpants.activityledger.core.domain.services.ServiceRefusal
 import com.mcfrenchpants.activityledger.core.domain.services.TagRefusal
 import com.mcfrenchpants.activityledger.core.domain.services.TaggedCorrectionResult
 import com.mcfrenchpants.activityledger.core.domain.services.TaggedCorrectionService
@@ -22,7 +21,6 @@ import com.mcfrenchpants.activityledger.ui.log.ResultCard
 import com.mcfrenchpants.activityledger.ui.log.TagPickerState
 import com.mcfrenchpants.activityledger.ui.review.CheckDraft
 import com.mcfrenchpants.activityledger.ui.review.UserMessage
-import com.mcfrenchpants.activityledger.ui.review.refusalMessage
 import com.mcfrenchpants.activityledger.ui.review.tagRefusalMessage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -216,7 +214,7 @@ class HistoryViewModel(
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (expected: IllegalArgumentException) {
-                _state.update { it.copy(message = refusalMessage(ServiceRefusal.OccurrenceNotFound)) }
+                _state.update { it.copy(message = tagRefusalMessage(TagRefusal.OccurrenceNotFound)) }
                 return@runAction
             }
             _state.update { if (it.edit?.occurrenceId == edit.occurrenceId) it.copy(edit = null) else it }

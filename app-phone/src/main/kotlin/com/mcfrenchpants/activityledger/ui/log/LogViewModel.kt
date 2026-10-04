@@ -10,7 +10,6 @@ import com.mcfrenchpants.activityledger.core.domain.model.ProcessingState
 import com.mcfrenchpants.activityledger.core.domain.repository.LedgerRepository
 import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
 import com.mcfrenchpants.activityledger.core.domain.services.OccurrenceTime
-import com.mcfrenchpants.activityledger.core.domain.services.ServiceRefusal
 import com.mcfrenchpants.activityledger.core.domain.services.TagRefusal
 import com.mcfrenchpants.activityledger.core.domain.services.TaggedCaptureOrchestrator
 import com.mcfrenchpants.activityledger.core.domain.services.TaggedCorrectionResult
@@ -28,7 +27,6 @@ import com.mcfrenchpants.activityledger.core.speech.SpeechTranscriber
 import com.mcfrenchpants.activityledger.ui.components.toHistoryRow
 import com.mcfrenchpants.activityledger.ui.review.CheckDraft
 import com.mcfrenchpants.activityledger.ui.review.UserMessage
-import com.mcfrenchpants.activityledger.ui.review.refusalMessage
 import com.mcfrenchpants.activityledger.ui.review.tagRefusalMessage
 import com.mcfrenchpants.activityledger.ui.time.OccurrenceTimeFormatter
 import kotlinx.coroutines.CancellationException
@@ -306,7 +304,7 @@ class LogViewModel(
                 throw cancellation
             } catch (expected: IllegalArgumentException) {
                 // The repository no longer knows the occurrence: keep the card, say so.
-                _state.update { it.copy(message = refusalMessage(ServiceRefusal.OccurrenceNotFound)) }
+                _state.update { it.copy(message = tagRefusalMessage(TagRefusal.OccurrenceNotFound)) }
                 return@runAction
             }
             // Dismissed only once the hide is stored, so a failed Undo leaves the card in place.

@@ -807,3 +807,15 @@ A third bottom-bar tab, **Tags** (order: Log, History, Tags), is where the owner
 **Measuring.** The committed v4 device recording and baseline stay valid for the policy gate (the guard is scored through `TagDecisionPolicy.decide`; replay of the v4 recording with the guard: CORRECT 64, SAFE_MISS 6, NAME_MISMATCH 2, UNSAFE 0). Baseline not updated.
 
 **Consequences.** The prompt is unchanged (version 4). One existing policy test that expected "furnace filter" / "change" from an empty catalog to stay unsplit was updated to the new expected result. Not addressed: the speech-engine mishearing ("Adjust" for "I just"), which the owner corrects on the phone.
+
+## ADR-050 — Old single-activity UI and wiring removed from the phone app
+
+**Status:** Accepted (developer decision, 2026-10-04; subject + action tagging redesign, TG3.9)
+
+After TG3.4 to TG3.6 the Log, History and Tags screens and the watch receiver all run on the subject + action tag pipeline, so the phone app's single-activity code had no callers. It was removed with no behaviour change.
+
+**Removed from `app-phone`:** the `ActivityPicker` component and its test, `ReviewSuggestions`, `PickerState`, the `ServiceRefusal` message functions (`refusalMessage`, `refusalMessageFor`; the two "entry no longer exists" cases in Log and History now use `tagRefusalMessage(TagRefusal.OccurrenceNotFound)`, the same text), the legacy History test fixtures, `reviewResolutionService` and `correctionService` in `ActivityLedgerApplication`, and from `CapturePipeline` the v3 interpreter, orchestrator and `interpreterDecorator`, along with `BusyRetryInterpreter` (its `RETRY_WAITS` schedule, unchanged at 2 s and 4 s, now lives in `BusyRetryExtractor.kt`) and its test. Strings used only by the removed screens were deleted from `strings.xml`. The vertical-slice device test now drives `taggedOrchestrator`.
+
+**Kept:** the core-domain v3 classes (`CaptureInterpretationOrchestrator`, `ReviewResolutionService`, `CorrectionService`, the interpretation types) and the core-testing semantic corpus gate that replays them, plus the v3 repository methods they use. Phone tests may still use them as helpers.
+
+**Result:** the phone app has one capture pipeline, `CapturePipeline` (extractor and `TaggedCaptureOrchestrator`). Also in this task: the Saved card's draining progress bar no longer draws the Material3 end dot, and the `TagDecision.resplit` KDoc now mentions the object-noun guard (ADR-049).

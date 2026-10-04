@@ -214,13 +214,13 @@ The phone app wires these by hand (no DI framework, ADR-032):
 ```kotlin
 class CapturePipeline : AutoCloseable {                      // exactly one per app process
     companion object {
-        fun create(context, clock = Clock.systemDefaultZone(), interpreterDecorator = { it }): CapturePipeline
+        fun create(context, clock = Clock.systemDefaultZone(), extractorDecorator = { it }): CapturePipeline
     }
-    // exposes repository, capability, interpreter, clock, orchestrator; close() releases the model client
+    // exposes repository, capability, extractor, taggedOrchestrator, clock; close() releases the model client
 }
 ```
 
-`CapturePipeline.create` is the single composition point for the capture pipeline. Creating it checks nothing and downloads nothing. `interpreterDecorator` is an observation seam for tests (timing only) and the identity in production.
+`CapturePipeline.create` is the single composition point for the capture pipeline. Creating it checks nothing and downloads nothing. The phone app has a single capture pipeline, the subject + action tag pipeline (extractor and `TaggedCaptureOrchestrator`); the older single-activity wiring was removed from the phone app (ADR-050). `extractorDecorator` is an observation seam for tests (timing only) and the identity in production.
 
 `SpeechTranscriber` is implemented in `core-speech` (§14):
 

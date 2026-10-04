@@ -1,8 +1,6 @@
 package com.mcfrenchpants.activityledger
 
 import android.app.Application
-import com.mcfrenchpants.activityledger.core.domain.services.CorrectionService
-import com.mcfrenchpants.activityledger.core.domain.services.ReviewResolutionService
 import com.mcfrenchpants.activityledger.core.domain.services.TagManagementService
 import com.mcfrenchpants.activityledger.core.domain.services.TaggedCorrectionService
 import com.mcfrenchpants.activityledger.core.domain.services.TaggedResolutionService
@@ -12,10 +10,9 @@ import com.mcfrenchpants.activityledger.pipeline.CapturePipeline
  * The phone app's process-wide owner of its long-lived collaborators.
  *
  * It holds exactly one [CapturePipeline] -- the one place the capture pipeline is wired -- and,
- * built from that pipeline's repository and clock, exactly one [ReviewResolutionService] and one
- * [CorrectionService], plus their subject + action twins ([TaggedResolutionService],
- * [TaggedCorrectionService], [TagManagementService]) over the same repository and clock. There is no dependency-injection framework (ADR-032); screens reach these
- * through this class.
+ * built from that pipeline's repository and clock, exactly one [TaggedResolutionService], one
+ * [TaggedCorrectionService] and one [TagManagementService]. There is no dependency-injection
+ * framework (ADR-032); screens reach these through this class.
  *
  * ## Lazy
  *
@@ -41,16 +38,6 @@ class ActivityLedgerApplication : Application() {
 
     /** The process's single capture pipeline. See the class KDoc for why it is never closed. */
     val capturePipeline: CapturePipeline by lazy { CapturePipeline.create(this) }
-
-    /** Resolves Needs-review captures; shares the pipeline's repository and clock. */
-    val reviewResolutionService: ReviewResolutionService by lazy {
-        ReviewResolutionService(capturePipeline.repository, capturePipeline.clock)
-    }
-
-    /** Applies user corrections; shares the pipeline's repository and clock. */
-    val correctionService: CorrectionService by lazy {
-        CorrectionService(capturePipeline.repository, capturePipeline.clock)
-    }
 
     /** Resolves waiting tagged captures; shares the pipeline's repository and clock. */
     val taggedResolutionService: TaggedResolutionService by lazy {

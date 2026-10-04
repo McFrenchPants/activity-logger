@@ -60,8 +60,7 @@ fun filterTags(tags: List<KnownTag>, query: String): List<KnownTag> {
 /**
  * The shared tag picker for one [kind] (subject or action): a modal bottom sheet with a search
  * field over [tags], the matching tags by name, and a "New ..." row that switches to a name
- * field (prefilled with the search text). Same look, touch targets and accessibility as
- * [ActivityPicker].
+ * field (prefilled with the search text). Large touch targets and full accessibility labels.
  *
  * Screen-agnostic: it only reports the choice through [onChoose] as a [TagChoice]; the caller
  * applies it and shows any refusal. [onDismiss] means "closed without choosing".

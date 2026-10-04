@@ -71,9 +71,11 @@ enum class TagDecisionReason {
  * @property subjectInferred True when the user gave no subject and it was filled in from the
  *   only known combination with the resolved action.
  * @property reasons Why it was not auto-saved; empty exactly when [outcome] is AUTO_SAVE.
- * @property resplit True when the subject's trailing word(s) were moved into the action because
- *   that made both sides exact existing tags ("furnace filter" / "change" -> "furnace" /
- *   "change filter"; TG1.4b rule 2). [subject] and [action] are then the re-split resolutions.
+ * @property resplit True when the subject's trailing word(s) were moved into the action: either
+ *   because that made both sides exact existing tags ("furnace filter" / "change" -> "furnace" /
+ *   "change filter"; TG1.4b rule 2), or by the object-noun guard (rule 5, ADR-049: "hot tub
+ *   filter" / "change" -> "hot tub" / "change filter"). [subject] and [action] are then the
+ *   re-split resolutions.
  */
 data class TagDecision(
     val outcome: TagDecisionOutcome,
