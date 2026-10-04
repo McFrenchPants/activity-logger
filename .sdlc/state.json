@@ -1237,19 +1237,19 @@
         {
           "id": "TG3.1",
           "title": "Tagged capture orchestrator",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "verified",
           "dependencies": [
             "TG2.4"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/TG3.1.packet.json",
           "report_path": null,
-          "notes": ""
+          "notes": "Verifier pass attempt 1; ADR-043"
         },
         {
           "id": "TG3.2",

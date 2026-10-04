@@ -20,7 +20,7 @@ Registered in `.sdlc/state.json` as TG1.
 | TG2.2 | Repository: tag catalog + saving a tagged entry | done | Verifier pass attempt 1; LedgerRepository = ActivityRepository + TagRepository |
 | TG2.3 | Corrections teach (correction stores the user's words as aliases) | done | Verifier pass attempt 1; ADR-041 |
 | TG2.4 | Rename and merge tags (data only) | done | Verifier pass attempt 1; ADR-042. STAGE 2 COMPLETE |
-| TG3.1 | Tagged capture orchestrator (core-domain) | todo | verifier required |
+| TG3.1 | Tagged capture orchestrator (core-domain) | done | Verifier pass attempt 1; ADR-043; NeedsReview carries `reasons` (tag decision) AND `problems` (ValidationReason) |
 | TG3.2 | Tagged resolution + correction + tag management services (core-domain) | todo | verifier required |
 | TG3.3 | Phone wiring (pipeline, application, watch receiver) | todo | verifier required |
 | TG3.4 | Log screen on tags (cards, confirm, correct) | todo | |
@@ -30,6 +30,9 @@ Registered in `.sdlc/state.json` as TG1.
 | TG4+ | Stage 4 | todo | detail after the Stage 3 report |
 
 ## Session log
+
+### 2026-10-04 — TG3.1 done
+`TaggedCaptureOrchestrator.process` (core-domain services) + `TaggedProcessingOutcome` (AutoSaved, NeedsConfirm, NeedsReview(reasons, problems, proposal), Rejected, InterpreterUnavailable, AlreadyHasOccurrence) + `TaggedProposal` (user's words, both resolutions, resolved time/duration/state; never logged). Extract -> ground -> decide -> time/duration; AUTO_SAVE with future/unresolvable time or missing state downgrades to NeedsReview. 18 fake-ledger tests + 2 Room end-to-end tests. ADR-043. Verifier pass. Next: TG3.2 (resolution/correction/tag-management services).
 
 ### 2026-10-04 — Stage 3 started (owner go-ahead; phone and watch on adb)
 Stage 3 detailed into TG3.1-TG3.7 (see plan). v3 pipeline stays in code but the app stops calling it.
