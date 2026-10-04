@@ -4,6 +4,9 @@ import com.mcfrenchpants.activityledger.core.data.db.ActivityLedgerDatabase
 import com.mcfrenchpants.activityledger.core.data.id.IdFactory
 import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
 import com.mcfrenchpants.activityledger.core.domain.model.ProcessingState
+import com.mcfrenchpants.activityledger.core.domain.repository.MergeOutcome
+import com.mcfrenchpants.activityledger.core.domain.repository.RenameOutcome
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
 
 /**
  * The transactional write operations of the ledger. Occurrences and corrections
@@ -59,6 +62,26 @@ internal class ActivityLedgerWriter(
      */
     fun correctTags(request: TagCorrectionWrite): String? =
         database.ledgerWriteDao().correctTags(idFactory, request)
+
+    /**
+     * In one transaction: renames a tag (see LedgerWriteDao.renameTag). [newKey] is the
+     * TagNormalizer key of [newDisplayName].
+     *
+     * @throws IllegalArgumentException for an unknown, wrong-kind or MERGED tag or a blank key;
+     *   nothing is written.
+     */
+    fun renameTag(kind: TagKind, tagId: String, newDisplayName: String, newKey: String, now: Long): RenameOutcome =
+        database.ledgerWriteDao().renameTag(idFactory, kind, tagId, newDisplayName, newKey, now)
+
+    /**
+     * In one transaction: merges one tag into another of the same kind (see
+     * LedgerWriteDao.mergeTags).
+     *
+     * @throws IllegalArgumentException for equal ids, an unknown / wrong-kind / MERGED tag or a
+     *   non-ACTIVE target pair; nothing is written.
+     */
+    fun mergeTags(kind: TagKind, fromId: String, intoId: String, now: Long): MergeOutcome =
+        database.ledgerWriteDao().mergeTags(idFactory, kind, fromId, intoId, now)
 
     /**
      * In one transaction: records one corrections row with previous/new values of

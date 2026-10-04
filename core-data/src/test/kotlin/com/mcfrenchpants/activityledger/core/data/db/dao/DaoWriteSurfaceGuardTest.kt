@@ -20,7 +20,9 @@ import kotlin.test.assertTrue
  * Rules: no @Update / @Upsert / @Delete / @RawQuery; no @Query starting with
  * DELETE, INSERT or REPLACE; an UPDATE @Query may target only raw_captures
  * (setting only processing_state and updated_at) or activity_occurrences (never
- * setting id, raw_capture_id, captured_at or created_at); every @Insert uses
+ * setting id, raw_capture_id, captured_at or created_at), or (TG2.4, LedgerWriteDao only)
+ * subjects / actions / canonical_activities setting only name, status, merge-pointer and
+ * updated_at columns; every @Insert uses
  * the default ABORT conflict strategy. Occurrences and corrections are written
  * only by LedgerWriteDao: an UPDATE of activity_occurrences, or an @Insert
  * taking ActivityOccurrenceEntity or CorrectionEntity (directly, as an array, or
@@ -148,6 +150,13 @@ class DaoWriteSurfaceGuardTest {
                 val bad = columns intersect OCCURRENCE_IMMUTABLE
                 if (bad.isEmpty()) null else "UPDATE activity_occurrences sets immutable columns $bad"
             }
+            "subjects", "actions", "canonical_activities" -> {
+                // Tag rename / merge (TG2.4): only inside LedgerWriteDao, only the named columns.
+                if (dao != LedgerWriteDao::class.java) return "UPDATE $table outside LedgerWriteDao"
+                val allowed = TAG_UPDATABLE.getValue(table)
+                if (columns.isNotEmpty() && allowed.containsAll(columns)) null
+                else "UPDATE $table may set only $allowed, sets $columns"
+            }
             else -> "UPDATE of table $table is not allowed"
         }
     }
@@ -164,16 +173,23 @@ class DaoWriteSurfaceGuardTest {
 
         private val TRANSACTION_OPERATIONS = setOf(
             "acceptInterpretation", "acceptTagged", "applyCorrection", "applyCorrectionCreatingActivity",
-            "correctTags", "recordOutcome", "hideOccurrence",
+            "correctTags", "recordOutcome", "hideOccurrence", "renameTag", "mergeTags",
         )
         private val TAG_PRIMITIVES = listOf(
             "insertSubject", "insertAction", "insertSubjectAlias", "insertActionAlias", "findPair",
-            "findCanonicalActivity",
+            "findCanonicalActivity", "updateSubjectName", "updateActionName", "updateSubjectMerge",
+            "updateActionMerge", "updateActivityLabel", "updateActivityMerge",
         )
 
         // UPDATE <table> SET <assignments> WHERE <condition>; any "OR <conflict>" clause fails to match.
         private val UPDATE_SQL = Regex("^UPDATE `?(\\w+)`? SET (.+?) WHERE .+$", RegexOption.IGNORE_CASE)
         private val RAW_CAPTURE_UPDATABLE = setOf("processing_state", "updated_at")
+        private val TAG_UPDATABLE = mapOf(
+            "subjects" to setOf("display_name", "normalized_name", "status", "merged_into_subject_id", "updated_at"),
+            "actions" to setOf("display_name", "normalized_name", "status", "merged_into_action_id", "updated_at"),
+            "canonical_activities" to
+                setOf("display_name", "normalized_name", "status", "merged_into_activity_id", "updated_at"),
+        )
         private val OCCURRENCE_IMMUTABLE = setOf("id", "raw_capture_id", "captured_at", "created_at")
 
         /** Type descriptors of entities only LedgerWriteDao may insert (matched inside descriptor/signature). */

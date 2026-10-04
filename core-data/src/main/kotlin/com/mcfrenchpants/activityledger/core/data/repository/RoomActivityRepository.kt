@@ -32,7 +32,9 @@ import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionOutcome
 import com.mcfrenchpants.activityledger.core.domain.repository.HistoryEntry
 import com.mcfrenchpants.activityledger.core.domain.repository.HistoryOccurrence
 import com.mcfrenchpants.activityledger.core.domain.repository.LedgerRepository
+import com.mcfrenchpants.activityledger.core.domain.repository.MergeOutcome
 import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
+import com.mcfrenchpants.activityledger.core.domain.repository.RenameOutcome
 import com.mcfrenchpants.activityledger.core.domain.repository.OccurrenceView
 import com.mcfrenchpants.activityledger.core.domain.repository.StoredCapture
 import com.mcfrenchpants.activityledger.core.domain.repository.TagCorrectionRequest
@@ -204,6 +206,16 @@ internal class RoomActivityRepository(
         if (correctionId == null) CorrectionOutcome.NothingChanged else CorrectionOutcome.Applied(correctionId)
     }
 
+    override suspend fun renameTag(kind: TagKind, tagId: String, newDisplayName: String): RenameOutcome = io {
+        translatingConstraintFailures {
+            writer.renameTag(kind, tagId, newDisplayName, TagNormalizer.key(newDisplayName), clock.millis())
+        }
+    }
+
+    override suspend fun mergeTags(kind: TagKind, fromTagId: String, intoTagId: String): MergeOutcome = io {
+        translatingConstraintFailures { writer.mergeTags(kind, fromTagId, intoTagId, clock.millis()) }
+    }
+
     override suspend fun recordOutcome(
         captureId: String,
         interpretation: InterpretationRecord?,
@@ -299,6 +311,14 @@ internal class RoomActivityRepository(
                 throw IllegalArgumentException("A referenced row does not exist; nothing was written", e)
             }
             throw e
+        }
+
+    /** Any constraint failure of a rename / merge is a caller error; the transaction rolled back. */
+    private inline fun <T> translatingConstraintFailures(block: () -> T): T =
+        try {
+            block()
+        } catch (e: SQLiteConstraintException) {
+            throw IllegalArgumentException("A database constraint rejected the change; nothing was written", e)
         }
 
     private fun InterpretationRecord.toNew(captureId: String) = NewInterpretation(

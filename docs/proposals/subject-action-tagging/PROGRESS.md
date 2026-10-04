@@ -19,10 +19,13 @@ Registered in `.sdlc/state.json` as TG1.
 | TG2.1 | Schema v2 + migration 1 -> 2 (tag tables, pair columns, duration, extraction fields) | done | Verifier pass attempt 1; additive ALTER (no rebuild); ADR-040 |
 | TG2.2 | Repository: tag catalog + saving a tagged entry | done | Verifier pass attempt 1; LedgerRepository = ActivityRepository + TagRepository |
 | TG2.3 | Corrections teach (correction stores the user's words as aliases) | done | Verifier pass attempt 1; ADR-041 |
-| TG2.4 | Rename and merge tags (data only) | todo | after TG2.3; verifier. STAGE 2 STOP |
+| TG2.4 | Rename and merge tags (data only) | done | Verifier pass attempt 1; ADR-042. STAGE 2 COMPLETE |
 | TG3+ | Stages 3-4 | todo | detail after the Stage 2 report |
 
 ## Session log
+
+### 2026-10-04 — TG2.4 done; STAGE 2 COMPLETE (stop for owner go-ahead for Stage 3)
+`TagRepository.renameTag` (Renamed / NothingChanged / ConflictsWith; old name kept as MANUAL alias; pair labels refreshed) and `mergeTags` (from -> MERGED; name + aliases copied to target; pairs merged into found-or-created targets; every occurrence incl. HIDDEN moved by one correction row, reason TAG_MERGE, source USER; raw captures/interpretations untouched). One LedgerWriteDao transaction each; write-surface guard extended; 12 new tests, all tables snapshot-checked on every error path. ADR-042, DATA_MODEL s8. Verifier pass. Non-blocking notes: rename's alias insert doesn't check whether another tag already holds that key (oldest-first resolution covers it); one test name mentions 'merged tag' but only tests cross-kind. Next: owner report, then Stage 3 (app wiring).
 
 ### 2026-10-04 — TG2.3 done
 `CorrectionAliases.aliasesToLearn` (core-domain, pure): learns the user's original words as an alias only

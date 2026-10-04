@@ -31,6 +31,10 @@ import com.mcfrenchpants.activityledger.core.domain.model.TagStatus
 import com.mcfrenchpants.activityledger.core.domain.model.TimePrecision
 import com.mcfrenchpants.activityledger.core.domain.model.VisibilityStatus
 import com.mcfrenchpants.activityledger.core.domain.naming.NameNormalizer
+import com.mcfrenchpants.activityledger.core.domain.repository.MergeOutcome
+import com.mcfrenchpants.activityledger.core.domain.repository.RenameOutcome
+import com.mcfrenchpants.activityledger.core.domain.repository.TAG_MERGE_REASON
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
 
 /**
  * The ONLY place occurrences and corrections are written.
@@ -39,8 +43,9 @@ import com.mcfrenchpants.activityledger.core.domain.naming.NameNormalizer
  * insert, and the copies of the interpretation/activity/tag/alias/raw-capture
  * writes the operations need) is `protected abstract`, so nothing outside this
  * class (or Room's generated subclass) can call it. The only callable entry points
- * are the seven `@Transaction` operations below (acceptInterpretation, acceptTagged,
- * applyCorrection, applyCorrectionCreatingActivity, correctTags, recordOutcome, hideOccurrence);
+ * are the nine `@Transaction` operations below (acceptInterpretation, acceptTagged,
+ * applyCorrection, applyCorrectionCreatingActivity, correctTags, recordOutcome, hideOccurrence,
+ * renameTag, mergeTags);
  * Room runs each in ONE database
  * transaction, so any exception rolls back every write it made. Application code
  * reaches them through core.data.ledger.ActivityLedgerWriter, which supplies the
@@ -171,7 +176,242 @@ internal abstract class LedgerWriteDao {
     @Query("UPDATE activity_occurrences SET visibility_status = :visibility, updated_at = :updatedAt WHERE id = :id")
     protected abstract fun updateOccurrenceVisibility(id: String, visibility: VisibilityStatus, updatedAt: Long): Int
 
+    // --- tag rename / merge primitives (TG2.4) ---------------------------------
+
+    /** The oldest ACTIVE subject other than [excludeId] whose normalized_name is [key], or null. */
+    @Query(
+        "SELECT * FROM subjects WHERE status = 'ACTIVE' AND id <> :excludeId AND normalized_name = :key " +
+            "ORDER BY created_at ASC, id ASC LIMIT 1",
+    )
+    protected abstract fun findOtherActiveSubjectByName(key: String, excludeId: String): SubjectEntity?
+
+    /** The oldest ACTIVE action other than [excludeId] whose normalized_name is [key], or null. */
+    @Query(
+        "SELECT * FROM actions WHERE status = 'ACTIVE' AND id <> :excludeId AND normalized_name = :key " +
+            "ORDER BY created_at ASC, id ASC LIMIT 1",
+    )
+    protected abstract fun findOtherActiveActionByName(key: String, excludeId: String): ActionEntity?
+
+    /** The oldest ACTIVE subject other than [excludeId] having an alias whose key is [key], or null. */
+    @Query(
+        "SELECT * FROM subjects WHERE status = 'ACTIVE' AND id <> :excludeId AND EXISTS (" +
+            "SELECT 1 FROM subject_aliases WHERE subject_aliases.subject_id = subjects.id " +
+            "AND subject_aliases.normalized_alias = :key) " +
+            "ORDER BY created_at ASC, id ASC LIMIT 1",
+    )
+    protected abstract fun findOtherActiveSubjectByAlias(key: String, excludeId: String): SubjectEntity?
+
+    /** The oldest ACTIVE action other than [excludeId] having an alias whose key is [key], or null. */
+    @Query(
+        "SELECT * FROM actions WHERE status = 'ACTIVE' AND id <> :excludeId AND EXISTS (" +
+            "SELECT 1 FROM action_aliases WHERE action_aliases.action_id = actions.id " +
+            "AND action_aliases.normalized_alias = :key) " +
+            "ORDER BY created_at ASC, id ASC LIMIT 1",
+    )
+    protected abstract fun findOtherActiveActionByAlias(key: String, excludeId: String): ActionEntity?
+
+    @Query("SELECT * FROM subject_aliases WHERE subject_id = :subjectId ORDER BY created_at ASC, id ASC")
+    protected abstract fun findSubjectAliases(subjectId: String): List<SubjectAliasEntity>
+
+    @Query("SELECT * FROM action_aliases WHERE action_id = :actionId ORDER BY created_at ASC, id ASC")
+    protected abstract fun findActionAliases(actionId: String): List<ActionAliasEntity>
+
+    /** Every pair (any status) that uses the subject. */
+    @Query("SELECT * FROM canonical_activities WHERE subject_id = :subjectId ORDER BY id ASC")
+    protected abstract fun findPairsOfSubject(subjectId: String): List<CanonicalActivityEntity>
+
+    /** Every pair (any status) that uses the action. */
+    @Query("SELECT * FROM canonical_activities WHERE action_id = :actionId ORDER BY id ASC")
+    protected abstract fun findPairsOfAction(actionId: String): List<CanonicalActivityEntity>
+
+    /** Every occurrence (any visibility) of a canonical activity. */
+    @Query("SELECT * FROM activity_occurrences WHERE canonical_activity_id = :activityId ORDER BY id ASC")
+    protected abstract fun findOccurrencesOfActivity(activityId: String): List<ActivityOccurrenceEntity>
+
+    /** Touches only display_name, normalized_name and updated_at of one subject. */
+    @Query("UPDATE subjects SET display_name = :displayName, normalized_name = :normalizedName, updated_at = :updatedAt WHERE id = :id")
+    protected abstract fun updateSubjectName(id: String, displayName: String, normalizedName: String, updatedAt: Long): Int
+
+    /** Touches only display_name, normalized_name and updated_at of one action. */
+    @Query("UPDATE actions SET display_name = :displayName, normalized_name = :normalizedName, updated_at = :updatedAt WHERE id = :id")
+    protected abstract fun updateActionName(id: String, displayName: String, normalizedName: String, updatedAt: Long): Int
+
+    /** Touches only status, merged_into_subject_id and updated_at of one subject. */
+    @Query("UPDATE subjects SET status = :status, merged_into_subject_id = :mergedIntoId, updated_at = :updatedAt WHERE id = :id")
+    protected abstract fun updateSubjectMerge(id: String, status: TagStatus, mergedIntoId: String?, updatedAt: Long): Int
+
+    /** Touches only status, merged_into_action_id and updated_at of one action. */
+    @Query("UPDATE actions SET status = :status, merged_into_action_id = :mergedIntoId, updated_at = :updatedAt WHERE id = :id")
+    protected abstract fun updateActionMerge(id: String, status: TagStatus, mergedIntoId: String?, updatedAt: Long): Int
+
+    /** Touches only the cached label columns and updated_at of one canonical activity. */
+    @Query("UPDATE canonical_activities SET display_name = :displayName, normalized_name = :normalizedName, updated_at = :updatedAt WHERE id = :id")
+    protected abstract fun updateActivityLabel(id: String, displayName: String, normalizedName: String, updatedAt: Long): Int
+
+    /** Touches only status, merged_into_activity_id and updated_at of one canonical activity. */
+    @Query("UPDATE canonical_activities SET status = :status, merged_into_activity_id = :mergedIntoId, updated_at = :updatedAt WHERE id = :id")
+    protected abstract fun updateActivityMerge(id: String, status: CanonicalActivityStatus, mergedIntoId: String?, updatedAt: Long): Int
+
     // --- transactional operations -------------------------------------------
+
+    /**
+     * Renames a tag (ADR-042). See TagRepository.renameTag for the rules. [newKey] is the
+     * TagNormalizer key of [newDisplayName], precomputed by the caller. All writes (name, alias
+     * of the old name, refreshed pair labels) happen in this one transaction; the no-op and
+     * conflict outcomes write nothing.
+     *
+     * @throws IllegalArgumentException if the tag is unknown, of the other kind or not ACTIVE, or
+     *   [newKey] is blank. Nothing is written.
+     */
+    @Transaction
+    open fun renameTag(
+        idFactory: IdFactory,
+        kind: TagKind,
+        tagId: String,
+        newDisplayName: String,
+        newKey: String,
+        now: Long,
+    ): RenameOutcome {
+        val tag = requireActiveTag(kind, tagId)
+        require(newKey.isNotBlank()) { "New ${kind.name} name has a blank key (tag $tagId)" }
+        val trimmed = newDisplayName.trim()
+        if (trimmed == tag.displayName) return RenameOutcome.NothingChanged
+
+        val conflict = when (kind) {
+            TagKind.SUBJECT -> (findOtherActiveSubjectByName(newKey, tagId) ?: findOtherActiveSubjectByAlias(newKey, tagId))?.id
+            TagKind.ACTION -> (findOtherActiveActionByName(newKey, tagId) ?: findOtherActiveActionByAlias(newKey, tagId))?.id
+        }
+        if (conflict != null) return RenameOutcome.ConflictsWith(conflict)
+
+        val updated = when (kind) {
+            TagKind.SUBJECT -> updateSubjectName(tagId, trimmed, newKey, now)
+            TagKind.ACTION -> updateActionName(tagId, trimmed, newKey, now)
+        }
+        check(updated == 1) { "${kind.name} $tagId was not updated" }
+        // The words used before keep resolving exactly (skipped when only case/punctuation changed).
+        addAlias(idFactory, kind, tagId, newKey, tag.displayName, tag.normalizedName, AliasSource.MANUAL, now)
+
+        val renamed = ResolvedTag(tagId, trimmed, newKey, TagStatus.ACTIVE)
+        for (pair in pairsOf(kind, tagId)) {
+            refreshPairLabel(pair, kind, renamed, now)
+        }
+        return RenameOutcome.Renamed
+    }
+
+    /**
+     * Merges tag [fromId] into [intoId] (ADR-042). See TagRepository.mergeTags for the rules.
+     * Write order: from-tag MERGED, aliases, then per ACTIVE pair: target pair (if created),
+     * correction + occurrence update per occurrence, pair MERGED.
+     *
+     * @throws IllegalArgumentException if the ids are equal, either tag is unknown, of the other
+     *   kind or not ACTIVE, or a target pair exists but is not ACTIVE. Everything written by
+     *   this call is rolled back.
+     */
+    @Transaction
+    open fun mergeTags(
+        idFactory: IdFactory,
+        kind: TagKind,
+        fromId: String,
+        intoId: String,
+        now: Long,
+    ): MergeOutcome {
+        require(fromId != intoId) { "Cannot merge ${kind.name} $fromId into itself" }
+        val from = requireActiveTag(kind, fromId)
+        val into = requireActiveTag(kind, intoId)
+
+        val mergeUpdated = when (kind) {
+            TagKind.SUBJECT -> updateSubjectMerge(fromId, TagStatus.MERGED, intoId, now)
+            TagKind.ACTION -> updateActionMerge(fromId, TagStatus.MERGED, intoId, now)
+        }
+        check(mergeUpdated == 1) { "${kind.name} $fromId was not updated" }
+
+        addAlias(idFactory, kind, intoId, into.normalizedName, from.displayName, from.normalizedName, AliasSource.MANUAL, now)
+        val fromAliases = when (kind) {
+            TagKind.SUBJECT -> findSubjectAliases(fromId).map { Triple(it.aliasText, it.normalizedAlias, it.source) }
+            TagKind.ACTION -> findActionAliases(fromId).map { Triple(it.aliasText, it.normalizedAlias, it.source) }
+        }
+        for ((text, key, source) in fromAliases) {
+            addAlias(idFactory, kind, intoId, into.normalizedName, text, key, source, now)
+        }
+
+        var mergedPairs = 0
+        var moved = 0
+        for (pair in pairsOf(kind, fromId)) {
+            if (pair.status != CanonicalActivityStatus.ACTIVE) continue
+            val otherId = checkNotNull(if (kind == TagKind.SUBJECT) pair.actionId else pair.subjectId) {
+                "Canonical activity ${pair.id} has no ${if (kind == TagKind.SUBJECT) "action" else "subject"}"
+            }
+            val subjectId = if (kind == TagKind.SUBJECT) intoId else otherId
+            val actionId = if (kind == TagKind.SUBJECT) otherId else intoId
+            val target = findPair(subjectId, actionId)
+            val targetId = if (target != null) {
+                require(target.status == CanonicalActivityStatus.ACTIVE) {
+                    "Canonical activity ${target.id} (subject $subjectId, action $actionId) is ${target.status}, not ACTIVE"
+                }
+                target.id
+            } else {
+                val subjectName = if (kind == TagKind.SUBJECT) into.displayName else requireNotNull(findSubject(subjectId)).displayName
+                val actionName = if (kind == TagKind.ACTION) into.displayName else requireNotNull(findAction(actionId)).displayName
+                val label = pairDisplayName(subjectName, actionName)
+                val newId = idFactory.newId()
+                insertCanonicalActivity(
+                    CanonicalActivityEntity(
+                        id = newId,
+                        displayName = label,
+                        normalizedName = NameNormalizer.normalize(label),
+                        status = CanonicalActivityStatus.ACTIVE,
+                        createdAt = now,
+                        updatedAt = now,
+                        mergedIntoActivityId = null,
+                        subjectId = subjectId,
+                        actionId = actionId,
+                    ),
+                )
+                newId
+            }
+
+            for (occurrence in findOccurrencesOfActivity(pair.id)) {
+                insertCorrection(
+                    CorrectionEntity(
+                        id = idFactory.newId(),
+                        occurrenceId = occurrence.id,
+                        createdAt = now,
+                        source = CorrectionSource.USER,
+                        reason = TAG_MERGE_REASON,
+                        previousCanonicalActivityId = pair.id,
+                        newCanonicalActivityId = targetId,
+                        previousOccurredAt = null,
+                        newOccurredAt = null,
+                        previousTimePrecision = null,
+                        newTimePrecision = null,
+                        previousActivityState = null,
+                        newActivityState = null,
+                        previousEffectiveInterpretationId = null,
+                        newEffectiveInterpretationId = null,
+                        previousDurationSeconds = null,
+                        newDurationSeconds = null,
+                    ),
+                )
+                val updated = updateOccurrenceCorrectableFields(
+                    id = occurrence.id,
+                    canonicalActivityId = targetId,
+                    occurredAt = occurrence.occurredAt,
+                    timePrecision = occurrence.timePrecision,
+                    activityState = occurrence.activityState,
+                    effectiveInterpretationId = occurrence.effectiveInterpretationId,
+                    durationSeconds = occurrence.durationSeconds,
+                    updatedAt = now,
+                )
+                check(updated == 1) { "Occurrence ${occurrence.id} was not updated" }
+                moved++
+            }
+            check(updateActivityMerge(pair.id, CanonicalActivityStatus.MERGED, targetId, now) == 1) {
+                "Canonical activity ${pair.id} was not updated"
+            }
+            mergedPairs++
+        }
+        return MergeOutcome(movedOccurrences = moved, mergedPairs = mergedPairs)
+    }
 
     /**
      * Accepts an interpretation of a raw capture as its occurrence. Idempotent:
@@ -615,6 +855,70 @@ internal abstract class LedgerWriteDao {
         ResolvedTag(row.id, row.displayName, row.normalizedName, row.status)
     }
 
+    /** The tag [tagId] of [kind]; it must exist in that kind's table and be ACTIVE. */
+    private fun requireActiveTag(kind: TagKind, tagId: String): ResolvedTag = when (kind) {
+        TagKind.SUBJECT -> {
+            val row = requireNotNull(findSubject(tagId)) { "Unknown subject $tagId" }
+            require(row.status == TagStatus.ACTIVE) { "Subject ${row.id} is ${row.status}, not ACTIVE" }
+            ResolvedTag(row.id, row.displayName, row.normalizedName, row.status)
+        }
+        TagKind.ACTION -> {
+            val row = requireNotNull(findAction(tagId)) { "Unknown action $tagId" }
+            require(row.status == TagStatus.ACTIVE) { "Action ${row.id} is ${row.status}, not ACTIVE" }
+            ResolvedTag(row.id, row.displayName, row.normalizedName, row.status)
+        }
+    }
+
+    /**
+     * Inserts an alias (text trimmed) of the tag [tagId] unless [key] is blank, equals the tag's
+     * own key [tagKey] or is already an alias key of that tag.
+     */
+    private fun addAlias(
+        idFactory: IdFactory,
+        kind: TagKind,
+        tagId: String,
+        tagKey: String,
+        aliasText: String,
+        key: String,
+        source: AliasSource,
+        now: Long,
+    ) {
+        if (key.isBlank() || key == tagKey) return
+        when (kind) {
+            TagKind.SUBJECT -> {
+                if (countSubjectAlias(tagId, key) != 0) return
+                insertSubjectAlias(SubjectAliasEntity(idFactory.newId(), tagId, aliasText.trim(), key, source, now))
+            }
+            TagKind.ACTION -> {
+                if (countActionAlias(tagId, key) != 0) return
+                insertActionAlias(ActionAliasEntity(idFactory.newId(), tagId, aliasText.trim(), key, source, now))
+            }
+        }
+    }
+
+    private fun pairsOf(kind: TagKind, tagId: String): List<CanonicalActivityEntity> = when (kind) {
+        TagKind.SUBJECT -> findPairsOfSubject(tagId)
+        TagKind.ACTION -> findPairsOfAction(tagId)
+    }
+
+    /** Recomputes the cached label of [pair] from the renamed tag and the pair's other tag. */
+    private fun refreshPairLabel(pair: CanonicalActivityEntity, kind: TagKind, renamed: ResolvedTag, now: Long) {
+        val subjectName: String?
+        val actionName: String?
+        if (kind == TagKind.SUBJECT) {
+            subjectName = renamed.displayName
+            actionName = pair.actionId?.let { findAction(it)?.displayName }
+        } else {
+            subjectName = pair.subjectId?.let { findSubject(it)?.displayName }
+            actionName = renamed.displayName
+        }
+        if (subjectName == null || actionName == null) return
+        val label = pairDisplayName(subjectName, actionName)
+        check(updateActivityLabel(pair.id, label, NameNormalizer.normalize(label), now) == 1) {
+            "Canonical activity ${pair.id} was not updated"
+        }
+    }
+
     private fun requireActive(tag: ResolvedTag, label: String) {
         require(tag.status == TagStatus.ACTIVE) { "$label ${tag.id} is ${tag.status}, not ACTIVE" }
     }
@@ -809,7 +1113,7 @@ internal abstract class LedgerWriteDao {
 /**
  * The display_name cached on a newly created subject + action pair: "<subject> <action>",
  * e.g. "Furnace change filter". Only legacy (v3) screens read it; tag-aware reads (history)
- * use the tags' current names, so it is not refreshed when a tag is later renamed.
+ * use the tags' current names. renameTag (ADR-042) refreshes it for every pair of the renamed tag.
  */
 internal fun pairDisplayName(subjectDisplayName: String, actionDisplayName: String): String =
     "$subjectDisplayName $actionDisplayName"

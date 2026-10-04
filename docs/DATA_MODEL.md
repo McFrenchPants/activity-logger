@@ -478,20 +478,13 @@ Avoid manufacturing false precision.
 
 ## 8. Activity merges
 
-Future duplicate repair may merge:
-
-`Replace HVAC filter` -> `Replace furnace filter`
+Duplicate repair merges one tag into another, for example subject `HVAC` into subject `furnace`, or the legacy `Replace HVAC filter` -> `Replace furnace filter`.
 
 Do not rewrite raw evidence.
 
-Possible approach:
+Tags (implemented, ADR-042): `TagRepository.mergeTags` marks the source subject/action `MERGED` with `merged_into_subject_id` / `merged_into_action_id`, copies its name and aliases to the target as aliases, marks each of its ACTIVE pairs (`canonical_activities`) `MERGED` with `merged_into_activity_id` pointing at the found-or-created target pair, and moves every occurrence on those pairs (hidden ones too) with one `corrections` row each (source `USER`, reason code `TAG_MERGE`). Raw captures and interpretations are untouched; correction history is preserved. `renameTag` changes a tag's display name and key, keeps the old name as a `MANUAL` alias, and refreshes the cached pair labels; it writes no correction.
 
-- mark old canonical activity `MERGED`
-- set `merged_into_activity_id`
-- update effective occurrences transactionally or resolve aliases at query time
-- preserve correction/merge history
-
-Exact merge implementation is post-MVP.
+Legacy untagged (v3) activities: merge implementation remains post-MVP.
 
 ## 9. Deletion
 

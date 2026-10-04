@@ -5,6 +5,7 @@ import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
 import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
 import com.mcfrenchpants.activityledger.core.domain.model.TimePrecision
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagCatalog
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
 import java.time.Instant
 
 /** Which tag (of one kind: subject or action) an entry should be saved under. */
@@ -69,6 +70,30 @@ data class TagCorrectionRequest(
     val reason: String?,
     val now: Instant,
 )
+
+/** Result of [TagRepository.renameTag]. */
+sealed interface RenameOutcome {
+    /** The tag now has the new display name (and its old name became an alias where needed). */
+    data object Renamed : RenameOutcome
+
+    /** The trimmed new name equals the current display name exactly; nothing was written. */
+    data object NothingChanged : RenameOutcome
+
+    /**
+     * The new name's key equals the name key or an alias key of ANOTHER ACTIVE tag of the same
+     * kind ([tagId], oldest first); nothing was written. The caller may offer a merge instead.
+     */
+    data class ConflictsWith(val tagId: String) : RenameOutcome
+}
+
+/**
+ * Result of [TagRepository.mergeTags].
+ *
+ * @property movedOccurrences How many occurrences (visible and hidden) were moved to another
+ *   pair, one correction row each.
+ * @property mergedPairs How many ACTIVE pairs of the merged-away tag were marked MERGED.
+ */
+data class MergeOutcome(val movedOccurrences: Int, val mergedPairs: Int)
 
 /**
  * The domain's persistence contract for subject + action tags, implemented by the data layer.
@@ -146,7 +171,42 @@ interface TagRepository {
      *   entry, a negative duration, or a non-ACTIVE existing pair. Nothing is written.
      */
     suspend fun correctTags(request: TagCorrectionRequest): CorrectionOutcome
+
+    /**
+     * Renames a tag, in one transaction (ADR-042). The tag must exist in [kind]'s table and be
+     * ACTIVE; [newDisplayName] must have a non-blank comparison key.
+     *
+     * - If the trimmed new name equals the current display name exactly: returns
+     *   [RenameOutcome.NothingChanged], writes nothing.
+     * - If the new key equals the name key or an alias key of ANOTHER ACTIVE tag of the same kind:
+     *   returns [RenameOutcome.ConflictsWith] (oldest such tag first), writes nothing.
+     * - Otherwise updates the tag's display name, key and updated_at; the old display name becomes
+     *   an alias (source MANUAL) unless its key equals the new key or is already an alias of this
+     *   tag; and the cached label of every pair using the tag is refreshed. Raw captures,
+     *   interpretations, occurrences and corrections are untouched (a rename is not a correction).
+     *
+     * @throws IllegalArgumentException for an unknown, wrong-kind or MERGED tag, or a blank new
+     *   name key. Nothing is written.
+     */
+    suspend fun renameTag(kind: TagKind, tagId: String, newDisplayName: String): RenameOutcome
+
+    /**
+     * Merges tag [fromTagId] into [intoTagId] (same kind), in one transaction (ADR-042): the
+     * source becomes MERGED; its name and aliases become aliases of the target (skipping blank,
+     * equal-to-target and duplicate keys); each ACTIVE pair of the source is marked MERGED into
+     * the (found or created) pair of the target with the same other tag; every occurrence on
+     * those pairs, hidden or not, is moved with exactly one correction row (source USER, reason
+     * [TAG_MERGE_REASON]). Raw captures and interpretations are untouched.
+     *
+     * @throws IllegalArgumentException if the two ids are equal, either tag is unknown, of the
+     *   other kind or not ACTIVE, or a needed target pair exists but is not ACTIVE. Nothing is
+     *   written.
+     */
+    suspend fun mergeTags(kind: TagKind, fromTagId: String, intoTagId: String): MergeOutcome
 }
+
+/** The fixed reason code stored on the correction rows a tag merge writes (never user text). */
+const val TAG_MERGE_REASON: String = "TAG_MERGE"
 
 /** The full ledger: the activity contract plus subject + action tags. */
 interface LedgerRepository : ActivityRepository, TagRepository
