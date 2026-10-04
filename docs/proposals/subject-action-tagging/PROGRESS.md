@@ -28,6 +28,7 @@ Registered in `.sdlc/state.json` as TG1.
 | TG3.6 | Tag management screen (rename, merge) | done | Verifier pass attempt 1; ADR-048; third bottom tab 'Tags' (developer decision) |
 | TG3.7 | Device pass (Pixel 10 Pro + watch) | done | Phone typed pass, owner's watch + phone voice tests (14 entries), migration on real data, cards, Tags screen all seen working on device 2026-10-04; finding -> TG3.8. Not exercised by me on device: Change subject/action, History edit sheet, rename/merge (all covered by JVM tests) |
 | TG3.8 | Extraction split: object noun lands in the subject ("hot tub filter" / "change") | done | Verifier pass; deterministic guard (rule 5, OBJECT_NOUNS) adopted; prompt v5 measured on the Pixel and NOT adopted (reverted to v4); ADR-049 |
+| TG3.9 | Clean-up: remove old single-activity UI and wiring from the phone app | todo | owner asked 2026-10-04; then merge to main and install on phone + watch |
 | TG4+ | Stage 4 | todo | detail after the Stage 3 report |
 
 ## Session log

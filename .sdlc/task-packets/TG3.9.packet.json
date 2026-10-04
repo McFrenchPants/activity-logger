@@ -1,0 +1,63 @@
+{
+  "task_id": "TG3.9",
+  "plan_revision": "tg3",
+  "objective": "Clean-up after the Stage 3 switch to subject + action tags: delete the phone-app code that nothing uses any more, fix two small leftovers, and change NO behaviour. After TG3.4/TG3.5 the Log, History and Tags screens and the watch receiver all run on the tag pipeline; the old single-activity UI and wiring are dead weight in app-phone.\n\nDELETE (verify each is unreferenced first with a search over app-phone main, test, debug and androidTest sources, and app-wear; remove only what is truly unused; a dependency you did not expect means keep it and say so):\n1. app-phone ui/components/ActivityPicker.kt and its test (ui/components/ActivityPickerTest.kt). NOTE TagPicker.kt mentions ActivityPicker in KDoc only -- reword the KDoc, do not change TagPicker behaviour.\n2. app-phone ui/review/ReviewSuggestions.kt, ui/review/PickerState.kt, and the old ServiceRefusal message functions in ui/review/RefusalMessages.kt (`refusalMessage`, `refusalMessageFor` and anything only they use) -- KEEP `tagRefusalMessage` and every helper the tag messages still use (e.g. the shared invalid-name mapping); keep or adjust RefusalMessagesTest so the tag mapping stays fully tested.\n3. app-phone test fixtures that only served the old screens: ui/log/LegacyActivityFixtures.kt (Results, RecordingRepository, GatedInterpreter ...) if no test references them any more, and any other test-only helper left dangling by the deletions (e.g. the legacy half of FailPoint if it becomes unused).\n4. app-phone wiring of the old pipeline: in ActivityLedgerApplication remove `reviewResolutionService` and `correctionService`; in pipeline/CapturePipeline remove the v3 `interpreter` (GeminiNanoActivityInterpreter), the v3 `orchestrator`, the interpreterDecorator parameter and their KDoc, keeping repository (LedgerRepository), capability, extractor, taggedOrchestrator, clock and the extractorDecorator seam, the one-pipeline-per-process and never-closed rules, and update the KDoc to describe the single tag pipeline. Delete pipeline/BusyRetryInterpreter.kt and BusyRetryInterpreterTest.kt AFTER moving `RETRY_WAITS` (and any other symbol BusyRetryExtractor needs) into BusyRetryExtractor.kt unchanged in value; keep every BusyRetryExtractor test. Check InterpreterUnavailableGuardTest and WatchCaptureReceiverTest: they use the v3 CaptureInterpretationOrchestrator from core-domain as a TEST helper -- core-domain v3 classes STAY (the older semantic corpus gate in core-testing still replays them), so tests may keep using them; only remove a test if it tests deleted app code, and say which.\n5. androidTest sources must still COMPILE: CaptureVerticalSliceTest (src/androidTest .../pipeline) uses `pipeline.orchestrator`; switch it to `pipeline.taggedOrchestrator` with the minimal change that keeps it meaningful (assert on TaggedProcessingOutcome / tagged saved result); do not run it (no device in this task). Other androidTest/debug sources must compile unchanged or with the smallest edit.\n6. res/values/strings.xml: remove strings that are now unreferenced from Kotlin, XML and the manifest in app-phone (the old activity-picker strings, old Needs-review/Not-categorized card strings, old history resolution strings, etc.), by searching each name; keep any string still referenced anywhere, and never remove one you could not prove unused. (Android lint is not required; a grep per name is.)\n\nSMALL FIXES:\n7. The Saved card's draining progress bar shows a stray dot at its right end on the phone (the Material3 LinearProgressIndicator stop indicator). Remove it in ui/log/ResultCards.kt with the indicator's own parameter for that (e.g. drawStopIndicator = {} or whatever this Material3 version calls it -- check the dependency's API); no other visual change; keep the Compose tests passing.\n8. core-domain TagDecision.resplit KDoc (tagging/TagDecisionPolicy.kt) still says it is only set by rule 2; it is also set by the object-noun guard (rule 5, ADR-049). Fix that one KDoc comment and nothing else in that file.\n\nDOCS: a short ADR-050 in docs/DECISIONS.md ('Old single-activity UI and wiring removed from the phone app', Accepted, developer decision 2026-10-04, TG3.9): what was removed, that core-domain v3 classes and the old corpus gate stay, that the phone app now has one capture pipeline. Update docs/ARCHITECTURE.md or docs/PROJECT_STATUS.md ONLY where they still describe the phone app as using the old services/pickers (find with a search; small factual edits). No other doc changes.\n\nRULES: no behaviour change anywhere (all existing tests that still apply pass unchanged); no change to core-data, core-ai, core-testing, core-speech, wear protocol, app-wear or the debug sources except what compilation forces (report it); no logging; do not touch tracking docs.",
+  "non_goals": [
+    "No behaviour or visual change except removing the stray dot on the Saved card progress bar.",
+    "No deletion of core-domain v3 classes (CaptureInterpretationOrchestrator, ReviewResolutionService, CorrectionService, interpretation types) -- the old semantic corpus gate still uses them.",
+    "No new features, no device run."
+  ],
+  "dependencies": ["TG3.8"],
+  "read_paths": [
+    "app-phone/**",
+    "app-wear/**",
+    "core-domain/**",
+    "core-data/src/main/**",
+    "core-ai/src/main/**",
+    "core-testing/**",
+    "docs/DECISIONS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/PROJECT_STATUS.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/**",
+    "app-phone/src/main/res/values/strings.xml",
+    "app-phone/src/test/kotlin/**",
+    "app-phone/src/androidTest/kotlin/com/mcfrenchpants/activityledger/pipeline/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/TagDecisionPolicy.kt",
+    "docs/DECISIONS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/PROJECT_STATUS.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "core-data/**",
+    "core-ai/**",
+    "core-testing/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "ActivityPicker (+test), ReviewSuggestions, PickerState, the old ServiceRefusal message functions, the legacy test fixtures, ReviewResolutionService/CorrectionService wiring in ActivityLedgerApplication, and the v3 interpreter/orchestrator/BusyRetryInterpreter in the phone app are deleted, each only after a search proved it unreferenced; RETRY_WAITS lives in BusyRetryExtractor.kt with the same value; nothing in app-phone references a deleted symbol.",
+    "CapturePipeline exposes only the tag pipeline (repository: LedgerRepository, capability, extractor, taggedOrchestrator, clock, extractorDecorator seam) with updated KDoc; ActivityLedgerApplication exposes capturePipeline, taggedResolutionService, taggedCorrectionService, tagManagementService.",
+    "tagRefusalMessage and its helpers and tests are intact; TagPicker behaviour unchanged (KDoc reworded only); strings.xml lost only strings proven unreferenced.",
+    "The Saved card progress bar no longer draws the stray end dot; TagDecision.resplit KDoc is accurate (rule 2 and rule 5); no other change to TagDecisionPolicy.kt.",
+    "All app-phone, core-domain, core-data, core-ai and core-testing unit tests pass, :app-phone:assembleDebug, :app-phone:assembleRelease (or :app-phone:compileReleaseKotlin if release signing is unavailable) and :app-phone:compileDebugAndroidTestKotlin succeed; CaptureVerticalSliceTest still compiles and now uses the tagged orchestrator.",
+    "ADR-050 written; docs only touched where they described the old phone-app path; no forbidden path changed."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:testDebugUnitTest",
+    "./gradlew :app-phone:assembleDebug :app-phone:compileDebugAndroidTestKotlin",
+    "./gradlew :app-phone:compileReleaseKotlin",
+    "./gradlew :core-domain:test :core-data:test :core-ai:test :core-testing:test",
+    "git diff --stat -- core-data core-ai core-testing core-speech core-wear-protocol app-wear"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}

@@ -1369,6 +1369,23 @@
           "task_packet_path": ".sdlc/task-packets/TG3.8.packet.json",
           "report_path": null,
           "notes": "see PROGRESS.md"
+        },
+        {
+          "id": "TG3.9",
+          "title": "Clean-up of old phone-app UI and wiring",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "TG3.8"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/TG3.9.packet.json",
+          "report_path": null,
+          "notes": ""
         }
       ]
     }
