@@ -835,3 +835,5 @@ The app can answer "when did I last change the furnace filter?" from the logged 
 **Out of scope for this stage.** Counting questions ("how many times") and date-window questions ("in March", "this year") are not answered; they still rank as a last-time lookup if they name tags.
 
 **Who decides what.** The model may supply the question words (subject and action phrases), but matching, ranking and the answer itself are program logic over stored data, never model output (ADR-011, ADR-038).
+
+**Amendment (TG4.3, 2026-10-04): the lookup service.** `LookupService.ask` returns one of: NotAQuestion (blank or not a question; the model is never called), Unavailable / Busy / Failed (model failure kinds UNAVAILABLE / RETRYABLE / MALFORMED+OTHER), NotEnoughHistory (nothing logged, the words matched no existing tag, or no entry matched) or Answer (target plus non-empty ranked result). A near (closest-candidate) tag match still answers without asking the user; the matches carry exact=false so the screen can say it is the closest match. The service only reads and never saves or logs the question.
