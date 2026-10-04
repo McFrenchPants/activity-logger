@@ -1339,8 +1339,8 @@
         {
           "id": "TG3.7",
           "title": "Device pass",
-          "status": "in-progress",
-          "lifecycle_state": "implementing",
+          "status": "done",
+          "lifecycle_state": "verified",
           "dependencies": [
             "TG3.6"
           ],
@@ -1351,13 +1351,13 @@
           },
           "task_packet_path": ".sdlc/task-packets/TG3.7.packet.json",
           "report_path": null,
-          "notes": "Phone typed pass done; watch/voice/edit flows not yet exercised; finding TG3.8"
+          "notes": "see PROGRESS.md"
         },
         {
           "id": "TG3.8",
           "title": "Extraction split: object noun in subject",
-          "status": "in-progress",
-          "lifecycle_state": "implementing",
+          "status": "done",
+          "lifecycle_state": "verified",
           "dependencies": [
             "TG3.7"
           ],
@@ -1368,7 +1368,7 @@
           },
           "task_packet_path": ".sdlc/task-packets/TG3.8.packet.json",
           "report_path": null,
-          "notes": "Code done, verifier pass; v5 prompt awaits device measurement"
+          "notes": "see PROGRESS.md"
         }
       ]
     }

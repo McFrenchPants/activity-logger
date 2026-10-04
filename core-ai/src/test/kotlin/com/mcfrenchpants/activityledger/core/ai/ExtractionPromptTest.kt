@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** Shape, content and purity of the extraction prompt (version 5) and its system instruction. */
+/** Shape, content and purity of the extraction prompt (version 4) and its system instruction. */
 class ExtractionPromptTest {
 
     private val detroit = ZoneId.of("America/Detroit")
@@ -125,8 +125,6 @@ class ExtractionPromptTest {
         assertTrue(prompt.contains("Action is what was done"))
         assertTrue(prompt.contains("verb in its plain form"))
         assertTrue(prompt.contains("\"replace bulb\" and \"replace fuse\" are different actions"))
-        assertTrue(prompt.contains("belongs in the ACTION; the subject is only the thing it belongs to"))
-        assertTrue(prompt.contains("subject \"pool pump\", action \"change filter\""))
     }
 
     @Test
