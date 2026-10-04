@@ -1,0 +1,68 @@
+{
+  "task_id": "TG3.5",
+  "plan_revision": "tg3",
+  "objective": "Switch the phone's HISTORY screen to subject + action tags: rows show subject, action and duration; captures still waiting for a decision are finished with the SAME 'Check this' experience the Log screen uses (TG3.4); saved rows can be corrected from History. After this task nothing on the phone UI uses the old single-activity services any more except leftover code that TG3.7/clean-up will delete.\n\nREAD FIRST (read-only unless in write_paths): app-phone/.../ui/history/* (HistoryViewModel, HistoryUiState, HistoryScreen incl. ResolutionSheet, HistoryViewModelFactory), ui/components/HistoryRow.kt (HistoryRowModel, toHistoryRow, HistoryRow), ui/log/* as it is NOW after TG3.4 (LogViewModel's Check-card draft/Save logic, ResultCard.Check, ResultCards.kt CheckCard, LogUiState), ui/components/TagPicker.kt, DurationFormatter.kt, ui/review/* (RefusalMessages incl. tagRefusalMessage), res/values/strings.xml, docs/UX_VISUAL_SPEC.md (History screen + card list as updated in TG3.4) and docs/DECISIONS.md ADR-043..046. Domain (core-domain, READ-ONLY, read the KDoc): `HistoryEntry` (captureId, rawText, processingState, occurrence: HistoryOccurrence?) with `HistoryOccurrence(activityDisplayName, subjectName, actionName, durationSeconds, occurredAt, timePrecision, activityState, occurrenceId ...)`; `LedgerRepository.loadExtractedWordsForCapture(captureId): ExtractedWords?` (subject, action, durationExpression words stored with the capture's latest interpretation) and `loadExtractedWordsForOccurrence`; `loadTagCatalog()`; `TagDecisionPolicy.decide(ExtractionCandidate, TagCatalog): TagDecision` (pure, deterministic; no model call); `DurationResolver.resolve(text): Int?` minutes; `TaggedResolutionService.resolve(...)` / `TaggedCorrectionService.correct(...)`; TagChoice; TagRefusal.\n\nBEHAVIOUR:\n1. ROWS. A saved tagged entry shows title 'Subject · Action' (names from HistoryOccurrence.subjectName/actionName; the same separator style as the Log Saved card), its time, an in-progress tag as today, and its duration (DurationFormatter) beside the time when present. Entries saved by the old pipeline (no subject/action names) keep showing their activity name exactly as today. Rows that wait for a decision keep their NEEDS_REVIEW / NOT_CATEGORIZED look and filters. Update HistoryRowModel/toHistoryRow/HistoryRow and the screen-reader sentence (string resources) accordingly -- HistoryRow.kt is in write_paths for this reason; the Log screen's Recent list also uses these, keep it working and its tests passing.\n2. FINISHING A WAITING CAPTURE. Tapping a waiting row opens a sheet with the same Check-card content and rules as the Log screen: both sides chosen before Save, Near candidates + 'Keep mine', blank sides need a pick (TagPicker), 'Decide later' closes. The starting point is rebuilt WITHOUT the model: take `loadExtractedWordsForCapture(captureId)`; if present, build an ExtractionCandidate (operation LOG_ACTIVITY, the words, no time/state/duration expression other than the stored durationExpression) and run TagDecisionPolicy.decide against the current catalog to get pre-chosen / Near / Empty sides; duration = DurationResolver of the stored expression (minutes x 60); time = the capture time (INFERRED_NOW) because History does not have the stored resolved time -- say so in the ADR. If there are no stored words (AI was unavailable) both sides are blank. Save goes through TaggedResolutionService.resolve (aliases learned there only). To avoid copying the Log screen's logic, EXTRACT the shared draft/Save-eligibility pieces into a small pure class/file under ui/review (e.g. CheckDraft) and make both view models use it; this means ui/log/** is in write_paths ONLY for that extraction -- behaviour and every TG3.4 test must stay unchanged and green. Share the CheckCard composable (it may need to move from `internal` in ui/log to a shared place under ui/components or stay and be made reachable; your call, keep test tags stable).\n3. CORRECTING A SAVED ROW. Tapping a saved tagged row opens a small 'Edit entry' sheet: the owner's words, the subject and action with 'Change subject' / 'Change action' (TagPicker, TaggedCorrectionService.correct), and 'Remove from history' (hides the occurrence via repository.hideOccurrence; the raw words stay stored) with a plain one-line explanation. Rows from the old pipeline (no tags) are not clickable as today. Refusals and failures use the existing plain-words messages; nothing contains the owner's words.\n4. HistoryViewModel takes `repository: LedgerRepository`, `resolution: TaggedResolutionService`, `correction: TaggedCorrectionService`, clock, locale; HistoryViewModelFactory wires them from the application (it already exposes taggedResolutionService / taggedCorrectionService). Keep the existing patterns (runAction single in-flight, no logging, state in one immutable value, refresh after every change). HistoryUiState gets the new sheet states; the old Resolution/PickerState (activity picker) usage in History is removed. ReviewSuggestions/PickerState/ActivityPicker/refusalMessageFor stay in the code base untouched (ActivityPicker/ReviewSuggestions may become unused; do not delete them).\n\nTESTS: rewrite HistoryViewModelTest / HistoryScreenTest onto the tag model using the REAL ledger via `createInMemoryActivityRepository(context, clock)` (core-data; see how LogViewModelTest does it, reuse its fixtures where sensible rather than copying): row model for tagged / old-style / waiting entries; duration shown; waiting capture with stored words -> pre-chosen/Near sides (build the stored words by running a capture through the scripted extractor as in the Log tests or by writing an interpretation through the services), Save saves under the existing tag and learns the alias, Keep mine, blank sides need picks, Decide later; AI-unavailable capture (no words) both blank; correct subject/action from the Edit sheet (one correction row, names refresh); remove from history hides and the row disappears; refusals/failures leave the sheet in place; compose tests for the rows (a11y sentence, click only where specified), Edit sheet and the waiting-capture sheet; filters still work. Log tests unchanged and passing.\n\nDOCS: ADR-047 in docs/DECISIONS.md ('History on the tag pipeline', Accepted, developer decision 2026-10-04, TG3.5): rows, waiting captures rebuilt from stored words without the model and at capture time, edit sheet, shared draft logic, v3 UI paths gone from History. Update the History section of docs/UX_VISUAL_SPEC.md to match (small, factual). No other doc changes.\n\nRULES: core modules, pipeline/wear packages, ActivityLedgerApplication, ActivityPicker, ReviewSuggestions, PickerState and the debug/androidTest sources are not edited; the only ui/log edits are the behaviour-preserving extraction; strings additive only; no logging; no owner words in strings/messages/test names/exceptions; plain everyday wording.",
+  "non_goals": [
+    "No tag management screen (TG3.6), no device run (TG3.7).",
+    "No change to domain services, orchestrator, repositories or schema; report scope_change_requested if needed.",
+    "No deletion of the old activity-picker/review code or v3 classes."
+  ],
+  "dependencies": ["TG3.4"],
+  "read_paths": [
+    "app-phone/**",
+    "core-domain/**",
+    "core-data/src/main/**",
+    "core-testing/**",
+    "docs/UX_SPEC.md",
+    "docs/UX_VISUAL_SPEC.md",
+    "docs/DECISIONS.md",
+    "docs/TEST_STRATEGY.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/components/HistoryRow.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/components/CheckCard.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/review/CheckDraft.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/log/**",
+    "app-phone/src/main/res/values/strings.xml",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/history/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/components/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/review/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/log/**",
+    "docs/DECISIONS.md",
+    "docs/UX_VISUAL_SPEC.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/wear/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ActivityLedgerApplication.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/components/ActivityPicker.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/review/ReviewSuggestions.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/review/PickerState.kt",
+    "app-phone/src/debug/**",
+    "app-phone/src/androidTest/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "History rows show 'Subject · Action' and the duration for tagged entries, keep the old activity name for old-pipeline entries and keep the waiting-row look and filters; the Log Recent list and its tests still work.",
+    "A waiting capture opens the Check-card experience: starting sides rebuilt from the stored extracted words through TagDecisionPolicy against the current catalog with no model call, blank sides when there are no words, Save only with both sides chosen, saved through TaggedResolutionService at capture time with the stored duration, Decide later keeps it waiting.",
+    "Tapping a saved tagged row opens an Edit sheet with Change subject, Change action (TaggedCorrectionService) and Remove from history (hideOccurrence); old-pipeline rows stay non-clickable.",
+    "HistoryViewModel and its factory use the tagged services and LedgerRepository; no old resolution service or activity picker remains in the History screen; shared draft logic lives in one place used by Log and History with every TG3.4 Log test unchanged and green.",
+    "History tests are rewritten on the real in-memory ledger and cover the listed scenarios; refusals and failures keep the sheet and show plain messages without the owner's words.",
+    "ADR-047 and the History UX note are written; no forbidden path changed; all app-phone, core-domain, core-data and core-testing unit tests pass and :app-phone:assembleDebug and :app-phone:compileDebugAndroidTestKotlin succeed."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:testDebugUnitTest",
+    "./gradlew :app-phone:assembleDebug :app-phone:compileDebugAndroidTestKotlin",
+    "./gradlew :core-domain:test :core-data:test :core-testing:test",
+    "git diff --stat -- core-domain core-data core-ai core-speech core-testing core-wear-protocol app-wear app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/wear app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ActivityLedgerApplication.kt app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/components/ActivityPicker.kt app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/review/ReviewSuggestions.kt app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/review/PickerState.kt app-phone/src/debug app-phone/src/androidTest"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
