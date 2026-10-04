@@ -1,0 +1,51 @@
+{
+  "task_id": "TG4.1",
+  "plan_revision": "tg4",
+  "objective": "Add the pure, deterministic half of 'Ask your history' to core-domain, in a NEW package com.mcfrenchpants.activityledger.core.domain.lookup (no I/O, no clock, no logging, no AI, same answer for same input; match the style, KDoc density and test style of the neighbouring tagging package).\n\n1. LookupEntry: one logged occurrence on a tagged pair: occurrenceId, subjectId, subjectName, actionId, actionName (CURRENT names), occurredAt (java.time.Instant), durationSeconds (Long?).\n\n2. LookupTarget: what the user's question was about, already resolved to tags: subject: LookupTag? and action: LookupTag?, where LookupTag(id: String, exact: Boolean) -- exact=true for a TagResolution.Exact match, false for a TagResolution.Near candidate. A target with both null is invalid (require).  Provide a helper `LookupTarget.fromResolutions(subject: TagResolution, action: TagResolution): LookupTarget?` using com.mcfrenchpants.activityledger.core.domain.tagging.TagResolution: Exact -> LookupTag(tag.id, true); Near -> the FIRST candidate (closest, see TagResolver) as LookupTag(id, false); Empty/New -> null for that side; returns null when both sides are null.\n\n3. HistoryLookup.rank(entries: List<LookupEntry>, target: LookupTarget): LookupResult. Tiers, best first: (1) BOTH tags match (only possible when the target has both sides), (2) subject-only match, (3) action-only match. A side 'matches' when entry's tag id equals the target tag id for that side; a side absent from the target never matches. Within a tier: entries matched through EXACT target tags before those matched through near tags (an entry's exactness = every matching side of the target is exact), then newest occurredAt first, then occurrenceId descending as a deterministic tie-break. Entries matching nothing are dropped. If the target has only one side, only that side's tier can be non-empty (tier 2 or 3 as appropriate, still reported with the matching tier label).\n   LookupResult(matches: List<LookupMatch>) where LookupMatch(entry, tier: LookupTier, exact: Boolean); enum LookupTier { BOTH, SUBJECT_ONLY, ACTION_ONLY }. LookupResult exposes: `top: LookupMatch?` (first match, null if none -- this is the watch top-result helper), `previous: LookupMatch?` (the next match in the SAME tier and same exactness as top and strictly older-or-equal in order, null if none), `intervalFromPrevious: java.time.Duration?` (top.occurredAt minus previous.occurredAt, null when no previous; never negative), and `isEmpty`.\n\n4. QuestionDetector.isQuestion(text: String): Boolean -- deterministic: trimmed text ends with '?', OR its first word (lower-cased, letters only) is one of: when, how, what, which, where, who, did, do, does, have, has, show, tell, list. A statement like 'I just changed the furnace filter' or 'Mowed the lawn for 40 minutes' is false; blank text is false. Speech-to-text rarely adds '?', so the first-word rule matters. Keep the word list a named constant with a KDoc stating it is provisional and deliberately small.\n\nWrite thorough unit tests in core-domain/src/test/kotlin/.../lookup/ (HistoryLookupTest, LookupTargetTest, QuestionDetectorTest): both-tag before subject-only before action-only; newest first; exact before near within a tier; tie-break determinism; one-sided targets; empty entries; previous/interval; negative-interval impossible; fromResolutions for Exact/Near/Empty/New; detector positives (with and without '?', e.g. 'when did I last change the furnace filter', 'How many times did I mow') and negatives (every statement style in the tag corpus at core-testing may be read for ideas, e.g. 'I just cleaned the hot tub', 'Add sanitizer to the hot tub', 'Did' as the first word of a statement is accepted as a known false positive -- document it, do not special-case).\n\nDOCS: add the next free ADR number in docs/DECISIONS.md ('Ask your history: last-time lookups, ranked by tag match', Accepted, developer decision 2026-10-04, TG4.1): the tier order, exact-before-near, that counting/date-window questions are out of scope for this stage, and that the question words come from the model but matching and answers are program logic (ADR-011, ADR-038). No other doc changes.\n\nRULES: no change to existing classes; no Android or Room dependency; no logging; exception messages carry ids only, never tag names or text; do not touch tracking docs.",
+  "non_goals": [
+    "No repository or database change (TG4.2).",
+    "No AI/model code (TG4.4).",
+    "No UI.",
+    "No counting or date-window questions."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "core-domain/**",
+    "core-testing/**",
+    "docs/DECISIONS.md",
+    "docs/UX_SPEC.md",
+    "docs/UX_VISUAL_SPEC.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/**",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/**",
+    "docs/DECISIONS.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "core-data/**",
+    "core-ai/**",
+    "core-testing/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-phone/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "New package core.domain.lookup contains LookupEntry, LookupTag, LookupTarget (+fromResolutions), LookupTier, LookupMatch, LookupResult (top, previous, intervalFromPrevious, isEmpty), HistoryLookup.rank and QuestionDetector, all pure Kotlin with KDoc.",
+    "rank orders BOTH, then SUBJECT_ONLY, then ACTION_ONLY; within a tier exact-matched before near-matched, then newest first, then occurrenceId descending; non-matching entries dropped; one-sided targets only produce their own tier.",
+    "previous and intervalFromPrevious follow the stated definition and are never negative.",
+    "QuestionDetector accepts the '?' rule and the first-word list and rejects statements; documented known false positive.",
+    "Unit tests cover every rule above and pass; no existing file other than docs/DECISIONS.md is modified.",
+    "ADR written; no forbidden path changed."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test",
+    "git status --porcelain"
+  ]
+}
