@@ -1,0 +1,63 @@
+{
+  "task_id": "TG4.6",
+  "plan_revision": "tg4",
+  "objective": "Build the Ask screen (Compose UI) on top of the existing AskViewModel and add it as the fourth bottom tab. The view model, state (AskUiState/AskTurn/AskOutcome) and factory ALREADY exist in ui/ask/ (TG4.5); do not change their behaviour. Read first: ui/ask/AskUiState.kt, AskViewModel.kt, AskViewModelFactory.kt, AskTestFixtures.kt (test), ui/tags/TagsScreen.kt (how a screen gets its view model: viewModel(factory = ...Factory(application)) and how screens are split into a stateful wrapper + stateless content for tests), ui/log/LogScreen.kt (mic button, listening state, permission request flow, input bar, UserMessage display) and its tests ui/log/LogVoiceScreenTest.kt, ui/components/DurationFormatter.kt, ui/time/OccurrenceTimeFormatter.kt, ui/navigation/LedgerNavigation.kt, res/drawable/ic_nav_*.xml and ic_mic*.xml, res/values/strings.xml, docs/UX_SPEC.md sections 9 and 13, docs/UX_VISUAL_SPEC.md D1 and D6 (note: D6's source-line/Activity-detail and the statement 'New activity?' card are NOT in this stage; see below). Domain types: core.domain.lookup.LookupResult { matches, top, previous, intervalFromPrevious }, LookupMatch(entry, tier: BOTH|SUBJECT_ONLY|ACTION_ONLY, exact), LookupEntry(subjectName, actionName, occurredAt: Instant, durationSeconds).\n\n1. Navigation: add AskRoute and TopLevelDestination.ASK as the FOURTH tab (order Log, History, Tags, Ask), label string nav_ask = \"Ask\", new vector drawable res/drawable/ic_nav_ask.xml in the same hand-drawn outline style as ic_nav_tags.xml (a simple speech-bubble outline). composable<AskRoute> { AskScreen() }. Update the KDoc that says Ask is absent. Update any existing navigation test that counts tabs only as far as compilation/assertions force; report it.\n2. ui/ask/AskScreen.kt: stateful AskScreen() (gets AskViewModel via the factory, collects state, owns the RECORD_AUDIO permission launcher exactly like LogScreen: granted -> startListening(), denied -> onMicrophonePermissionDenied()/Blocked() as LogScreen does) and a stateless AskContent(state, callbacks...) for tests. Layout: a scrollable thread (LazyColumn, scrolls to the newest turn when one is added) of question bubble (right-aligned, the user's words) followed by an answer card (left-aligned) for each turn; a pending turn (outcome == null) shows a small progress indicator with a content description; an input bar pinned at the bottom (text field with IME Send action that calls ask(), a Send button, and the mic button that toggles listening with the same icon/state semantics and content descriptions as the Log screen; while listening show the partial transcript and a clear 'Listening' state); a quiet 'Clear' text button in the top area visible only when the thread is non-empty; the one-off UserMessage shown the way LogScreen shows its message (dismissable). Empty thread shows an empty-state hint with a short invitation, e.g. 'Ask when you last did something, like: When did I last change the furnace filter?' (this is the intro, NOT the UX_SPEC 13 'not enough history' copy, which is an answer).\n3. Answer cards by outcome (all text from strings.xml with the ask_ prefix, no hard-coded copy):\n   - Answered: database fact FIRST. For the top match: 'Last logged: <subject> · <action>' with the date/time on the next line (use OccurrenceTimeFormatter the way History/Log format times), plus the duration via DurationFormatter when the entry has one. Do NOT try to grammatically inflect the action; this neutral pattern reads correctly for any pair. Then, when result.previous != null: 'Before that: <date/time>' and 'Gap between the two: <interval>' (format the java.time.Duration as plain words: whole days, or hours when under a day, or 'less than an hour'; put this in a small pure, unit-tested helper). Then, only when more than one match exists, a short ranked list of up to 5 further matches (subject · action, date/time), in the order given by the result, under an 'Other matches' heading, non-clickable. When the top match is not exact (match.exact == false) or its tier is not BOTH, add a quiet note chosen by a small pure function of (exact, tier): non-exact -> 'Closest match: your question did not match a logged item exactly.'; exact but tier SUBJECT_ONLY or ACTION_ONLY -> 'Closest match: showing entries that only partly match your question.'; exact and BOTH -> no note. Cover the function in tests.\n   - NotEnoughHistory: 'There isn't enough history yet to answer that.' (UX_SPEC 13 verbatim).\n   - NotAQuestion: 'That sounds like something you did, not a question.' plus a quiet pointer 'To log it, use the Log tab.' (no logging from Ask in this stage; no Log it button).\n   - AiUnavailable: 'This phone can't read questions on its own yet, so Ask isn't available here.' (plain words, no jargon).\n   - TryAgainLater: 'I couldn't read that question just now. Try again in a moment.'\n   All cards use Material 3 components and the existing theme colours/shapes (no new colours; do not rely on colour alone). Every interactive element has a content description and a >=48dp touch target. Support large text: no fixed heights on text containers.\n4. Strings: all new strings in app-phone/src/main/res/values/strings.xml (ask_ prefix plus nav_ask); reuse the existing ask_mic_* / ask_voice_* strings for messages (see how the view model maps them to UserMessage).\n5. Tests (Robolectric Compose tests like LogVoiceScreenTest / TagsScreenTest, under src/test/.../ui/ask/): empty state shown; typing then tapping Send calls ask with the text; each outcome card renders its copy (Answered with one match; with previous + interval; with several matches showing 'Other matches'; the note variants; NotEnoughHistory; NotAQuestion; AiUnavailable; TryAgainLater); pending turn shows progress; Clear hidden on an empty thread and calls clear() otherwise; mic button toggles and shows the listening state; Send disabled for blank input; a navigation test that the Ask tab exists and opens the Ask screen. Plus pure unit tests for the interval-words helper and the note-selection function.\n\nNo change to AskViewModel/AskUiState behaviour (add nothing to them unless compilation truly forces it; report it). No change to the Log/History/Tags screens. No persistence, no logging of question text, no network.",
+  "non_goals": [
+    "No logging from the Ask screen (no 'Log it' / 'New activity?' card); statements only point to the Log tab.",
+    "No tappable source line / Activity detail screen.",
+    "No counting or date-window questions.",
+    "No device run (TG4.7).",
+    "No change to the view model's behaviour, the domain, the data layer or core-ai."
+  ],
+  "dependencies": [
+    "TG4.5"
+  ],
+  "read_paths": [
+    "app-phone/**",
+    "core-domain/src/main/**",
+    "core-speech/src/main/**",
+    "core-testing/**",
+    "docs/UX_SPEC.md",
+    "docs/UX_VISUAL_SPEC.md",
+    "docs/DECISIONS.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/ask/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/navigation/**",
+    "app-phone/src/main/res/values/strings.xml",
+    "app-phone/src/main/res/drawable/ic_nav_ask.xml",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/ask/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/navigation/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "core-domain/**",
+    "core-data/**",
+    "core-ai/**",
+    "core-testing/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-wear/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/log/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/tags/**"
+  ],
+  "acceptance_criteria": [
+    "A fourth bottom tab 'Ask' (after Tags) opens AskScreen; ic_nav_ask.xml exists; navigation KDoc updated.",
+    "AskScreen shows an empty-state invitation, a scrollable thread of question bubbles and answer cards, a pending indicator, an input bar with IME Send, a Send button disabled for blank input, a mic button with listening state, and a Clear button only when the thread is non-empty.",
+    "Answered cards state the database fact first (subject, action, date/time, duration when known), then previous occurrence and gap in plain words when there is one, then up to 5 other matches under 'Other matches' when more than one match exists, plus the closest-match note for non-exact or partial-tier matches.",
+    "NotEnoughHistory uses the UX_SPEC 13 sentence verbatim; NotAQuestion, AiUnavailable and TryAgainLater show the specified plain-words copy; no logging action is offered.",
+    "All copy is in strings.xml; microphone permission flow mirrors LogScreen; every interactive element has a content description and >=48dp target; no fixed text heights.",
+    "Tests cover every item in the objective's test list; all :app-phone:testDebugUnitTest tests pass; :app-phone:assembleDebug and :app-phone:compileDebugAndroidTestKotlin compile; no forbidden path changed; AskViewModel behaviour unchanged."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:testDebugUnitTest",
+    "./gradlew :app-phone:assembleDebug :app-phone:compileDebugAndroidTestKotlin",
+    "git status --porcelain"
+  ]
+}
