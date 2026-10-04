@@ -114,6 +114,16 @@ data class TagDecision(
  *   are not already both exact, the subject's trailing word(s) are tried as the action's
  *   object, fewest first ("furnace filter" / "change" -> "furnace" / "change filter"). The
  *   first split that makes BOTH sides Exact is used ([TagDecision.resplit]); else nothing changes.
+ * - **Object-noun guard** (rule 5, TG3.8): when rule 2 did not fire, the action is a bare one-word
+ *   verb, the subject has 2+ words that resolve New (neither Exact nor Near: an existing subject
+ *   such as "air filter" is kept, like the junk-subject rule), and the subject's last word
+ *   (singularised) is in [OBJECT_NOUNS], that word moves into the action ("hot tub filter" /
+ *   "change" -> "hot tub" / "change filter"; the verb is kept as given). Both new word groups
+ *   are resolved against the catalog and [TagDecision.resplit] is set; rules below then decide
+ *   as usual, so a repair never earns a silent save the repaired words would not earn alone. One-word
+ *   subjects, multi-word actions, and nouns outside [OBJECT_NOUNS] are never touched. The set
+ *   excludes ambiguous nouns (pump, tank, cover, screen, bag, light, mower, door) that can be
+ *   the thing acted on by themselves.
  * - **Subject is only the object** (rule 4): when the subject is neither Exact nor absent and
  *   either (a) all its words are among the action's object words ("filter" / "change filter")
  *   or (b) the action is not Exact and "action + subject" means an existing action
@@ -187,6 +197,20 @@ object TagDecisionPolicy {
         "september", "october", "november", "december",
     )
 
+    /**
+     * Part and consumable nouns that are almost always the OBJECT of the action and almost never
+     * the thing acted on by themselves when another noun phrase precedes them ("hot tub filter",
+     * "mower blade", "car battery"). Used by rule 5 (see class KDoc). Singular, lowercase;
+     * compared against the singularised last subject word. Deliberately conservative: nouns that
+     * are often a thing in their own right ("pump", "tank", "cover", "screen", "bag", "light",
+     * "mower", "door") are left out, because "sump pump" / "replace" must keep subject
+     * "sump pump". Extend by adding words.
+     */
+    val OBJECT_NOUNS: Set<String> = setOf(
+        "filter", "oil", "battery", "bulb", "belt", "hose", "tire", "fuse",
+        "blade", "wiper", "gasket", "cartridge", "strainer",
+    )
+
     private val VAGUE_PREFIXES: List<List<String>> =
         (VAGUE_VERBS + VAGUE_PHRASES).map { it.split(' ') }.sortedByDescending { it.size }
 
@@ -216,6 +240,15 @@ object TagDecisionPolicy {
             subject = s
             action = a
             resplit = true
+        }
+
+        // Rule 5 (TG3.8): an object noun at the end of a new subject belongs to the action.
+        if (!resplit) {
+            objectNounSplitOf(subjectWords, extraction.action, subject, catalog)?.let { (s, a) ->
+                subject = s
+                action = a
+                resplit = true
+            }
         }
 
         // Rule 4: a subject that is only the action's object.
@@ -311,6 +344,31 @@ object TagDecisionPolicy {
             if (s is TagResolution.Exact && a is TagResolution.Exact) return s to a
         }
         return null
+    }
+
+    /**
+     * Object-noun guard (TG3.8), or null when it does not apply: the action is one word, the
+     * subject is 2+ words that resolved New (not Exact, not Near, so an owner's real "air filter"
+     * subject is kept), and its last word singularised is in [OBJECT_NOUNS]. That word moves
+     * into the action ("hot tub filter" / "change" -> "hot tub" / "change filter"); both new
+     * word groups are resolved against the catalog.
+     */
+    private fun objectNounSplitOf(
+        subjectWords: String?,
+        actionWords: String?,
+        subject: TagResolution,
+        catalog: TagCatalog,
+    ): Pair<TagResolution, TagResolution>? {
+        if (subject !is TagResolution.New) return null
+        if (TagNormalizer.tokens(actionWords).size != 1) return null
+        val actionName = TagNormalizer.cleanName(actionWords) ?: return null
+        val words = TagNormalizer.cleanName(subjectWords)?.split(' ')?.filter { it.isNotEmpty() } ?: return null
+        if (words.size < 2) return null
+        val last = words.last()
+        if (TagNormalizer.tokens(last).singleOrNull() !in OBJECT_NOUNS) return null
+        val s = TagResolver.resolve(words.dropLast(1).joinToString(" "), TagKind.SUBJECT, catalog)
+        val a = TagResolver.resolve("$actionName $last", TagKind.ACTION, catalog)
+        return s to a
     }
 
     /** What rule 4 found: the combined action resolution and the only subject paired with it, if one. */

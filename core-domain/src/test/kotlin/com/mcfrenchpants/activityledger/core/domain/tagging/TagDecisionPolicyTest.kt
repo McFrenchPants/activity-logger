@@ -278,9 +278,12 @@ class TagDecisionPolicyTest {
         val mower = decide("lawn mower", "mow")
         assertFalse(mower.resplit)
         assertEquals(CONFIRM, mower.outcome)
-        // Empty catalog: never.
-        assertFalse(decide("furnace filter", "change", TagCatalog.EMPTY).resplit)
-        assertEquals(AUTO_SAVE, decide("furnace filter", "change", TagCatalog.EMPTY).outcome)
+        // Empty catalog: rule 2 never fires; the TG3.8 object-noun guard (rule 5) does instead
+        // (see TagObjectNounGuardTest) and still auto-saves only new, unobjectionable names.
+        val empty = decide("furnace filter", "change", TagCatalog.EMPTY)
+        assertEquals(AUTO_SAVE, empty.outcome)
+        assertEquals(TagResolution.New("furnace"), empty.subject)
+        assertEquals(TagResolution.New("change filter"), empty.action)
     }
 
     @Test

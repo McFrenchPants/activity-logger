@@ -197,7 +197,7 @@ class GeminiNanoActivityExtractorTest {
 
         assertEquals("gemini-nano-extract-1", provenance.interpreterVersion)
         assertEquals(EXTRACTOR_VERSION, provenance.interpreterVersion)
-        assertEquals("4", provenance.promptVersion)
+        assertEquals("5", provenance.promptVersion)
         assertEquals(EXTRACTION_PROMPT_VERSION, provenance.promptVersion)
         assertEquals(1, provenance.schemaVersion)
         assertEquals(EXTRACTION_SCHEMA_VERSION, provenance.schemaVersion)

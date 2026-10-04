@@ -27,7 +27,7 @@ Registered in `.sdlc/state.json` as TG1.
 | TG3.5 | History on tags | done | Verifier pass attempt 1; ADR-047; waiting captures finish at CAPTURE time (History lacks the stored resolved time) |
 | TG3.6 | Tag management screen (rename, merge) | done | Verifier pass attempt 1; ADR-048; third bottom tab 'Tags' (developer decision) |
 | TG3.7 | Device pass (Pixel 10 Pro + watch) | in-progress | Phone typed pass DONE 2026-10-04 (migration on real data ok, clean start, cards, Tags screen); NOT yet done: spoken watch capture, voice on phone, Change subject/action + History edit + rename/merge on device. FINDING -> TG3.8 |
-| TG3.8 | Extraction split: object noun lands in the subject ("hot tub filter" / "change") | todo | prompt v5 + replay + device re-record; blocks the 'furnace filter vs hot tub filter' goal |
+| TG3.8 | Extraction split: object noun lands in the subject ("hot tub filter" / "change") | in-progress | Code done + verifier pass (guard rule 5 + prompt v5, ADR-049); v4-recording replay CORRECT 64 / UNSAFE 0; v5 prompt NOT yet measured on the Pixel |
 | TG4+ | Stage 4 | todo | detail after the Stage 3 report |
 
 ## Session log

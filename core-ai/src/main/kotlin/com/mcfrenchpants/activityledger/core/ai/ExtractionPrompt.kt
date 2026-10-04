@@ -11,14 +11,14 @@ import java.util.Locale
  *
  * Separate from [PROMPT_VERSION] on purpose: the extraction prompt is a different prompt for a
  * different task, built beside the v3 interpretation prompt, and the two must be able to move
- * independently. It continues the numbering ("4") so a recording's `promptVersion` alone says
+ * independently. It continues the numbering ("5") so a recording's `promptVersion` alone says
  * which generation of the AI step produced it.
  *
  * Prompt text is product logic (AI interpretation spec section 19): ANY material change to
  * [EXTRACTION_SYSTEM_INSTRUCTION] or to [buildExtractionPrompt]'s output must bump this value,
  * update the drift-guard fixture in `ExtractionPromptDriftTest`, and re-record the tag corpus.
  */
-internal const val EXTRACTION_PROMPT_VERSION: String = "4"
+internal const val EXTRACTION_PROMPT_VERSION: String = "5"
 
 /**
  * The fixed system instruction the on-device model is given for every extraction.
@@ -86,7 +86,9 @@ internal fun buildExtractionPrompt(input: ExtractionInput): String {
             "- Action is what was done: a short verb phrase with the verb in its plain form " +
                 "(\"vacuuming\" -> \"vacuum\", \"descaled\" -> \"descale\"). Keep the object " +
                 "words that tell it apart from similar actions: \"replace bulb\" and \"replace " +
-                "fuse\" are different actions. The subject is not repeated in the action.\n",
+                "fuse\" are different actions. The subject is not repeated in the action. The " +
+                "object part (a filter, oil, bulb, belt, hose... on something) belongs in the " +
+                "ACTION; the subject is only the thing it belongs to.\n",
         )
         append(
             "- Leave the subject empty when the sentence names no thing acted on, and the " +
@@ -126,6 +128,10 @@ internal fun buildExtractionPrompt(input: ExtractionInput): String {
         append(
             "- \"Replaced the bulb in the porch light.\" -> subject \"porch light\", action " +
                 "\"replace bulb\", COMPLETED, no time wording.\n",
+        )
+        append(
+            "- \"Changed the filter on the pool pump.\" -> subject \"pool pump\", action " +
+                "\"change filter\", COMPLETED, no time wording, no duration.\n",
         )
         append(
             "- \"Descaled the coffee maker yesterday.\" -> subject \"coffee maker\", action " +

@@ -35,7 +35,7 @@ class ExtractionPromptDriftTest {
 
     @Test
     fun `extraction prompt version is the one these fixtures were pinned against`() {
-        assertEquals("4", EXTRACTION_PROMPT_VERSION, bumpVersion)
+        assertEquals("5", EXTRACTION_PROMPT_VERSION, bumpVersion)
     }
 
     @Test
@@ -57,11 +57,11 @@ class ExtractionPromptDriftTest {
     }
 
     private companion object {
-        /** SHA-256 of `buildExtractionPrompt(fixedInput)` at extraction prompt version 4. */
+        /** SHA-256 of `buildExtractionPrompt(fixedInput)` at extraction prompt version 5. */
         const val PINNED_PROMPT_SHA256 =
-            "9ad4d5626ec90182b874e1a6bd8249cfa708c987b38acdca56b2d18dbf7c3253"
+            "013b71e6be86a85b13126f8e629580f39363edb9fb91a4bb0139409d78f9830b"
 
-        /** SHA-256 of [EXTRACTION_SYSTEM_INSTRUCTION] at extraction prompt version 4. */
+        /** SHA-256 of [EXTRACTION_SYSTEM_INSTRUCTION] at extraction prompt version 5. */
         const val PINNED_SYSTEM_INSTRUCTION_SHA256 =
             "6fc64ba386308fea417cb98d03159a18600897441ddee64e4067851bba931afe"
     }
