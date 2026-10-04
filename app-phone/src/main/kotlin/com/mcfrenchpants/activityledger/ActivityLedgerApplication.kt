@@ -3,6 +3,9 @@ package com.mcfrenchpants.activityledger
 import android.app.Application
 import com.mcfrenchpants.activityledger.core.domain.services.CorrectionService
 import com.mcfrenchpants.activityledger.core.domain.services.ReviewResolutionService
+import com.mcfrenchpants.activityledger.core.domain.services.TagManagementService
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedCorrectionService
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedResolutionService
 import com.mcfrenchpants.activityledger.pipeline.CapturePipeline
 
 /**
@@ -10,7 +13,8 @@ import com.mcfrenchpants.activityledger.pipeline.CapturePipeline
  *
  * It holds exactly one [CapturePipeline] -- the one place the capture pipeline is wired -- and,
  * built from that pipeline's repository and clock, exactly one [ReviewResolutionService] and one
- * [CorrectionService]. There is no dependency-injection framework (ADR-032); screens reach these
+ * [CorrectionService], plus their subject + action twins ([TaggedResolutionService],
+ * [TaggedCorrectionService], [TagManagementService]) over the same repository and clock. There is no dependency-injection framework (ADR-032); screens reach these
  * through this class.
  *
  * ## Lazy
@@ -46,5 +50,20 @@ class ActivityLedgerApplication : Application() {
     /** Applies user corrections; shares the pipeline's repository and clock. */
     val correctionService: CorrectionService by lazy {
         CorrectionService(capturePipeline.repository, capturePipeline.clock)
+    }
+
+    /** Resolves waiting tagged captures; shares the pipeline's repository and clock. */
+    val taggedResolutionService: TaggedResolutionService by lazy {
+        TaggedResolutionService(capturePipeline.repository, capturePipeline.clock)
+    }
+
+    /** Applies user corrections to tagged entries; shares the pipeline's repository and clock. */
+    val taggedCorrectionService: TaggedCorrectionService by lazy {
+        TaggedCorrectionService(capturePipeline.repository, capturePipeline.clock)
+    }
+
+    /** Renames, merges and lists tags; shares the pipeline's repository. */
+    val tagManagementService: TagManagementService by lazy {
+        TagManagementService(capturePipeline.repository)
     }
 }

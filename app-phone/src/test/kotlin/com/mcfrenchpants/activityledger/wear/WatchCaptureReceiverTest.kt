@@ -13,6 +13,9 @@ import com.mcfrenchpants.activityledger.core.domain.repository.ActivityRepositor
 import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
 import com.mcfrenchpants.activityledger.core.domain.services.CaptureInterpretationOrchestrator
 import com.mcfrenchpants.activityledger.core.domain.services.CaptureProcessingOutcome
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedProcessingOutcome
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedProposal
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagResolution
 import com.mcfrenchpants.activityledger.core.testing.FakeActivityInterpreter
 import com.mcfrenchpants.activityledger.core.testing.InMemoryActivityRepository
 import com.mcfrenchpants.activityledger.core.testing.MutableClock
@@ -61,17 +64,34 @@ class WatchCaptureReceiverTest {
 
     private val repository = RecordingRepository(memory)
     private val orchestrator = CaptureInterpretationOrchestrator(repository, interpreter, clock)
+
+    /**
+     * Stands in for the tagged orchestrator (which core-domain/core-data already prove): a real
+     * ledger-backed capture run through the v3 orchestrator over a fake interpreter, so
+     * occurrences and processing states are real, with the result mapped to the tagged outcome.
+     */
+    private suspend fun backing(captureId: String): TaggedProcessingOutcome =
+        when (val o = orchestrator.process(captureId)) {
+            is CaptureProcessingOutcome.AutoAccepted -> TaggedProcessingOutcome.AutoSaved(o.occurrenceId)
+            is CaptureProcessingOutcome.NeedsReview ->
+                TaggedProcessingOutcome.NeedsReview(emptySet(), o.reasons, null)
+            is CaptureProcessingOutcome.Rejected -> TaggedProcessingOutcome.Rejected(o.reasons)
+            is CaptureProcessingOutcome.InterpreterUnavailable ->
+                TaggedProcessingOutcome.InterpreterUnavailable(o.kind)
+            CaptureProcessingOutcome.AlreadyHasOccurrence -> TaggedProcessingOutcome.AlreadyHasOccurrence
+        }
+
     private val acks = mutableListOf<CaptureAck>()
     private val rawAckJson = mutableListOf<String>()
     private var sendFails = false
-    private var processOverride: (suspend (String) -> CaptureProcessingOutcome)? = null
+    private var processOverride: (suspend (String) -> TaggedProcessingOutcome)? = null
     private var processCalls = 0
 
     private val receiver = WatchCaptureReceiver(
         repository = repository,
         process = { captureId ->
             processCalls++
-            (processOverride ?: { orchestrator.process(it) })(captureId)
+            (processOverride ?: { backing(it) })(captureId)
         },
         sendAck = { n, json ->
             assertEquals(node, n)
@@ -330,7 +350,7 @@ class WatchCaptureReceiverTest {
 
     @Test
     fun cancellationFromSendAckIsRethrown() {
-        val r = WatchCaptureReceiver(repository, { orchestrator.process(it) }, { _, _ -> throw CancellationException("c") }) { zone }
+        val r = WatchCaptureReceiver(repository, { backing(it) }, { _, _ -> throw CancellationException("c") }) { zone }
         autoAccept()
         assertFailsWith<CancellationException> { runBlocking { r.receive(node, envelope()) } }
         assertEquals(text, stored()!!.rawText)
@@ -341,7 +361,7 @@ class WatchCaptureReceiverTest {
         val failing = object : ActivityRepository by memory {
             override suspend fun createRawCapture(capture: NewRawCapture): String = throw IllegalArgumentException("db")
         }
-        val r = WatchCaptureReceiver(failing, { processCalls++; CaptureProcessingOutcome.AlreadyHasOccurrence }, { _, j ->
+        val r = WatchCaptureReceiver(failing, { processCalls++; TaggedProcessingOutcome.AlreadyHasOccurrence }, { _, j ->
             acks += (WireCodec.decodeAck(j) as ProtocolResult.Ok).value
         }) { zone }
         runBlocking { r.receive(node, envelope()) }
@@ -351,14 +371,66 @@ class WatchCaptureReceiverTest {
 
     @Test
     fun alreadyHasOccurrenceOutcomeAcksSaved() {
-        processOverride = { CaptureProcessingOutcome.AlreadyHasOccurrence }
+        processOverride = { TaggedProcessingOutcome.AlreadyHasOccurrence }
         send()
         assertEquals(listOf(AckStatus.RECEIVED, AckStatus.SAVED), acks.map { it.status })
     }
 
     @Test
     fun rejectedOutcomeAcksNeedsReview() {
-        processOverride = { CaptureProcessingOutcome.Rejected(emptySet()) }
+        processOverride = { TaggedProcessingOutcome.Rejected(emptySet()) }
+        send()
+        assertEquals(AckStatus.NEEDS_REVIEW, acks.last().status)
+        assertTrue(acks.last().needsReview)
+    }
+
+    private fun proposal() = TaggedProposal(
+        captureId = id,
+        extractedSubject = "synthetic",
+        extractedAction = "synthetic",
+        subject = TagResolution.Empty,
+        action = TagResolution.Empty,
+        subjectInferred = false,
+        reasons = emptySet(),
+        occurredAt = null,
+        timePrecision = null,
+        durationExpression = null,
+        durationSeconds = null,
+        activityState = null,
+    )
+
+    @Test
+    fun autoSavedOutcomeAcksSavedWithTheCachedActivityLabelAndTime() {
+        // The saved occurrence's canonical activity display name is the label the watch shows.
+        autoAccept()
+        send()
+        assertEquals(listOf(AckStatus.RECEIVED, AckStatus.SAVED), acks.map { it.status })
+        assertEquals("Mow lawn", acks.last().canonicalActivityName)
+        assertNotNull(acks.last().occurredAtEpochMillis)
+        assertFalse(acks.last().needsReview)
+    }
+
+    @Test
+    fun needsConfirmOutcomeAcksNeedsReviewWithoutAnyText() {
+        processOverride = { TaggedProcessingOutcome.NeedsConfirm(proposal()) }
+        send()
+        assertEquals(listOf(AckStatus.RECEIVED, AckStatus.NEEDS_REVIEW), acks.map { it.status })
+        assertTrue(acks.last().needsReview)
+        assertEquals(null, acks.last().canonicalActivityName)
+        assertTrue(rawAckJson.none { it.contains("synthetic") })
+    }
+
+    @Test
+    fun taggedNeedsReviewOutcomeAcksNeedsReview() {
+        processOverride = { TaggedProcessingOutcome.NeedsReview(emptySet(), emptySet(), proposal()) }
+        send()
+        assertEquals(AckStatus.NEEDS_REVIEW, acks.last().status)
+        assertTrue(acks.last().needsReview)
+    }
+
+    @Test
+    fun taggedInterpreterUnavailableOutcomeAcksNeedsReview() {
+        processOverride = { TaggedProcessingOutcome.InterpreterUnavailable(InterpreterFailureKind.RETRYABLE) }
         send()
         assertEquals(AckStatus.NEEDS_REVIEW, acks.last().status)
         assertTrue(acks.last().needsReview)

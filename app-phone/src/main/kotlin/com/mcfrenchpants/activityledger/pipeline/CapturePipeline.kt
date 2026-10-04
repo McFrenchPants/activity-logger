@@ -1,19 +1,28 @@
 package com.mcfrenchpants.activityledger.pipeline
 
 import android.content.Context
+import com.mcfrenchpants.activityledger.core.ai.GeminiNanoActivityExtractor
 import com.mcfrenchpants.activityledger.core.ai.GeminiNanoActivityInterpreter
 import com.mcfrenchpants.activityledger.core.ai.ModelReadiness
 import com.mcfrenchpants.activityledger.core.ai.OnDeviceModelCapability
 import com.mcfrenchpants.activityledger.core.data.createActivityRepository
+import com.mcfrenchpants.activityledger.core.domain.extraction.ActivityExtractor
 import com.mcfrenchpants.activityledger.core.domain.interpretation.ActivityInterpreter
-import com.mcfrenchpants.activityledger.core.domain.repository.ActivityRepository
+import com.mcfrenchpants.activityledger.core.domain.repository.LedgerRepository
 import com.mcfrenchpants.activityledger.core.domain.services.CaptureInterpretationOrchestrator
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedCaptureOrchestrator
 import java.time.Clock
 
 /**
  * The one place in the phone app where the capture pipeline's collaborators are wired together:
- * the ledger repository, the on-device model capability, the interpreter over it, the clock and
- * the orchestrator that drives them.
+ * the ledger repository, the on-device model capability, the interpreter and the extractor over
+ * it, the clock and the orchestrators that drive them.
+ *
+ * Two pipelines coexist here until the screens switch over: the v3 activity pipeline
+ * ([interpreter], [orchestrator]), which the Log and History screens still use, and the
+ * subject + action tag pipeline ([extractor], [taggedOrchestrator]), which the watch capture
+ * receiver already uses (ADR-045). Both share the one [capability] and the one [repository];
+ * the v3 members are removed once the screens have switched.
  *
  * Nothing else in app-phone may construct any of these. Wiring lives here and only here, by
  * hand: this project deliberately uses no dependency-injection framework (no Hilt, Koin or
@@ -55,7 +64,7 @@ import java.time.Clock
  */
 class CapturePipeline private constructor(
     /** The ledger. Reads and writes every capture, interpretation and occurrence. */
-    val repository: ActivityRepository,
+    val repository: LedgerRepository,
     /** The process's on-device model client. Closed by [close]; see the lifetime note above. */
     val capability: OnDeviceModelCapability,
     /**
@@ -68,6 +77,14 @@ class CapturePipeline private constructor(
     val clock: Clock,
     /** Drives one capture from stored raw text to exactly one persisted outcome. */
     val orchestrator: CaptureInterpretationOrchestrator,
+    /**
+     * The extractor over the same [capability], exposed chiefly for
+     * [GeminiNanoActivityExtractor.warmUp]. The tagged orchestrator already holds its own
+     * reference (wrapped in a busy retry); callers should not invoke `extract` directly.
+     */
+    val extractor: GeminiNanoActivityExtractor,
+    /** Drives one capture to exactly one persisted subject + action outcome. */
+    val taggedOrchestrator: TaggedCaptureOrchestrator,
 ) : AutoCloseable {
 
     /**
@@ -85,7 +102,8 @@ class CapturePipeline private constructor(
          * The orchestrator's interpreter is the Gemini interpreter wrapped in a
          * [BusyRetryInterpreter], so a capture made while the model is busy waits briefly and
          * is tried again (at most twice) instead of failing; the Gemini interpreter itself still
-         * makes one model call per attempt (ADR-030 and its amendment).
+         * makes one model call per attempt (ADR-030 and its amendment). The tagged
+         * orchestrator's extractor is wrapped in the twin [BusyRetryExtractor] the same way.
          *
          * @param context any context; the repository takes the application context itself.
          * @param clock the pipeline's source of time; defaults to the system clock.
@@ -95,11 +113,14 @@ class CapturePipeline private constructor(
          *   of its own, and it is the identity function in production.
          *   A decorator may observe timing only: it must not read, alter, log or re-interpret
          *   anything passing through it.
+         * @param extractorDecorator the same observation seam for the extractor the tagged
+         *   orchestrator is given (outside the busy retry; identity in production; same rule).
          */
         fun create(
             context: Context,
             clock: Clock = Clock.systemDefaultZone(),
             interpreterDecorator: (ActivityInterpreter) -> ActivityInterpreter = { it },
+            extractorDecorator: (ActivityExtractor) -> ActivityExtractor = { it },
         ): CapturePipeline {
             val repository = createActivityRepository(context, clock)
             val capability = OnDeviceModelCapability()
@@ -109,7 +130,15 @@ class CapturePipeline private constructor(
                 interpreter = interpreterDecorator(BusyRetryInterpreter(interpreter)),
                 clock = clock,
             )
-            return CapturePipeline(repository, capability, interpreter, clock, orchestrator)
+            val extractor = GeminiNanoActivityExtractor(capability)
+            val taggedOrchestrator = TaggedCaptureOrchestrator(
+                repository = repository,
+                extractor = extractorDecorator(BusyRetryExtractor(extractor)),
+                clock = clock,
+            )
+            return CapturePipeline(
+                repository, capability, interpreter, clock, orchestrator, extractor, taggedOrchestrator,
+            )
         }
     }
 }

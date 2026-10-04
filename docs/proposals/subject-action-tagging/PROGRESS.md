@@ -22,7 +22,7 @@ Registered in `.sdlc/state.json` as TG1.
 | TG2.4 | Rename and merge tags (data only) | done | Verifier pass attempt 1; ADR-042. STAGE 2 COMPLETE |
 | TG3.1 | Tagged capture orchestrator (core-domain) | done | Verifier pass attempt 1; ADR-043; NeedsReview carries `reasons` (tag decision) AND `problems` (ValidationReason) |
 | TG3.2 | Tagged resolution + correction + tag management services (core-domain) | done | Verifier pass attempt 1; ADR-044 |
-| TG3.3 | Phone wiring (pipeline, application, watch receiver) | todo | verifier required |
+| TG3.3 | Phone wiring (pipeline, application, watch receiver) | done | Verifier pass attempt 1; ADR-045; not yet run on a device |
 | TG3.4 | Log screen on tags (cards, confirm, correct) | todo | |
 | TG3.5 | History on tags | todo | |
 | TG3.6 | Tag management screen (rename, merge) | todo | |
@@ -30,6 +30,9 @@ Registered in `.sdlc/state.json` as TG1.
 | TG4+ | Stage 4 | todo | detail after the Stage 3 report |
 
 ## Session log
+
+### 2026-10-04 — TG3.3 done
+`BusyRetryExtractor`; `CapturePipeline` now has repository as `LedgerRepository`, `extractor` and `taggedOrchestrator` beside the unchanged v3 members (screens still use v3 until TG3.4/3.5); `ActivityLedgerApplication` exposes `taggedResolutionService`, `taggedCorrectionService`, `tagManagementService`; `WatchCaptureReceiver` maps tagged outcomes (AutoSaved/AlreadyHasOccurrence -> SAVED with the pair label; confirm/review/rejected/unavailable -> NEEDS_REVIEW). 10 + 25 tests. ADR-045. Verifier pass. The watch path is therefore LIVE on tags once installed; JVM-proven only. Next: TG3.4 Log screen.
 
 ### 2026-10-04 — TG3.2 done
 `TaggedResolutionService` (resolve a waiting capture), `TaggedCorrectionService` (correct subject/action/duration, same file), `TagManagementService` (rename -> Renamed/NothingChanged/NameInUse(otherId)/Refused, merge, listTags with pair counts), new `TagRefusal` (ServiceRefusal untouched). Two additive TagRepository reads: `loadExtractedWordsForCapture` / `loadExtractedWordsForOccurrence` (`ExtractedWords`). Aliases only via CorrectionAliases; unchanged side never learns. 15 + 14 tests. ADR-044. Verifier pass. For the UI: Existing tag unknown/merged/wrong-kind is one code (TagNotFound); a tag merged between check and save surfaces as IllegalArgumentException from resolve (screens must catch like v3). Next: TG3.3 phone wiring.

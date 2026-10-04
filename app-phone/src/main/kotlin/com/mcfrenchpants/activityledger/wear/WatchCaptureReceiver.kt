@@ -5,7 +5,7 @@ import com.mcfrenchpants.activityledger.core.domain.model.ProcessingState
 import com.mcfrenchpants.activityledger.core.domain.repository.ActivityRepository
 import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
 import com.mcfrenchpants.activityledger.core.domain.repository.StoredCapture
-import com.mcfrenchpants.activityledger.core.domain.services.CaptureProcessingOutcome
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedProcessingOutcome
 import com.mcfrenchpants.activityledger.core.wearprotocol.AckStatus
 import com.mcfrenchpants.activityledger.core.wearprotocol.CaptureAck
 import com.mcfrenchpants.activityledger.core.wearprotocol.CaptureEnvelope
@@ -40,14 +40,15 @@ import kotlinx.coroutines.sync.withLock
  * is written and no ack is sent (its id cannot be trusted). Nothing here logs, and no exception
  * message or ack carries raw text (AGENTS.md #11).
  *
- * @param process runs the interpretation pipeline for one stored capture (production passes
- *   the orchestrator's `process`).
+ * @param process runs the tag pipeline for one stored capture (production passes the tagged
+ *   orchestrator's `process`). A confirm or review outcome is acked NEEDS_REVIEW: the question
+ *   cannot be asked on the watch, the owner answers it on the phone (ADR-045).
  * @param sendAck delivers an encoded ack to [sendAck]'s `sourceNodeId`; failures are swallowed
  *   because the watch will resend and be re-acked.
  */
 class WatchCaptureReceiver(
     private val repository: ActivityRepository,
-    private val process: suspend (captureId: String) -> CaptureProcessingOutcome,
+    private val process: suspend (captureId: String) -> TaggedProcessingOutcome,
     private val sendAck: suspend (sourceNodeId: String, ackJson: String) -> Unit,
     private val zone: () -> ZoneId,
 ) {
@@ -108,7 +109,7 @@ class WatchCaptureReceiver(
             return
         }
         when (outcome) {
-            is CaptureProcessingOutcome.AutoAccepted -> {
+            is TaggedProcessingOutcome.AutoSaved -> {
                 var name: String? = null
                 var occurredAt: Long? = null
                 try {
@@ -124,12 +125,13 @@ class WatchCaptureReceiver(
                 }
                 ack(node, id, AckStatus.SAVED, name, occurredAt)
             }
-            CaptureProcessingOutcome.AlreadyHasOccurrence -> ack(node, id, AckStatus.SAVED)
-            is CaptureProcessingOutcome.NeedsReview,
-            is CaptureProcessingOutcome.Rejected,
+            TaggedProcessingOutcome.AlreadyHasOccurrence -> ack(node, id, AckStatus.SAVED)
+            is TaggedProcessingOutcome.NeedsConfirm,
+            is TaggedProcessingOutcome.NeedsReview,
+            is TaggedProcessingOutcome.Rejected,
             // The raw capture is durably stored; the owner can review/retry on the phone, and
             // acking stops the watch resending forever.
-            is CaptureProcessingOutcome.InterpreterUnavailable,
+            is TaggedProcessingOutcome.InterpreterUnavailable,
             -> ack(node, id, AckStatus.NEEDS_REVIEW, needsReview = true)
         }
     }

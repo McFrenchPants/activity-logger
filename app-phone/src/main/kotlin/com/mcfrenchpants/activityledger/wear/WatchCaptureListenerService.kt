@@ -49,7 +49,7 @@ class WatchCaptureListenerService : WearableListenerService() {
         val messageClient = Wearable.getMessageClient(this)
         return WatchCaptureReceiver(
             repository = pipeline.repository,
-            process = pipeline.orchestrator::process,
+            process = pipeline.taggedOrchestrator::process,
             sendAck = { nodeId, ackJson ->
                 suspendCancellableCoroutine { cont ->
                     messageClient.sendMessage(nodeId, CAPTURE_ACK_PATH, ackJson.toByteArray(Charsets.UTF_8))
