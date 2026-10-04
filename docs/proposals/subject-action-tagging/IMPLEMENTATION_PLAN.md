@@ -190,11 +190,15 @@ question (ADR-011, ADR-038); program logic matches them to tags, queries Room an
 - **TG4.4 — Gemini Nano question extractor (core-ai).** Prompt v1 for questions (no catalog shown),
   response schema + decoder, same session/retry/failure mapping as the activity extractor, tests
   with the fake session. Verifier (AI output). Replay recording on the Pixel happens in TG4.6.
-- **TG4.5 — Ask screen (app-phone).** Fourth bottom tab "Ask": session thread (question bubble ->
-  answer card), text field + mic (reuse the Log screen's speech path if it is reusable without
-  large refactoring, else typed only and say so), copy from UX_SPEC 9/13 and UX_VISUAL_SPEC D6,
-  statement message "That sounds like something you did, not a question.", Clear button, thread
-  in memory only. Answer card: database fact first ("Last logged furnace filter change: Sept 15,
-  2026 at 8:42 AM"), previous occurrence and interval, then the ranked list.
-- **TG4.6 — Device pass.** Install on the Pixel 10 Pro, ask real questions on the real catalog,
+- **TG4.5 — Ask wiring + view model (app-phone, no composables).** `LookupService` built in
+  `ActivityLedgerApplication` over the pipeline's repository and a busy-retrying question extractor;
+  `AskViewModel` + state: in-memory session thread (question -> outcome), typed input, mic via the
+  same `SpeechTranscriber` pattern as the Log view model (permission denied/blocked handling), Clear.
+  JVM tests on the real in-memory ledger with a scripted extractor.
+- **TG4.6 — Ask screen (app-phone UI).** Fourth bottom tab "Ask": question bubbles, answer cards
+  (database fact first: "Last logged furnace filter change: Sept 15, 2026 at 8:42 AM", previous
+  occurrence + interval, ranked list, "closest match" note for near matches), statement message
+  "That sounds like something you did, not a question.", UX_SPEC 13 empty copy, input bar with mic,
+  Clear. Copy from UX_SPEC 9/13 and UX_VISUAL_SPEC D6; Compose tests.
+- **TG4.7 — Device pass.** Install on the Pixel 10 Pro, ask real questions on the real catalog,
   record findings; fix deterministic problems. STOP: plain-English report to the owner.

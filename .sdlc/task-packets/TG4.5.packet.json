@@ -1,0 +1,66 @@
+{
+  "task_id": "TG4.5",
+  "plan_revision": "tg4",
+  "objective": "Wire 'Ask your history' into the phone app and build its view model. NO composables, NO navigation change in this task (the screen is TG4.6).\n\nRead first: ActivityLedgerApplication.kt, pipeline/CapturePipeline.kt, pipeline/BusyRetryExtractor.kt (+ its test), ui/log/LogViewModel.kt (speech handling: listen()/SpeechEvent/SpeechFailure, permission-denied and blocked functions, session guarding against late events, how messages are shown with UserMessage), ui/log/LogViewModelFactory.kt, ui/log/LogUiState.kt, ui/review/UserMessage.kt, and the test fixtures ui/log/LogTestFixtures.kt (real in-memory ledger via createInMemoryActivityRepository, seedTags, scripted fakes) and the Log view model tests. Domain pieces to use (core-domain, package core.domain.lookup): LookupService(repository: TagRepository, extractor: QuestionExtractor).ask(text): LookupOutcome { NotAQuestion, Unavailable, Busy, Failed, NotEnoughHistory, Answer(target, result) }; QuestionExtractor / QuestionExtractionResult / QuestionCandidate; LookupResult/LookupMatch/LookupEntry. core-ai has GeminiNanoQuestionExtractor(capability: OnDeviceModelCapability).\n\n1. pipeline/BusyRetryQuestionExtractor.kt (internal): exactly the BusyRetryExtractor behaviour for a QuestionExtractor (retry only RETRYABLE failures on the same RETRY_WAITS schedule, injectable waits/wait, provenance passthrough, nothing logged) + BusyRetryQuestionExtractorTest mirroring BusyRetryExtractorTest.\n2. ActivityLedgerApplication: add `val lookupService: LookupService by lazy { LookupService(capturePipeline.repository, BusyRetryQuestionExtractor(GeminiNanoQuestionExtractor(capturePipeline.capability))) }` with KDoc in the file's style (shares the pipeline's capability, never closed, lazy). Do NOT change CapturePipeline.\n3. ui/ask/AskUiState.kt, AskViewModel.kt, AskViewModelFactory.kt (same hand-written factory style as LogViewModelFactory; PlatformSpeechTranscriber on the application context):\n   - State (immutable data classes): `thread: List<AskTurn>` where AskTurn(id: Long, question: String, outcome: AskOutcome?) and outcome null while the answer is pending; `AskOutcome` is a UI-side sealed type: Answered(target data needed by the UI = the LookupResult and nothing else needed), NotAQuestion, NotEnoughHistory, AiUnavailable, TryAgainLater (Busy or Failed). `input: String`, `isAsking: Boolean`, `isListening: Boolean`, `partialTranscript: String`, `message: UserMessage?`.\n   - Actions: onInputChange, ask() (trims; blank does nothing; stops listening first; appends a turn with pending outcome, runs LookupService.ask on the view model scope, fills in the outcome; one question at a time: a second ask() while isAsking is ignored; clears the input only when the question was accepted), startListening()/stopListening() with the SAME semantics as LogViewModel (partial transcript shown; the FINAL transcript of an Ask session is put into the input field and, if non-blank, asked immediately; errors map to messages like the Log view model does, re-using its existing strings where the meaning is identical, adding new ones only where the wording must differ -- all new strings go in app-phone/src/main/res/values/strings.xml with the `ask_` prefix), onMicrophonePermissionDenied()/onMicrophonePermissionBlocked(), clear() (empties the thread and the message, stops listening, ignores a still-pending answer), dismissMessage(), and onCleared stops listening. Late events from a finished speech session and answers that arrive after clear() must not change state (copy the Log view model's session-guard idea).\n   - Questions and answers are IN MEMORY ONLY: nothing is written to the database, no repository write is ever called by this view model (assert that in a test with the existing recording/failing ledger fixtures).\n   - No logging, no question text anywhere except state; messages carry string resource ids only.\n4. Tests (app-phone/src/test/.../ui/ask/AskViewModelTest.kt and a fixtures file if needed, JVM, real in-memory ledger + seedTags + a scripted QuestionExtractor): a question about a logged entry gives Answered with the newest entry first; a statement gives NotAQuestion without calling the extractor; empty ledger gives NotEnoughHistory; each failure kind gives AiUnavailable / TryAgainLater; blank input ignored; second ask while asking ignored; spoken final transcript is asked; permission denied/blocked messages; clear() empties the thread and a late answer after clear() is dropped; the view model never writes to the ledger; thread keeps order and ids unique.\n\nNo change to Log/History/Tags code except what compilation forces (report it). No navigation, no composables, no drawables.",
+  "non_goals": [
+    "No composables, no navigation change, no new bottom tab (TG4.6).",
+    "No device run.",
+    "No persistence of questions.",
+    "No change to CapturePipeline or the activity capture flow."
+  ],
+  "dependencies": [
+    "TG4.3",
+    "TG4.4"
+  ],
+  "read_paths": [
+    "app-phone/**",
+    "core-domain/src/main/**",
+    "core-ai/src/main/**",
+    "core-speech/src/main/**",
+    "core-data/src/main/**",
+    "core-testing/**",
+    "docs/UX_SPEC.md",
+    "docs/UX_VISUAL_SPEC.md",
+    "docs/DECISIONS.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline/BusyRetryQuestionExtractor.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ActivityLedgerApplication.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/ask/**",
+    "app-phone/src/main/res/values/strings.xml",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/pipeline/BusyRetryQuestionExtractorTest.kt",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/ask/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "core-domain/**",
+    "core-data/**",
+    "core-ai/**",
+    "core-testing/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-wear/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline/CapturePipeline.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/navigation/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/log/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/tags/**"
+  ],
+  "acceptance_criteria": [
+    "BusyRetryQuestionExtractor retries only RETRYABLE failures on RETRY_WAITS, passes everything else and provenance through, and has tests mirroring BusyRetryExtractorTest.",
+    "ActivityLedgerApplication exposes a lazy lookupService built over the pipeline's repository and capability; CapturePipeline is unchanged.",
+    "AskViewModel keeps an in-memory thread; ask() trims, ignores blank and overlapping questions, shows a pending turn then fills its outcome from LookupService; all LookupOutcome values map to the UI outcomes listed; clear() drops a late answer.",
+    "Voice: listening, partial transcript, final transcript asked immediately, permission denied/blocked and speech failures behave like the Log view model; late speech events ignored.",
+    "Nothing is persisted: the view model never calls a ledger write (tested); no logging; messages are string resource ids.",
+    "AskViewModelTest and BusyRetryQuestionExtractorTest cover every case listed; all :app-phone:testDebugUnitTest tests pass; :app-phone:assembleDebug and :app-phone:compileDebugAndroidTestKotlin compile; no forbidden path changed."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:testDebugUnitTest",
+    "./gradlew :app-phone:assembleDebug :app-phone:compileDebugAndroidTestKotlin",
+    "git status --porcelain"
+  ]
+}

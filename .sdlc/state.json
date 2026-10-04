@@ -1457,7 +1457,7 @@
         },
         {
           "id": "TG4.5",
-          "title": "Ask screen (phone)",
+          "title": "Ask wiring + view model (phone, no UI)",
           "status": "todo",
           "lifecycle_state": "planned",
           "dependencies": [
@@ -1474,11 +1474,10 @@
         },
         {
           "id": "TG4.6",
-          "title": "Device pass",
+          "title": "Ask screen (phone UI)",
           "status": "todo",
           "lifecycle_state": "planned",
           "dependencies": [
-            "TG4.4",
             "TG4.5"
           ],
           "lease": {
@@ -1487,6 +1486,24 @@
             "attempt_count": 0
           },
           "task_packet_path": ".sdlc/task-packets/TG4.6.packet.json",
+          "report_path": null,
+          "notes": "see PROGRESS.md"
+        },
+        {
+          "id": "TG4.7",
+          "title": "Device pass",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "TG4.4",
+            "TG4.6"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/TG4.7.packet.json",
           "report_path": null,
           "notes": "see PROGRESS.md"
         }

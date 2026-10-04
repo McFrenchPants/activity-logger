@@ -33,8 +33,9 @@ Registered in `.sdlc/state.json` as TG1.
 | TG4.2 | Repository read: loadLookupEntries | done | Verifier pass attempt 1; orchestrator added the method to two core-domain test fakes and one test for non-ACTIVE subject/action |
 | TG4.3 | Lookup service + question-extractor seam | done | Spot-check + full core-domain rerun; ADR-051 amended |
 | TG4.4 | Gemini Nano question extractor (core-ai) | done | Verifier pass attempt 1; ADR-052; prompt q1 not yet recorded on a device (TG4.6) |
-| TG4.5 | Ask screen (phone) | todo | |
-| TG4.6 | Device pass | todo | needs the Pixel 10 Pro; owner report after |
+| TG4.5 | Ask wiring + view model (phone, no UI) | todo | |
+| TG4.6 | Ask screen (phone UI) | todo | |
+| TG4.7 | Device pass | todo | needs the Pixel 10 Pro; owner report after |
 
 ## Session log
 
