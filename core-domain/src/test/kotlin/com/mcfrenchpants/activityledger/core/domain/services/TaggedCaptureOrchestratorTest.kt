@@ -7,6 +7,7 @@ import com.mcfrenchpants.activityledger.core.domain.extraction.ExtractionResult
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpretationRecord
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterFailureKind
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterProvenance
+import com.mcfrenchpants.activityledger.core.domain.lookup.LookupEntry
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityResolution
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
 import com.mcfrenchpants.activityledger.core.domain.model.CaptureSource
@@ -68,6 +69,8 @@ private class FakeLedgerRepository(
     override suspend fun mergeTags(kind: TagKind, fromTagId: String, intoTagId: String): MergeOutcome = error("not used")
     override suspend fun loadExtractedWordsForCapture(captureId: String): ExtractedWords? = error("not used")
     override suspend fun loadExtractedWordsForOccurrence(occurrenceId: String): ExtractedWords? = error("not used")
+
+    override suspend fun loadLookupEntries(): List<LookupEntry> = error("not used")
 }
 
 private class FakeExtractor : ActivityExtractor {

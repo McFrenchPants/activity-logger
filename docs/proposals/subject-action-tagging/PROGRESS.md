@@ -30,7 +30,7 @@ Registered in `.sdlc/state.json` as TG1.
 | TG3.8 | Extraction split: object noun lands in the subject ("hot tub filter" / "change") | done | Verifier pass; deterministic guard (rule 5, OBJECT_NOUNS) adopted; prompt v5 measured on the Pixel and NOT adopted (reverted to v4); ADR-049 |
 | TG3.9 | Clean-up: remove old single-activity UI and wiring from the phone app | done | Orchestrator-checked (clean full rerun incl. release compile, androidTest compile); ADR-050 |
 | TG4.1 | Lookup ranking + question detector (core-domain) | done | Spot-check; ADR-051; known false positive "Did the laundry" |
-| TG4.2 | Repository read: loadLookupEntries | todo | verifier (persistence) |
+| TG4.2 | Repository read: loadLookupEntries | done | Verifier pass attempt 1; orchestrator added the method to two core-domain test fakes and one test for non-ACTIVE subject/action |
 | TG4.3 | Lookup service + question-extractor seam | todo | |
 | TG4.4 | Gemini Nano question extractor (core-ai) | todo | verifier (AI output) |
 | TG4.5 | Ask screen (phone) | todo | |

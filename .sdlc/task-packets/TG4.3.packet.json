@@ -1,0 +1,51 @@
+{
+  "task_id": "TG4.3",
+  "plan_revision": "tg4",
+  "objective": "Add the service that turns a typed/spoken question into an answer, in core-domain package com.mcfrenchpants.activityledger.core.domain.lookup (beside the TG4.1 classes: LookupEntry, LookupTarget.fromResolutions, HistoryLookup.rank, LookupResult, QuestionDetector). Pure Kotlin, no Android, no logging of text, suspend functions only where the repository/extractor are suspend.\n\n1. Question extraction seam (words only; the model is never shown tags or entries, ADR-011/ADR-038; mirror the shape and KDoc tone of extraction/ExtractionTypes.kt):\n   - `QuestionCandidate(subject: String?, action: String?)` -- UNTRUSTED model output: the user's own words for what the question is about and what was done.\n   - `sealed interface QuestionExtractionResult { Success(candidate: QuestionCandidate); Failure(kind: InterpreterFailureKind) }` (InterpreterFailureKind from core.domain.interpretation; carry no text).\n   - `interface QuestionExtractor { val provenance: InterpreterProvenance; suspend fun extract(questionText: String): QuestionExtractionResult }` (implementations never throw except coroutine cancellation).\n\n2. `LookupOutcome` sealed interface: `NotAQuestion` (QuestionDetector said no; extractor never called); `Unavailable` (extractor failure UNAVAILABLE); `Busy` (RETRYABLE: the caller may retry later); `Failed` (MALFORMED / OTHER); `NotEnoughHistory` (no entries logged at all, OR the words resolved to no existing tag, OR nothing matched); `Answer(target: LookupTarget, result: LookupResult)` (result non-empty). Document each.\n\n3. `LookupService(repository: TagRepository, extractor: QuestionExtractor)` with `suspend fun ask(questionText: String): LookupOutcome`. Order: blank or !QuestionDetector.isQuestion -> NotAQuestion (no repository or extractor call). Call extractor; map failures as above. Load `repository.loadTagCatalog()`; resolve candidate.subject with TagResolver against catalog.subjects and candidate.action against catalog.actions (read tagging/TagResolver.kt and TagCatalog.kt for the exact API -- the resolver is per kind); `LookupTarget.fromResolutions(subjectResolution, actionResolution)` -> null => NotEnoughHistory. Load `repository.loadLookupEntries()`; empty -> NotEnoughHistory. rank; empty result -> NotEnoughHistory; else Answer. The service itself never writes anything, never saves the question, never logs.\n   One more rule: when a side resolved to Near (not Exact), the answer is still returned (the UI says it is the closest match -- LookupMatch.exact already carries that); do NOT ask the user.\n\n4. Tests (core-domain/src/test/.../lookup/LookupServiceTest.kt) with a scripted fake QuestionExtractor and an in-memory fake TagRepository (look at how services/TagUserServicesTest.kt / TaggedCaptureOrchestratorTest.kt fake a LedgerRepository: they use `ActivityRepository by base` -- for a TagRepository-only fake just implement the interface, `error(\"not used\")` for unused methods): statement -> NotAQuestion and extractor not called; each failure kind -> its outcome; empty entries -> NotEnoughHistory; words resolve to New -> NotEnoughHistory; exact both tags -> Answer with tier BOTH newest first and previous/interval; subject-only question; action-only question; Near subject -> Answer with exact=false; the extractor is called exactly once per question; a question with both words null -> NotEnoughHistory. Include 'when did I last change the furnace filter' style data.\n\nDOCS: append a short amendment line to the ADR written in TG4.1 (ADR-051) in docs/DECISIONS.md describing the service outcomes and that Near matches answer without asking. No other doc.\n\nRULES: no change to existing classes; no Android/Room; no logging; no exception messages containing text.",
+  "non_goals": [
+    "No Gemini/ML Kit code (TG4.4).",
+    "No UI or view model (TG4.5).",
+    "No database change."
+  ],
+  "dependencies": [
+    "TG4.1",
+    "TG4.2"
+  ],
+  "read_paths": [
+    "core-domain/**",
+    "docs/DECISIONS.md",
+    "docs/UX_SPEC.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/**",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/**",
+    "docs/DECISIONS.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "core-data/**",
+    "core-ai/**",
+    "core-testing/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-phone/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "QuestionCandidate, QuestionExtractionResult, QuestionExtractor, LookupOutcome and LookupService exist with KDoc; extractor and repository seams are interfaces.",
+    "ask() returns NotAQuestion without touching the extractor or repository for statements/blank text; maps UNAVAILABLE/RETRYABLE/MALFORMED+OTHER to Unavailable/Busy/Failed.",
+    "ask() resolves words with TagResolver against the catalog, builds the target with LookupTarget.fromResolutions, and returns NotEnoughHistory when the target is null, there are no entries, or nothing matches; otherwise Answer with the ranked result.",
+    "Near matches answer without asking and keep exact=false on the matches.",
+    "LookupServiceTest covers every listed case and passes with the rest of :core-domain:test; no existing class changed.",
+    "ADR-051 amended; no forbidden path changed."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test",
+    "git status --porcelain"
+  ]
+}

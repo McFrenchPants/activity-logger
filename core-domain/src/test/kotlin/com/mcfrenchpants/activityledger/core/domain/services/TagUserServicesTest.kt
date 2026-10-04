@@ -1,5 +1,6 @@
 package com.mcfrenchpants.activityledger.core.domain.services
 
+import com.mcfrenchpants.activityledger.core.domain.lookup.LookupEntry
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityResolution
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
 import com.mcfrenchpants.activityledger.core.domain.model.CanonicalActivityStatus
@@ -93,6 +94,8 @@ private class RecordingLedger(
     }
 
     override suspend fun loadExtractedWordsForOccurrence(occurrenceId: String): ExtractedWords? = occurrenceWords
+
+    override suspend fun loadLookupEntries(): List<LookupEntry> = emptyList()
 
     override suspend fun getOccurrence(id: String): OccurrenceView? = occurrenceView?.takeIf { it.id == id }
 

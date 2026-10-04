@@ -19,6 +19,7 @@ import com.mcfrenchpants.activityledger.core.data.ledger.NewTagAlias
 import com.mcfrenchpants.activityledger.core.data.ledger.OccurrenceChanges
 import com.mcfrenchpants.activityledger.core.data.ledger.TagRef
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpretationRecord
+import com.mcfrenchpants.activityledger.core.domain.lookup.LookupEntry
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
 import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
 import com.mcfrenchpants.activityledger.core.domain.model.ProcessingState
@@ -224,6 +225,20 @@ internal class RoomActivityRepository(
 
     override suspend fun loadExtractedWordsForOccurrence(occurrenceId: String): ExtractedWords? = io {
         database.interpretationDao().extractedWordsForOccurrence(occurrenceId)?.toWords()
+    }
+
+    override suspend fun loadLookupEntries(): List<LookupEntry> = io {
+        database.activityOccurrenceDao().loadLookupRows().map { row ->
+            LookupEntry(
+                occurrenceId = row.occurrenceId,
+                subjectId = row.subjectId,
+                subjectName = row.subjectName,
+                actionId = row.actionId,
+                actionName = row.actionName,
+                occurredAt = Instant.ofEpochMilli(row.occurredAt),
+                durationSeconds = row.durationSeconds,
+            )
+        }
     }
 
     override suspend fun recordOutcome(
