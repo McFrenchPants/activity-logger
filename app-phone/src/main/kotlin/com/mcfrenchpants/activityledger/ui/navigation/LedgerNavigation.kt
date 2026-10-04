@@ -24,6 +24,7 @@ import androidx.navigation.compose.rememberNavController
 import com.mcfrenchpants.activityledger.R
 import com.mcfrenchpants.activityledger.ui.history.HistoryScreen
 import com.mcfrenchpants.activityledger.ui.log.LogScreen
+import com.mcfrenchpants.activityledger.ui.tags.TagsScreen
 import kotlinx.serialization.Serializable
 import kotlin.reflect.KClass
 
@@ -34,6 +35,10 @@ data object LogRoute
 /** Type-safe route of the History destination. */
 @Serializable
 data object HistoryRoute
+
+/** Type-safe route of the Tags destination (rename and merge subjects and actions). */
+@Serializable
+data object TagsRoute
 
 /**
  * The top-level destinations shown in the navigation bar (UX_VISUAL_SPEC D1). Ask is
@@ -47,13 +52,14 @@ enum class TopLevelDestination(
 ) {
     LOG(LogRoute, LogRoute::class, R.string.nav_log, R.drawable.ic_nav_log),
     HISTORY(HistoryRoute, HistoryRoute::class, R.string.nav_history, R.drawable.ic_nav_history),
+    TAGS(TagsRoute, TagsRoute::class, R.string.nav_tags, R.drawable.ic_nav_tags),
 }
 
 /**
  * The app shell: a [Scaffold] with an M3 [NavigationBar] (labels always visible) over a
  * [NavHost]. Each top-level destination keeps its own back stack (saveState/restoreState), and
- * because every tab switch pops back to the start destination, system Back from History
- * returns to Log.
+ * because every tab switch pops back to the start destination, system Back from History or
+ * Tags returns to Log.
  */
 @Composable
 fun LedgerNavigation(navController: NavHostController = rememberNavController()) {
@@ -86,6 +92,7 @@ fun LedgerNavigation(navController: NavHostController = rememberNavController())
                 LogScreen(onOpenHistory = { navController.navigateToTopLevel(TopLevelDestination.HISTORY) })
             }
             composable<HistoryRoute> { HistoryScreen() }
+            composable<TagsRoute> { TagsScreen() }
         }
     }
 }

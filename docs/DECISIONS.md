@@ -775,3 +775,19 @@ The History screen now runs on `LedgerRepository`, `TaggedResolutionService` and
 **Shared draft logic.** The pure Check-card rules (how a side starts from a resolution, blank drafts, candidate / "Keep mine" / picker choices) were extracted from the Log view model into `ui/review/CheckDraft`; Log and History both use it, Log behaviour and its tests are unchanged. `CheckCard` stays in `ui/log` (module-internal) and History reuses it with its test tags.
 
 **Consequences.** `ActivityPicker`, `ReviewSuggestions`, `PickerState` and `refusalMessageFor` stay in the code base, unused by History, for TG3.7 clean-up. Old strings stay (additive only).
+
+## ADR-048 — Tags screen: rename and merge
+
+**Status:** Accepted (developer decision, 2026-10-04; subject + action tagging redesign, TG3.6)
+
+A third bottom-bar tab, **Tags** (order: Log, History, Tags), is where the owner tidies subjects and actions in one or two taps (design requirement 5). The screen is UI only: every change goes through `TagManagementService` (ADR-042, ADR-044).
+
+**Two lists.** A two-option selector (Subjects / Actions) switches between the lists, both loaded together on screen start and after every change. A row shows the name, "Used with N actions" (subjects) or "Used with N subjects" (actions) from `ManagedTag.pairCount`, and, when the tag has other names, "Also called: a, b, c" (at most three, then "+N more"). Each row has two text buttons, Rename and "Merge into...", with 48 dp targets. Empty list: one friendly sentence that tags appear as the owner logs things.
+
+**Rename.** A dialog pre-filled with the current name; Save is disabled for a blank or unchanged-after-trim name. `Renamed` closes the dialog and shows "Renamed." (the old name appears under "Also called"); `NothingChanged` closes quietly; `NameInUse` keeps the dialog, says plainly that another subject/action already has that name (naming it from the loaded list) and offers "Merge them instead", which opens the merge confirmation with this tag merged INTO the other one; `Refused` keeps the dialog with the plain message from `tagRefusalMessage`.
+
+**Merge only after an explicit confirmation.** "Merge into..." opens a chooser (search, the OTHER tags of the same kind, no "new name" option; it reuses `filterTags` but is its own small sheet so `TagPicker` is untouched). Choosing a target only opens a confirmation dialog that names both tags, says the original words are kept and that this "can't be undone yet" (no unmerge exists). The confirmation's Merge button is the only call to `merge`. `Merged` closes, refreshes and shows "Merged. N entries moved." (plural); a refusal keeps the dialog with a plain message; a storage failure or race shows the shared "could not save that change" message and changes nothing. Cancel at any step writes nothing.
+
+**Plain-words copy rules.** Strings are everyday words: never "canonical", "alias", "pair" or "merge target". Tag names appear only as on-screen content (dialog and row text), never in message resources, exceptions or logs; nothing on this screen is logged (AGENTS.md #11). One action at a time (a second tap while one runs is ignored). A load failure shows the existing "could not load your subjects and actions" message with Try again.
+
+**Consequences.** No unmerge, delete or alias editing exists; those are not part of this task. Strings are additive.

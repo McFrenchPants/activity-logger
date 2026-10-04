@@ -341,6 +341,14 @@ top bar. No averages, streaks, or scores.
 - Haptics: Queued — one short tick; Success and Needs review — two short
   ticks; Failure — one long pulse; Listening — none.
 
+### 4.7 Tags (ADR-048)
+
+- Third navigation tab, after Log and History; vector icon in the same outline style as Log and History.
+- Top: a two-option selector (Subjects / Actions), announced as "Show subjects or actions"; each option has a 48 dp touch target.
+- Row: name (titleMedium), "Used with N actions/subjects", optional "Also called: a, b, c +N more" (three names at most), then two text buttons, Rename and "Merge into...", each 48 dp and labelled with the tag's name for screen readers. The three text lines are read as one item.
+- Rename is a dialog with a text field and Save / Cancel; a name already used offers "Merge them instead". Merge is a search sheet over the other tags of the same kind (no new-name row), then a confirmation dialog that names both tags, says the original words are kept and that it cannot be undone yet.
+- Messages and confirmations are polite live regions; copy uses everyday words only.
+
 ## 5. Accessibility (UX_SPEC §12)
 
 - Capture button content descriptions: "Log by voice" / "Stop listening".

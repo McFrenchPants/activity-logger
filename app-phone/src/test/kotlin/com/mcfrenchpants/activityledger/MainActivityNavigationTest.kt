@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mcfrenchpants.activityledger.ui.history.HISTORY_SCREEN_TAG
 import com.mcfrenchpants.activityledger.ui.log.LOG_SCREEN_TAG
+import com.mcfrenchpants.activityledger.ui.tags.TAGS_SCREEN_TAG
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,12 +29,29 @@ class MainActivityNavigationTest {
 
     private val logTab get() = composeRule.onNode(hasText("Log") and isSelectable())
     private val historyTab get() = composeRule.onNode(hasText("History") and isSelectable())
+    private val tagsTab get() = composeRule.onNode(hasText("Tags") and isSelectable())
 
     @Test
-    fun startsOnLogWithBothLabelsVisible() {
+    fun startsOnLogWithAllThreeLabelsVisible() {
         composeRule.onNodeWithTag(LOG_SCREEN_TAG).assertIsDisplayed()
         logTab.assertIsDisplayed().assertIsSelected()
         historyTab.assertIsDisplayed().assertIsNotSelected()
+        tagsTab.assertIsDisplayed().assertIsNotSelected()
+    }
+
+    @Test
+    fun tagsTabShowsTagsAndBackReturnsToLog() {
+        tagsTab.performClick()
+        composeRule.onNodeWithTag(TAGS_SCREEN_TAG).assertIsDisplayed()
+        tagsTab.assertIsSelected()
+        historyTab.assertIsNotSelected()
+        composeRule.onNodeWithTag(LOG_SCREEN_TAG).assertDoesNotExist()
+
+        composeRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(LOG_SCREEN_TAG).assertIsDisplayed()
+        logTab.assertIsSelected()
     }
 
     @Test

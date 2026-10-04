@@ -25,11 +25,14 @@ Registered in `.sdlc/state.json` as TG1.
 | TG3.3 | Phone wiring (pipeline, application, watch receiver) | done | Verifier pass attempt 1; ADR-045; not yet run on a device |
 | TG3.4 | Log screen on tags (cards, confirm, correct) | done | Verifier pass attempt 1 (first spawn stopped on a packet path overlap, my error; resumed); ADR-046; not yet seen on a device |
 | TG3.5 | History on tags | done | Verifier pass attempt 1; ADR-047; waiting captures finish at CAPTURE time (History lacks the stored resolved time) |
-| TG3.6 | Tag management screen (rename, merge) | todo | |
+| TG3.6 | Tag management screen (rename, merge) | done | Verifier pass attempt 1; ADR-048; third bottom tab 'Tags' (developer decision) |
 | TG3.7 | Device pass (Pixel 10 Pro + watch) | todo | STOP for owner report after |
 | TG4+ | Stage 4 | todo | detail after the Stage 3 report |
 
 ## Session log
+
+### 2026-10-04 — TG3.6 done
+Tags screen: third bottom tab, Subjects/Actions selector, rows (name, 'Used with N ...', 'Also called'), Rename dialog (NameInUse offers merge-instead, this tag INTO the other), Merge chooser + explicit confirmation naming both tags and stating originals are kept and it cannot be undone yet (no unmerge exists). 19 view-model + 9 screen + 4 nav tests on the real in-memory ledger. ADR-048, UX_VISUAL_SPEC 4.7. Verifier pass. Next: TG3.7 device pass.
 
 ### 2026-10-04 — TG3.5 done (5th task of the run: run budget reached, stop)
 History on tags: rows 'Subject · Action' + duration (old-pipeline rows unchanged, non-clickable); waiting captures open the same Check-card experience, starting sides REBUILT from stored extracted words via TagDecisionPolicy against the current catalog (no model call; blank when no words), saved through TaggedResolutionService at capture time (INFERRED_NOW) -- a time the owner spoke ("yesterday") is therefore not applied when finishing from History (known limitation, ADR-047; fix = expose stored resolved time); Edit sheet for saved rows (Change subject/action, Remove from history = hideOccurrence). Shared `CheckDraft` (ui/review, depends on ui/log types -- mild layering oddity). 229 app-phone tests. Leftovers for TG3.7 clean-up: ActivityPicker, ReviewSuggestions, PickerState, refusalMessageFor, ReviewResolutionService/CorrectionService wiring, v3 interpreter/orchestrator in CapturePipeline, `LegacyActivityFixtures.kt`, old card strings. Next: TG3.6 tag management screen, then TG3.7 device pass (Pixel 10 Pro + watch; owner clears app storage once).

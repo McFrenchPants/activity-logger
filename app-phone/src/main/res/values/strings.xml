@@ -5,6 +5,7 @@
     <!-- Top-level navigation labels (always visible in the navigation bar). -->
     <string name="nav_log">Log</string>
     <string name="nav_history">History</string>
+    <string name="nav_tags">Tags</string>
 
     <!-- Row state tags (UX_VISUAL_SPEC D3 state vocabulary). -->
     <string name="state_in_progress">In progress</string>
@@ -168,4 +169,50 @@
     <string name="refusal_name_time_word">Leave days and times out of the name: for example “Walk”, not “Morning walk”.</string>
     <string name="refusal_name_completion_word">Leave words like “done” or “finished” out of the name.</string>
     <string name="refusal_name_filler_word">Use a more specific name. Words like “stuff” or “things” are too vague.</string>
+
+    <!-- Tags screen (ADR-048): rename and merge subjects and actions, in everyday words. -->
+    <string name="tags_kind_selector_a11y">Show subjects or actions</string>
+    <string name="tags_kind_subjects">Subjects</string>
+    <string name="tags_kind_actions">Actions</string>
+    <plurals name="tags_used_with_actions">
+        <item quantity="one">Used with %1$d action</item>
+        <item quantity="other">Used with %1$d actions</item>
+    </plurals>
+    <plurals name="tags_used_with_subjects">
+        <item quantity="one">Used with %1$d subject</item>
+        <item quantity="other">Used with %1$d subjects</item>
+    </plurals>
+    <string name="tags_also_called">Also called: %1$s</string>
+    <plurals name="tags_more_names">
+        <item quantity="one">+%1$d more</item>
+        <item quantity="other">+%1$d more</item>
+    </plurals>
+    <string name="tags_rename">Rename</string>
+    <string name="tags_merge_into">Merge into…</string>
+    <string name="tags_rename_a11y">Rename %1$s</string>
+    <string name="tags_merge_a11y">Merge %1$s into another</string>
+    <string name="tags_empty_subjects">No subjects yet. They show up here as you log things.</string>
+    <string name="tags_empty_actions">No actions yet. They show up here as you log things.</string>
+    <string name="tags_retry">Try again</string>
+    <string name="tags_renamed">Renamed.</string>
+    <plurals name="tags_merged">
+        <item quantity="one">Merged. %1$d entry moved.</item>
+        <item quantity="other">Merged. %1$d entries moved.</item>
+    </plurals>
+    <string name="tags_save">Save</string>
+    <string name="tags_cancel">Cancel</string>
+    <string name="tags_rename_title_subject">Rename subject</string>
+    <string name="tags_rename_title_action">Rename action</string>
+    <string name="tags_rename_field">New name</string>
+    <string name="tags_name_in_use_subject">Another subject is already called “%1$s”.</string>
+    <string name="tags_name_in_use_action">Another action is already called “%1$s”.</string>
+    <string name="tags_merge_instead">Merge them instead</string>
+    <string name="tags_chooser_title">Merge “%1$s” into…</string>
+    <string name="tags_chooser_search_subject">Search subjects</string>
+    <string name="tags_chooser_search_action">Search actions</string>
+    <string name="tags_chooser_no_matches">Nothing matches that.</string>
+    <string name="tags_chooser_nothing_else">There is nothing else to merge into yet.</string>
+    <string name="tags_confirm_title">Merge these?</string>
+    <string name="tags_confirm_body">Everything logged under “%1$s” will count as “%2$s” instead. Your original words are kept. This can\'t be undone yet.</string>
+    <string name="tags_confirm_merge">Merge</string>
 </resources>
