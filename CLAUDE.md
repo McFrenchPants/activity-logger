@@ -65,9 +65,23 @@ This project is currently in **`lite` release mode**: there is no live
 deployment target yet (no cloud backend by design — see ADR-013 in
 `docs/DECISIONS.md`), so there is no supervisor role and no
 integration/production branch split. `/continue-development` implements,
-tests, and commits to a feature branch off `main`, then stops; merging and
-any future release is done by hand. Revisit this once a real distribution
-target exists (see the note in `.sdlc/project.yaml`).
+tests, and commits to a feature branch off `main`.
+
+**Standing owner rule (2026-10-04): finishing includes shipping.** This is a
+personal app, not a production service. When a task or phase is done and its
+checks pass (verifier where required, full tests, build), the orchestrator
+itself merges the feature branch into `main`, pushes `main` (and the feature
+branch) to `origin`, and installs the new build on the owner's phone and watch
+when they are reachable over adb. It never waits for the owner's permission
+for any of that; the orchestrator is the senior developer and decides from the
+condition of the branch. The only reason not to merge is a real problem: a
+test or build failure, a regression of existing behaviour, an unresolved
+verifier finding, or a stop condition below. Then it says so plainly and
+keeps the work on the branch. Housekeeping docs (status, backlog, progress)
+are brought up to date before the push. Still ask first for anything that
+costs money or touches accounts, and never force-push or rewrite history.
+Revisit this once a real distribution target exists (see the note in
+`.sdlc/project.yaml`).
 
 ### Roles & boundaries
 
