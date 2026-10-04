@@ -1,0 +1,67 @@
+{
+  "task_id": "TG3.3",
+  "plan_revision": "tg3",
+  "objective": "Wire the PHONE app's capture pipeline and the WATCH capture receiver to the tag pipeline built in TG3.1/TG3.2, without changing any screen. After this task a capture arriving from the watch is extracted, decided and saved as subject + action by the new orchestrator; the Log and History screens keep working unchanged on the old services until TG3.4/TG3.5 (both service sets coexist, by design -- the v3 pipeline stays in the code base and in CapturePipeline for now).\n\nBACKGROUND: app-phone/.../pipeline/CapturePipeline.kt is the one place the pipeline is wired (read its KDoc: one per process, never logs, never downloads). It currently builds repository (createActivityRepository -- which already returns a LedgerRepository, typed as ActivityRepository in CapturePipeline), OnDeviceModelCapability, the v3 GeminiNanoActivityInterpreter wrapped in BusyRetryInterpreter, and the v3 CaptureInterpretationOrchestrator. BusyRetryInterpreter (pipeline/BusyRetryInterpreter.kt) waits 2 s then 4 s and retries ONLY InterpreterFailureKind.RETRYABLE (ADR-030). core-ai has GeminiNanoActivityExtractor(capability) : ActivityExtractor with warmUp() (core-ai is read-only here). core-domain (done, verified): TaggedCaptureOrchestrator(repository: LedgerRepository, extractor: ActivityExtractor, clock).process(captureId): TaggedProcessingOutcome = AutoSaved(occurrenceId) | NeedsConfirm(proposal) | NeedsReview(reasons, problems, proposal) | Rejected(reasons) | InterpreterUnavailable(kind) | AlreadyHasOccurrence; TaggedResolutionService(repository, clock) + TaggedCorrectionService (both in services/TaggedResolutionService.kt) and TagManagementService(repository) (services/). app-phone/.../ActivityLedgerApplication.kt lazily exposes capturePipeline, reviewResolutionService, correctionService. app-phone/.../wear/WatchCaptureListenerService.kt builds a WatchCaptureReceiver(repository, process = pipeline.orchestrator::process, sendAck, zone) and app-phone/.../wear/WatchCaptureReceiver.kt stores the raw capture, acks RECEIVED, runs `process`, then acks SAVED (with canonicalActivityName + occurredAt) or NEEDS_REVIEW (needsReview = true); NEEDS_REVIEW is also acked for Rejected and InterpreterUnavailable (the raw capture is durable; acking stops resend); already-stored captures are re-acked by state (SAVED if it has an occurrence, re-run if CAPTURED/FAILED_RETRYABLE, NEEDS_REVIEW otherwise); a mutex serialises receives (idempotent on captureId). A tagged pair's canonical activity displayName is the cache label '<subject> <action>' (ADR-040), so `repository.getActivity(occurrence.canonicalActivityId).displayName` is already the label the watch should show.\n\nCHANGES:\n1. New `BusyRetryExtractor(delegate: ActivityExtractor, waits, wait)` in app-phone pipeline/ -- the exact twin of BusyRetryInterpreter (same RETRY_WAITS, retries only RETRYABLE, provenance delegated), with a unit test mirroring BusyRetryInterpreterTest (read it). One model call per attempt; no other behaviour.\n2. CapturePipeline: `repository` becomes `LedgerRepository` (still an ActivityRepository for the old screens); add `extractor: GeminiNanoActivityExtractor` (exposed like `interpreter`, for warmUp) and `taggedOrchestrator: TaggedCaptureOrchestrator` built over BusyRetryExtractor(extractor) with the decorator seam analogue (add a second optional decorator parameter `extractorDecorator: (ActivityExtractor) -> ActivityExtractor = { it }`, identity in production, outside the busy retry, timing-observation only, same KDoc rule). Keep the v3 `interpreter` and `orchestrator` members exactly as they are (screens still use them). Update the KDoc: both pipelines coexist until the screens switch; still exactly one capability and one repository, closed/never-closed rules unchanged; no logging.\n3. ActivityLedgerApplication: add lazy `taggedResolutionService: TaggedResolutionService`, `taggedCorrectionService: TaggedCorrectionService`, `tagManagementService: TagManagementService`, built from capturePipeline.repository and clock like the existing ones. Existing members unchanged. Same lazy/never-closed KDoc rules.\n4. WatchCaptureReceiver: `process` becomes `suspend (captureId: String) -> TaggedProcessingOutcome`; the outcome mapping is: AutoSaved -> SAVED with name = getActivity(...).displayName and occurredAt exactly as today; AlreadyHasOccurrence -> SAVED; NeedsConfirm / NeedsReview / Rejected / InterpreterUnavailable -> NEEDS_REVIEW with needsReview = true (a 'did you mean' question cannot be asked on the watch; the owner answers it on the phone); a thrown non-cancellation exception -> FAILED_RETRYABLE as today. The receiver itself keeps `repository: ActivityRepository` (it only needs capture/occurrence/activity reads and createRawCapture). Nothing else in the receiver changes: idempotency, mutex, ack statuses, no logging, no user text in any ack except the existing optional name. WatchCaptureListenerService passes `pipeline.taggedOrchestrator::process`.\n5. Tests: update WatchCaptureReceiverTest to drive the receiver with tagged outcomes (a fake `process` lambda returning each TaggedProcessingOutcome kind, plus the existing re-delivery/duplicate/mutex/failed-store scenarios, which must keep their meaning); add that a real TaggedCaptureOrchestrator over a recording fake is NOT required (core-domain/core-data already prove it). Keep BusyRetryInterpreterTest etc. passing. The androidTest sources must still COMPILE (run `./gradlew :app-phone:compileDebugAndroidTestKotlin`); do not run them (no device in this task). If CaptureVerticalSliceTest needs a change only to keep compiling, make the minimal change (it is in write_paths); do not extend it.\n6. Docs: ADR-045 in docs/DECISIONS.md ('Phone and watch capture switch to the tag pipeline', Accepted, developer decision 2026-10-04, TG3.3): both pipelines coexist in CapturePipeline until TG3.4/TG3.5 switch the screens and v3 is then deleted from the pipeline; the watch gets NEEDS_REVIEW for confirm/review (the question is asked on the phone); the label comes from the pair's cached display name. No other doc changes.\n\nRULES: no change to core-*, schemas, wear-protocol, app-wear, the Log/History view models or screens (they keep compiling against the old services -- if a type change forces an edit there, report scope_change_requested instead); no logging; no user text anywhere new; ML Kit types stay in core-ai.",
+  "non_goals": [
+    "No screen, view-model or UI change (TG3.4-TG3.6).",
+    "No removal of the v3 interpreter/orchestrator from CapturePipeline.",
+    "No change to the watch app, the wear protocol or core modules.",
+    "No instrumented/device run (TG3.7)."
+  ],
+  "dependencies": ["TG3.2"],
+  "read_paths": [
+    "app-phone/**",
+    "core-domain/**",
+    "core-ai/src/main/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/ActivityRepositories.kt",
+    "core-testing/**",
+    "core-wear-protocol/**",
+    "docs/DECISIONS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/TEST_STRATEGY.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/wear/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ActivityLedgerApplication.kt",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/pipeline/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/wear/**",
+    "app-phone/src/androidTest/kotlin/com/mcfrenchpants/activityledger/pipeline/**",
+    "docs/DECISIONS.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "core-data/**",
+    "core-domain/**",
+    "core-ai/**",
+    "core-testing/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-wear/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/**",
+    "app-phone/src/debug/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/**"
+  ],
+  "acceptance_criteria": [
+    "BusyRetryExtractor retries only RETRYABLE failures with the same waits as BusyRetryInterpreter, delegates provenance, and is unit-tested like BusyRetryInterpreter.",
+    "CapturePipeline exposes repository as LedgerRepository, the extractor and the taggedOrchestrator (over the busy-retry extractor, with the identity-by-default decorator seam) while the v3 interpreter and orchestrator members are unchanged; still one capability and one repository per pipeline; no logging.",
+    "ActivityLedgerApplication lazily exposes taggedResolutionService, taggedCorrectionService and tagManagementService without changing existing members.",
+    "WatchCaptureReceiver maps TaggedProcessingOutcome exactly as specified (AutoSaved/AlreadyHasOccurrence -> SAVED with the pair label and time for AutoSaved; NeedsConfirm/NeedsReview/Rejected/InterpreterUnavailable -> NEEDS_REVIEW with needsReview=true; exception -> FAILED_RETRYABLE), keeping idempotency on captureId, the mutex, ack-by-state for stored captures and the no-logging rule; WatchCaptureListenerService uses the tagged orchestrator.",
+    "WatchCaptureReceiverTest covers every outcome kind and still covers redelivery, duplicates, concurrency and storage failure; all app-phone unit tests pass and the androidTest sources compile.",
+    "ADR-045 is written; no forbidden path changed (git diff --stat over them is empty); no Log/println added."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:testDebugUnitTest",
+    "./gradlew :app-phone:compileDebugAndroidTestKotlin",
+    "./gradlew :app-phone:assembleDebug",
+    "./gradlew :core-domain:test :core-data:test :core-testing:test :core-ai:test",
+    "git diff --stat -- core-data core-domain core-ai core-testing core-speech core-wear-protocol app-wear app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui app-phone/src/debug app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
