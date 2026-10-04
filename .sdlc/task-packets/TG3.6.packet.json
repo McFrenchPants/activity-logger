@@ -1,0 +1,65 @@
+{
+  "task_id": "TG3.6",
+  "plan_revision": "tg3",
+  "objective": "Add the TAGS screen to the phone app: the place where the owner tidies their subjects and actions by renaming them and merging duplicates (design-spec requirement 5: tag hygiene in one or two taps). The data operations and the service already exist and are verified (ADR-042, ADR-044): `TagManagementService` (core-domain services/TagManagementService.kt, read its KDoc) with `listTags(kind): List<ManagedTag(id, name, aliases, pairCount)>`, `rename(kind, tagId, newName): TagRenameResult = Renamed | NothingChanged | NameInUse(otherTagId) | Refused(TagRefusal)` and `merge(kind, fromTagId, intoTagId): TagMergeResult = Merged(movedOccurrences, mergedPairs) | Refused(TagRefusal)`; the application class exposes it as `ActivityLedgerApplication.tagManagementService`. This task is UI only.\n\nREAD FIRST (read-only unless in write_paths): app-phone ui/navigation/LedgerNavigation.kt (bottom bar + NavHost; TopLevelDestination enum), ui/history/* (HistoryViewModel/Factory/Screen/UiState as the pattern for a view model + factory + screen + one immutable UI state, runAction single-in-flight, messages as resource ids via UserMessage, refreshing after every change), ui/components/TagPicker.kt (modal sheet pattern, test tags, accessibility), ui/review/RefusalMessages.kt (`tagRefusalMessage(TagRefusal)` -- reuse it), res/values/strings.xml, res/drawable (existing ic_nav_log / ic_nav_history vector icons), ui/theme/*, docs/UX_SPEC.md + docs/UX_VISUAL_SPEC.md (tone, touch targets, accessibility rules, how screens and dialogs are described), ui/log tests (LogTestFixtures' ScriptedExtractor / RecordingLedger / seedTags helpers) and ui/history tests (how they run the REAL ledger through `createInMemoryActivityRepository(context, clock)`), core-domain tagging/TagCatalog.kt (TagKind).\n\nPRODUCT DECISIONS (made by the developer; keep to them; wording in string resources, plain everyday words, never 'canonical', 'alias', 'pair', 'merge target'):\n1. A third bottom-bar destination 'Tags' (route `TagsRoute`, a new TopLevelDestination with its own vector icon drawable in the same style as the other two) between Log and History order: Log, History, Tags. Navigation tests must keep passing and cover the third item.\n2. The screen shows two lists switched by a two-option selector at the top, 'Subjects' and 'Actions' (kind = TagKind.SUBJECT / ACTION), remembered while the screen lives (rememberSaveable or view-model state). Each list is sorted as listTags returns it. A row shows the tag's name (titleMedium), a one-line 'Used with N actions' (subject rows) / 'Used with N subjects' (action rows) using plurals, and, when it has other names, a second line 'Also called: a, b, c' (cap the shown names at 3 plus '+N more' via a plural). Each row has two clearly separated actions, 'Rename' and 'Merge into...' (48 dp targets; text buttons or a single overflow-free pair, your layout call following the visual spec). Empty state when there are no tags of the kind: one friendly sentence that tags appear as the owner logs things (reuse the app's voice).\n3. RENAME: opens a dialog/sheet with a text field pre-filled with the current name, 'Save' and 'Cancel'. Save is disabled for a blank or unchanged-after-trim name. Results: Renamed -> closes, the list refreshes, a short confirmation message; NothingChanged -> closes quietly; NameInUse(otherTagId) -> the dialog stays and says plainly that the name is already used by another <subject/action> (name it: the other tag's name from the loaded list), and offers 'Merge them instead' which goes to the merge confirmation with this tag merged INTO the other tag; Refused(reason) -> the dialog stays with the plain message from tagRefusalMessage (a new name rejected by the naming rules, tag no longer exists, ...).\n4. MERGE: 'Merge into...' opens a chooser listing the OTHER tags of the same kind (searchable like TagPicker if the list is long; reuse TagPicker's list/filter pieces if they can be reused cleanly without changing its behaviour or tests, else a small sibling) WITHOUT a 'new name' option; choosing one opens a confirmation dialog in plain words: what moves where ('Everything logged under \"X\" will count as \"Y\" instead. Your original words are kept. This can't be undone yet.' -- exact copy yours, but it MUST say both names, that the original words are kept, and that it cannot be undone), with 'Merge' and 'Cancel'; the confirm button is the only thing that calls the service. Results: Merged -> closes, list refreshes, confirmation message ('Merged. N entries moved.' via plural); Refused -> plain message from tagRefusalMessage, dialog stays; IllegalArgumentException/storage failure -> the generic 'could not save that change' message already used elsewhere (log_action_failed), nothing changes.\n5. The list reloads on screen start and after every successful change; a load failure shows the existing plain 'could not load' style message with a retry; one action at a time (single in-flight like History). Nothing logged; no owner words in strings, messages or exceptions (tag names appear only as on-screen content on this screen, never in logs or message resources); accessibility: every control labelled, dialogs focusable, the kind selector announced, touch targets >= 48 dp.\n\nSTRUCTURE (your call within bounds): new package app-phone .../ui/tags/ (TagsViewModel, TagsUiState, TagsScreen, TagsViewModelFactory), wired like History (factory from the application; screen gets a default viewModel parameter the way HistoryScreen does so existing nav tests still construct it); navigation additions in ui/navigation; strings additive; a vector drawable; no change to any existing screen's behaviour.\n\nTESTS (JVM/Robolectric under app-phone/src/test, existing style): view-model tests on the REAL in-memory ledger with real services (seed tags and pairs by running captures through the scripted extractor/orchestrator or the same seeding helper the History tests use): list per kind with counts and aliases, kind switch, rename happy path (list refreshes, old name now appears under 'Also called'), blank/unchanged disabled, NameInUse flow ending in a merge, rename refusal (invalid name) keeps the dialog, merge happy path (movedOccurrences message, list refreshed, merged tag gone, entries now under the target -- assert through the repository), merge confirmation required (choosing a target alone writes nothing), cancel at each step writes nothing, merge refusal / storage failure keeps the dialog and changes nothing, load failure and retry, double-tap ignored, empty state. Compose tests: row content and screen-reader sentences, the kind selector, rename dialog states, merge chooser and confirmation (both names present, 'cannot be undone' present), empty state. Navigation test: three destinations, selecting Tags shows the screen.\n\nDOCS: ADR-048 in docs/DECISIONS.md ('Tags screen: rename and merge', Accepted, developer decision 2026-10-04, TG3.6): third tab, two lists, rename dialog with NameInUse leading to merge, merge only after an explicit confirmation that states it cannot be undone yet (no unmerge exists), plain-words copy rules. Add a short 'Tags screen' section to docs/UX_VISUAL_SPEC.md (or UX_SPEC.md where screens are described) -- small and factual. No other doc changes.\n\nRULES: core modules, pipeline/wear packages, ActivityLedgerApplication, the Log and History screens/view models, TagPicker/ActivityPicker behaviour and tests are not changed (the nav file, strings.xml and the new files are the only shared edits; if reusing TagPicker pieces needs a change to TagPicker.kt, report scope_change_requested and write the small sibling instead); no logging; strings additive only.",
+  "non_goals": [
+    "No unmerge, no delete, no tag editing beyond rename and merge, no alias editing.",
+    "No change to the Log or History screens, domain services or repositories; report scope_change_requested if needed.",
+    "No device run (TG3.7)."
+  ],
+  "dependencies": ["TG3.5"],
+  "read_paths": [
+    "app-phone/**",
+    "core-domain/**",
+    "core-data/src/main/**",
+    "core-testing/**",
+    "docs/UX_SPEC.md",
+    "docs/UX_VISUAL_SPEC.md",
+    "docs/DECISIONS.md",
+    "docs/TEST_STRATEGY.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/tags/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/navigation/**",
+    "app-phone/src/main/res/values/strings.xml",
+    "app-phone/src/main/res/drawable/ic_nav_tags.xml",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/tags/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/MainActivityNavigationTest.kt",
+    "docs/DECISIONS.md",
+    "docs/UX_VISUAL_SPEC.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/wear/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ActivityLedgerApplication.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/log/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/components/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/review/**",
+    "app-phone/src/debug/**",
+    "app-phone/src/androidTest/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "A third bottom-bar destination 'Tags' exists with its own icon; the Tags screen shows Subjects and Actions lists (selector), rows with name, 'Used with N ...' line and 'Also called' line, and an empty state; navigation tests cover three destinations.",
+    "Rename works through TagManagementService with the dialog states specified: Save disabled for blank/unchanged, Renamed refreshes the list, NothingChanged closes quietly, NameInUse names the other tag and offers merge-instead, refusals keep the dialog with plain messages.",
+    "Merge works only after a chooser (other tags of the same kind, no new-name option) AND an explicit confirmation dialog that names both tags, says the original words are kept and that it cannot be undone yet; choosing a target or cancelling writes nothing; success shows the moved-entries confirmation and the list refreshes; refusals/storage failures keep the dialog and change nothing.",
+    "The list reloads on start and after every change, load failure offers retry, one action at a time, nothing is logged, and no message resource contains tag names or the owner's words.",
+    "View-model tests run on the real in-memory ledger and cover the listed scenarios incl. entries moved to the target after a merge; compose and navigation tests cover rows, selector, dialogs, chooser, confirmation wording and empty state.",
+    "ADR-048 and the Tags UX note are written; Log, History, components, review helpers, pipeline, wear, application class and core modules are unchanged; all app-phone, core-domain, core-data and core-testing unit tests pass and :app-phone:assembleDebug and :app-phone:compileDebugAndroidTestKotlin succeed."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:testDebugUnitTest",
+    "./gradlew :app-phone:assembleDebug :app-phone:compileDebugAndroidTestKotlin",
+    "./gradlew :core-domain:test :core-data:test :core-testing:test",
+    "git diff --stat -- core-domain core-data core-ai core-speech core-testing core-wear-protocol app-wear app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/wear app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ActivityLedgerApplication.kt app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/log app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/components app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/review app-phone/src/debug app-phone/src/androidTest"
+  ],
+  "expected_report": "docs/sdlc/schemas/completion-report.schema.json",
+  "max_attempts": 3
+}
