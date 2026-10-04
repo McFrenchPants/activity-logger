@@ -837,3 +837,19 @@ The app can answer "when did I last change the furnace filter?" from the logged 
 **Who decides what.** The model may supply the question words (subject and action phrases), but matching, ranking and the answer itself are program logic over stored data, never model output (ADR-011, ADR-038).
 
 **Amendment (TG4.3, 2026-10-04): the lookup service.** `LookupService.ask` returns one of: NotAQuestion (blank or not a question; the model is never called), Unavailable / Busy / Failed (model failure kinds UNAVAILABLE / RETRYABLE / MALFORMED+OTHER), NotEnoughHistory (nothing logged, the words matched no existing tag, or no entry matched) or Answer (target plus non-empty ranked result). A near (closest-candidate) tag match still answers without asking the user; the matches carry exact=false so the screen can say it is the closest match. The service only reads and never saves or logs the question.
+
+## ADR-052 — Question extraction for Ask your history
+
+**Status:** Accepted (developer decision, 2026-10-04; Ask your history, TG4.4)
+
+`GeminiNanoQuestionExtractor` (core-ai) implements core-domain's `QuestionExtractor` so a typed or spoken question can be turned into a subject and an action for the lookup in ADR-051.
+
+**Separate small prompt and schema.** It has its own prompt (version `q1`), its own response shape (`QuestionResponse`: subject and action only, schema version 1) and its own provenance (`gemini-nano-question-1`). The activity extraction prompt (version 4) is not reused or edited, because its corpus-gated baseline must not move.
+
+**Words only.** The model is asked only for the two phrases in the user's own words, with a field left empty when the question does not name it. It is never shown any existing activity or tag, never asked to answer the question or to compute a date.
+
+**Untrusted output.** The decoder only trims, turns blank into empty, and caps each field at 60 characters (the extraction decoder has no cap; 60 matches the longest activity name). Resolving the words against tags is program logic in core-domain (ADR-038, ADR-051). Both fields empty is a valid result. With two optional free-text fields no shape is unusable, so the decoder's failure branch exists only for symmetry with the activity extractor.
+
+**Same behaviour as the activity extractor.** Same readiness gate (not ready means UNAVAILABLE, never a download), one generation per call, the interpreter's generation settings by reference, the same failure mapping (RETRYABLE / MALFORMED / OTHER, cancellation propagates), and no logging of question text.
+
+**Containment and measurement.** ML Kit stays inside core-ai (ADR-023). No recording or quality baseline exists yet for this prompt; it is measured on the Pixel in TG4.6.
