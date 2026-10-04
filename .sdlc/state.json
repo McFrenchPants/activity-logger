@@ -1059,7 +1059,7 @@
     {
       "id": "TG1",
       "title": "Subject + action tagging (backlog 13)",
-      "lifecycle_state": "approved",
+      "lifecycle_state": "released",
       "tasks": [
         {
           "id": "TG1.1",

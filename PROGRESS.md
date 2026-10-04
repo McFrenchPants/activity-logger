@@ -18,9 +18,24 @@ status; this file only tracks discrete task rows.
 | PV1 | Platform/API validation and version pinning (backlog item 1) | done | ADR-021..024. Desk research + read-only `adb` checks on the Pixel 10 Pro. Library-level Gemini Nano availability confirmed; a real inference call remains unproven until Step 4. Watch speech unverified (hardware not yet in hand) — backlog item 7. |
 | FX1.1 | AICore BUSY treated as "try again" + short wait-and-retry in the phone pipeline (backlog item 14b) | done | Verifier pass. Busy refusal now RETRYABLE; `BusyRetryInterpreter` waits 2 s then 4 s. ADR-030 amended. Not yet seen on a device. |
 | FX1.2 | Weekday + part-of-day dates ("Saturday morning") in `TemporalResolver` (backlog item 14c) | done | Spot-check. ADR-028 rule added; corpus gap cleared; baseline now 36 cases. Device recording flagged "different corpus" (hash changed) until the next Pixel re-record. |
-| VC1 | Phone voice capture (backlog item 15) | done | All five tasks done on `feature/voice-capture`, **not yet merged**. Device pass 2026-09-20 on the Pixel 10 Pro (`docs/proposals/voice-capture/RESULTS.md`) found and fixed two device-only defects. Watch cannot do on-device recognition (ADR-035) — see backlog items 16, 17. |
+| VC1 | Phone voice capture (backlog item 15) | done | All five tasks done; now on `main` (merged with the stacked watch branches). Device pass 2026-09-20 on the Pixel 10 Pro (`docs/proposals/voice-capture/RESULTS.md`) found and fixed two device-only defects. Watch cannot do on-device recognition (ADR-035) — see backlog items 16, 17. |
+| WD1 | Wear Data Layer round-trip probe (backlog item 16) | done | 3 tasks; both round trips passed on hardware (`docs/proposals/wear-data-layer/RESULTS.md`). Now on `main`. |
+| WC1 | Watch capture: speech, outbox, transport, phone receiver (backlog item 17) | done | 10 tasks; spoken watch captures reach the phone, saved and acked (device pass WC1.6). Tracking: `docs/proposals/watch-capture/PROGRESS.md`. Now on `main`. |
+| TM1 | Time handling: "just" means now; unreadable time logs today (ADR-028 amendment) | done | TM1.1. Now on `main`. |
+| TG1 | Subject + action tagging (backlog item 13) | done | Stages 1-3 (TG1.1-TG3.9) merged to `main` 2026-10-04; phone and watch run on the tag pipeline, device-checked on the Pixel 10 Pro and the watch. Stage 4 (lookup) not started. Tracking: `docs/proposals/subject-action-tagging/PROGRESS.md`; ADR-038..050. |
 
 ## Session log
+
+### 2026-10-04 — TG1: subject + action tagging merged (backlog item 13)
+
+Stage 3 (phone and watch wiring, Log / History / Tags screens), a device pass
+on the Pixel 10 Pro and the watch, the object-noun repair (ADR-049) and the
+clean-up of the old single-activity UI (ADR-050) are done and merged into
+`main`; the feature branch is kept. Highlights: v1 -> v2 database migration ran
+on the real phone data; the owner's own watch and phone tests (14 entries) all
+worked end to end; the new prompt v5 was measured on the device and not
+adopted. Detail in the proposal's `PROGRESS.md`. Next: Stage 4 (lookup) after
+the owner's go-ahead.
 
 ### 2026-09-19 — FX1: two small fixes (backlog item 14)
 

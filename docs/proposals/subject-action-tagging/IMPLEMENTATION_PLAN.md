@@ -104,7 +104,9 @@ transaction; history stays auditable.
 
 **STOP after TG2.4:** plain-English report to the owner; Stage 3 needs their go-ahead.
 
-## Stage 3 — App (detail written 2026-10-04 after the Stage 2 report)
+## Stage 3 — App (detail written 2026-10-04 after the Stage 2 report) — COMPLETE 2026-10-04
+
+TG3.1-TG3.7 as below, plus TG3.8 (object-noun repair in the decision policy; prompt v5 tried and not adopted, ADR-049) and TG3.9 (clean-up of the old single-activity UI and wiring, ADR-050). Merged to `main`.
 
 Owner go-ahead for Stage 3 given 2026-10-04 ("Implement Stage 3. Phone and watch are available via
 adb"). Devices: Pixel 10 Pro (USB, the AI phone) and the watch (OPWE242, Wi-Fi ADB). Verifier

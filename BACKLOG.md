@@ -201,17 +201,19 @@ Status vocabulary:
     Owner confirmed 2026-09-18: wash→Wax car, lint trap→Clean dryer vent,
     "Cleaned the dryer"→Clean dryer vent.
 
-13. **Cut down wrong confident matches** — `ready` (analysis written
-    2026-10-01: `docs/analysis/13-subject-action-tagging.md`; direction is
-    subject + action tagging, bootstrapped from an empty catalog; awaiting
-    owner sign-off on the plan, then a design spec)
-    Added 2026-09-18 from SR1.7/SR1.8 follow-up (a). The Pixel 10 Pro still
-    files 7 of 48 corpus cases under the wrong existing activity, all at HIGH
-    confidence (edging→mowing, raking→mowing, water heater, smoke-detector
-    batteries, "the furnace thing"). Prompt wording and/or the confidence
-    policy (ADR-027), measured against the SR1 baseline (35 correct). Needs
-    short Pixel 10 Pro sessions to re-record. Overlaps item 11, which attacks
-    the same problem from the UI side.
+13. **Cut down wrong confident matches** — `done` (TG1, merged to `main`
+    2026-10-04; see `docs/proposals/subject-action-tagging/PROGRESS.md`)
+    Added 2026-09-18 from SR1.7/SR1.8 follow-up (a). Solved by the subject +
+    action tagging redesign (`docs/analysis/13-subject-action-tagging.md`):
+    the model only extracts words, program logic matches them to tags and
+    decides save / ask / review. Pixel 10 Pro: wrong silent saves went from 14
+    to 0 on the tag corpus (72 cases, 64 correct, 6 safe questions, 0 unsafe),
+    and 11 of 12 real watch entries are correct. Built across Stages 1-3: new
+    corpus and scorer, data layer (schema v2), phone and watch pipeline, Log /
+    History / Tags screens. Deferred: Stage 4 (lookup: "when did I last ...?"),
+    finishing a waiting entry from History at the time the owner said (it uses
+    the capture time), two-word actions are stored as heard ("picked up").
+    Overlaps item 11, which attacked the same problem from the UI side.
 
 14. **Two small fixes the corpus turned up** — `done` (FX1, merged to `main`
     2026-09-19; see root `PROGRESS.md`)

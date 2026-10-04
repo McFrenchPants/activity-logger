@@ -16,6 +16,8 @@ The semantic regression corpus (Step 5, work item SR1) is built and merged to `m
 
 **The app can now be used by hand (typing only).** Work item UI1 (backlog 10, `docs/proposals/typed-capture/`, merged to `main` 2026-09-19) adds the first screens: Log (type what you did, see a Saved / Needs review / Not categorized card, with Undo and Change activity on a Saved card, and a Recent list) and History (newest first, filters *All* / *Needs review* / *Not categorized*, resolving a waiting entry from its row). Passed a hands-on device check on the Pixel 10 Pro on 2026-09-19: auto-save, needs-review with suggestions, create activity, Undo, Change activity, History filters and resolving from History, light and dark theme, 200% text size. One fix came out of it (the keyboard now closes after *Log it* so the result card is visible). Interpretation took roughly 2-5 s per entry on the device. Not built yet: voice, Ask, Settings/model download, activity detail, editing an entry after the Undo window.
 
+**Update 2026-10-04: the app is now a working phone + watch logger on subject + action tags.** Voice capture on the phone (VC1), spoken capture on the watch with a durable outbox and phone receiver (WD1, WC1; watch speech works, internet use by speech is allowed, ADR-035/036), and time handling ("just" means now, TM1) are on `main`. The AI no longer picks from a list of activities: it only extracts the user's own words (subject, action, time, duration), program logic matches them to subject and action tags and decides save / ask / review (work item TG1, ADR-038..050, `docs/proposals/subject-action-tagging/`). Schema v2 (ADR-040) stores a subject + action pair and duration; corrections teach the app the user's wording (ADR-041); tags can be renamed and merged (ADR-042, Tags screen, ADR-048). The Log screen shows a Saved card with subject, action, duration and time, or one "Check this" card for close matches and unclear entries (ADR-046); History rows and waiting entries use the same pieces (ADR-047); watch entries that need a question wait on the phone (ADR-045). Device-checked on the Pixel 10 Pro and the OnePlus Watch 3: on the tag corpus 64 of 72 correct, 6 safe questions, 0 wrong silent saves (before: 14 wrong), and 11 of 12 real watch entries correct. A repair for object nouns that the AI puts in the subject ("hot tub filter" / "change") is in the decision policy (ADR-049); a prompt rewrite for the same problem was measured and not adopted. The old single-activity screens and wiring are removed from the phone app (ADR-050); the older activity-matching classes stay in `core-domain` for the first semantic corpus gate. Not built yet: the Ask / lookup feature (TG Stage 4), Settings and model download, activity detail, finishing a waiting entry from History at the time the user said (it uses the capture time), and the older semantic corpus is not re-recorded for the new model.
+
 Two small fixes from the corpus follow-ups (work item FX1, backlog item 14) are merged to `main` (2026-09-19): a refusal from the on-device model because it is busy is now retryable and the phone pipeline retries it twice (2 s, 4 s) before giving up (`BusyRetryInterpreter`, ADR-030 amended; the phone now uses the same retry through `BusyRetryExtractor`, ADR-050), and `TemporalResolver` resolves weekday + part-of-day phrases such as "Saturday morning" (ADR-028). The corpus has no known resolver gaps left and the regression baseline is 36 of 48 cases; the committed device recording predates that corpus edit, so it is flagged as recorded against a different corpus until the next Pixel 10 Pro recording.
 
 ## Completed
@@ -47,13 +49,13 @@ Recommended tasks:
 5. ~~Create Gradle project structure.~~ Done 2026-09-16 — work item SS1.
 6. ~~Define Room schema version 1.~~ Done 2026-09-16 — work item DB1 (see `docs/DATA_MODEL.md`, ADR-026).
 7. ~~Define domain interfaces.~~ Done 2026-09-17 — work item DS1 (merged to `main` 2026-09-17; see `docs/ARCHITECTURE.md` §5, ADR-027, ADR-028).
-8. Define watch/phone protocol.
+8. ~~Define watch/phone protocol.~~ Done — work items WD1 and WC1 (`core-wear-protocol`, ADR-037); spoken captures reach the phone and are acked.
 9. ~~Build a minimal end-to-end technical spike:~~ Built 2026-09-17 — work item AI1 (Step 4), merged to `main` 2026-09-17, passed once on the Pixel 10 Pro (`docs/proposals/ai-vertical-slice/RESULTS.md`):
    - hardcoded text input
    - Gemini Nano structured interpretation
    - Room persistence
 10. ~~Run seed semantic corpus~~ Done 2026-09-18 -- work item SR1, merged to `main` (ADR-033). Core synonym and near-neighbour cases are measurable; first device baseline 35/48 correct. Follow-ups: BACKLOG item 13 (wrong confident matches) still open; item 14 (AICore BUSY retry, weekday + part-of-day dates) done 2026-09-19.
-11. Then add actual voice capture and Wear OS transport.
+11. ~~Then add actual voice capture and Wear OS transport.~~ Done — VC1 (phone voice), WC1 (watch). Next: TG Stage 4 (lookup), then settings / model download.
 
 The technical spike is not a throwaway architecture. It is a vertical validation of the intended MVP stack.
 
@@ -68,7 +70,8 @@ The technical spike is not a throwaway architecture. It is a vertical validation
 - **ML Kit Structured Output is alpha** (`genai-schema-compiler:1.0.0-alpha1`) with no SLA and an explicit backward-compatibility warning. Contained to `core-ai` by ADR-023; a breaking change is expected to cost a one-module repair, and that containment must be maintained.
 - **Kotlin cannot advance past 2.3.x** while Room needs KSP and KSP has no 2.4.x release (ADR-022). A routine dependency bump can break the build here.
 - On-device speech API support must be verified for chosen phone baseline.
-- On-device recognition is unverified on the OnePlus Watch 3 (hardware not yet in hand); the watch Listening screen design depends on it.
+- Watch speech was verified on the OnePlus Watch 3 (WD1.3, WC1.6; ADR-035/036). The speech engine can mishear short phrases ("I just" heard as "Adjust" on 2026-10-04); the user corrects those on the phone.
+- The on-device model's wording varies (e.g. it can put an object word into the subject); the decision policy repairs known cases and asks when unsure, but each new pattern needs a corpus case and a device re-record.
 - Wear transport must handle disconnection/idempotency.
 - Semantic catalog growth may eventually require candidate preselection improvements.
 - Temporal language can create false precision if poorly modeled.
