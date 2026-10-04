@@ -39,7 +39,39 @@ internal interface ActivityOccurrenceDao {
             "WHERE visibility_status = 'ACTIVE' GROUP BY canonical_activity_id",
     )
     fun lastActiveOccurredAtPerActivity(): List<ActivityLastOccurredAt>
+
+    /**
+     * Every ACTIVE-visibility occurrence on an ACTIVE tagged pair whose subject and action are
+     * ACTIVE, with the CURRENT tag display names. Newest first, occurrence id descending as
+     * tie-break. One JOIN query.
+     */
+    @Query(
+        "SELECT activity_occurrences.id AS occurrence_id, subjects.id AS subject_id, " +
+            "subjects.display_name AS subject_name, actions.id AS action_id, " +
+            "actions.display_name AS action_name, activity_occurrences.occurred_at AS occurred_at, " +
+            "activity_occurrences.duration_seconds AS duration_seconds " +
+            "FROM activity_occurrences " +
+            "JOIN canonical_activities ON canonical_activities.id = activity_occurrences.canonical_activity_id " +
+            "JOIN subjects ON subjects.id = canonical_activities.subject_id " +
+            "JOIN actions ON actions.id = canonical_activities.action_id " +
+            "WHERE activity_occurrences.visibility_status = 'ACTIVE' " +
+            "AND canonical_activities.status = 'ACTIVE' AND subjects.status = 'ACTIVE' " +
+            "AND actions.status = 'ACTIVE' " +
+            "ORDER BY activity_occurrences.occurred_at DESC, activity_occurrences.id DESC",
+    )
+    fun loadLookupRows(): List<LookupRow>
 }
+
+/** Row of [ActivityOccurrenceDao.loadLookupRows]. */
+internal data class LookupRow(
+    @ColumnInfo(name = "occurrence_id") val occurrenceId: String,
+    @ColumnInfo(name = "subject_id") val subjectId: String,
+    @ColumnInfo(name = "subject_name") val subjectName: String,
+    @ColumnInfo(name = "action_id") val actionId: String,
+    @ColumnInfo(name = "action_name") val actionName: String,
+    @ColumnInfo(name = "occurred_at") val occurredAt: Long,
+    @ColumnInfo(name = "duration_seconds") val durationSeconds: Long?,
+)
 
 /** Row of [ActivityOccurrenceDao.lastActiveOccurredAtPerActivity]. */
 internal data class ActivityLastOccurredAt(

@@ -1,6 +1,7 @@
 package com.mcfrenchpants.activityledger.core.domain.repository
 
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpretationRecord
+import com.mcfrenchpants.activityledger.core.domain.lookup.LookupEntry
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
 import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
 import com.mcfrenchpants.activityledger.core.domain.model.TimePrecision
@@ -229,6 +230,18 @@ interface TagRepository {
      * entry). Read only; never throws for an unknown id.
      */
     suspend fun loadExtractedWordsForOccurrence(occurrenceId: String): ExtractedWords?
+
+    /**
+     * Every logged entry that can answer a history lookup: each occurrence with ACTIVE
+     * visibility (hidden / undone ones are excluded) whose canonical activity is a tagged pair
+     * (subject and action both set) and whose pair, subject and action are all ACTIVE. Merged-away
+     * tags and pairs never appear; a merge already moved their occurrences to the target pair, so
+     * those occurrences appear under the target tag. Untagged (v3-path) entries are never
+     * included. Names are the CURRENT display names. Ordered newest occurredAt first, occurrence
+     * id descending as tie-break. Read only; an empty database yields an empty list. Uses one
+     * query (no per-row queries).
+     */
+    suspend fun loadLookupEntries(): List<LookupEntry>
 }
 
 /** The fixed reason code stored on the correction rows a tag merge writes (never user text). */

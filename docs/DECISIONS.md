@@ -819,3 +819,39 @@ After TG3.4 to TG3.6 the Log, History and Tags screens and the watch receiver al
 **Kept:** the core-domain v3 classes (`CaptureInterpretationOrchestrator`, `ReviewResolutionService`, `CorrectionService`, the interpretation types) and the core-testing semantic corpus gate that replays them, plus the v3 repository methods they use. Phone tests may still use them as helpers.
 
 **Result:** the phone app has one capture pipeline, `CapturePipeline` (extractor and `TaggedCaptureOrchestrator`). Also in this task: the Saved card's draining progress bar no longer draws the Material3 end dot, and the `TagDecision.resplit` KDoc now mentions the object-noun guard (ADR-049).
+
+## ADR-051 — Ask your history: last-time lookups, ranked by tag match
+
+**Status:** Accepted (developer decision, 2026-10-04; Ask your history, TG4.1)
+
+The app can answer "when did I last change the furnace filter?" from the logged history. This ADR fixes the pure program-logic half in `core-domain` (`core.domain.lookup`); nothing here touches the database, the model or the UI.
+
+**Tier order (best first).** (1) the entry matches BOTH the question's subject and action tag, (2) subject only, (3) action only. A side matches when the entry's tag id equals the target tag id; a side the question did not name never matches. A one-sided question can only produce its own tier. Entries matching nothing are dropped.
+
+**Within a tier.** Entries matched through EXACT target tags come before entries matched through near (closest-candidate) tags, then newest first, then occurrence id descending as a deterministic tie-break. The same input always gives the same order. A near target uses only the first (closest) candidate of the resolver.
+
+**Answer shape.** The top match, the previous match in the same tier and exactness, and the interval between them (never negative). Question detection is deterministic: a trailing '?' or a first word from a small provisional list (when, how, what, which, where, who, did, do, does, have, has, show, tell, list). A statement starting with such a word ("Did the laundry") is a known false positive and is not special-cased.
+
+**Out of scope for this stage.** Counting questions ("how many times") and date-window questions ("in March", "this year") are not answered; they still rank as a last-time lookup if they name tags.
+
+**Who decides what.** The model may supply the question words (subject and action phrases), but matching, ranking and the answer itself are program logic over stored data, never model output (ADR-011, ADR-038).
+
+**Amendment (TG4.3, 2026-10-04): the lookup service.** `LookupService.ask` returns one of: NotAQuestion (blank or not a question; the model is never called), Unavailable / Busy / Failed (model failure kinds UNAVAILABLE / RETRYABLE / MALFORMED+OTHER), NotEnoughHistory (nothing logged, the words matched no existing tag, or no entry matched) or Answer (target plus non-empty ranked result). A near (closest-candidate) tag match still answers without asking the user; the matches carry exact=false so the screen can say it is the closest match. The service only reads and never saves or logs the question.
+
+**Amendment (TG4.7, 2026-10-04): a named subject that matches nothing.** Found on the Pixel: "When did I last clean the gutters?" (gutters never logged) answered with the last "hot tub filter · clean" because the ACTION matched. When the question names a subject and that subject resolves to no existing tag (New), the service now answers NotEnoughHistory instead of falling back to other subjects' entries of the same action. A question naming only an action, or a subject that resolves Exact/Near, is unchanged.
+
+## ADR-052 — Question extraction for Ask your history
+
+**Status:** Accepted (developer decision, 2026-10-04; Ask your history, TG4.4)
+
+`GeminiNanoQuestionExtractor` (core-ai) implements core-domain's `QuestionExtractor` so a typed or spoken question can be turned into a subject and an action for the lookup in ADR-051.
+
+**Separate small prompt and schema.** It has its own prompt (version `q1`), its own response shape (`QuestionResponse`: subject and action only, schema version 1) and its own provenance (`gemini-nano-question-1`). The activity extraction prompt (version 4) is not reused or edited, because its corpus-gated baseline must not move.
+
+**Words only.** The model is asked only for the two phrases in the user's own words, with a field left empty when the question does not name it. It is never shown any existing activity or tag, never asked to answer the question or to compute a date.
+
+**Untrusted output.** The decoder only trims, turns blank into empty, and caps each field at 60 characters (the extraction decoder has no cap; 60 matches the longest activity name). Resolving the words against tags is program logic in core-domain (ADR-038, ADR-051). Both fields empty is a valid result. With two optional free-text fields no shape is unusable, so the decoder's failure branch exists only for symmetry with the activity extractor.
+
+**Same behaviour as the activity extractor.** Same readiness gate (not ready means UNAVAILABLE, never a download), one generation per call, the interpreter's generation settings by reference, the same failure mapping (RETRYABLE / MALFORMED / OTHER, cancellation propagates), and no logging of question text.
+
+**Containment and measurement.** ML Kit stays inside core-ai (ADR-023). No recording or quality baseline exists yet for this prompt; it is measured on the Pixel in TG4.6.

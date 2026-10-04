@@ -22,6 +22,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.mcfrenchpants.activityledger.R
+import com.mcfrenchpants.activityledger.ui.ask.AskScreen
 import com.mcfrenchpants.activityledger.ui.history.HistoryScreen
 import com.mcfrenchpants.activityledger.ui.log.LogScreen
 import com.mcfrenchpants.activityledger.ui.tags.TagsScreen
@@ -40,9 +41,13 @@ data object HistoryRoute
 @Serializable
 data object TagsRoute
 
+/** Type-safe route of the Ask destination (questions about the logged history). */
+@Serializable
+data object AskRoute
+
 /**
- * The top-level destinations shown in the navigation bar (UX_VISUAL_SPEC D1). Ask is
- * deliberately absent until it exists.
+ * The top-level destinations shown in the navigation bar, in order: Log, History, Tags, Ask
+ * (UX_VISUAL_SPEC D1).
  */
 enum class TopLevelDestination(
     val route: Any,
@@ -53,6 +58,7 @@ enum class TopLevelDestination(
     LOG(LogRoute, LogRoute::class, R.string.nav_log, R.drawable.ic_nav_log),
     HISTORY(HistoryRoute, HistoryRoute::class, R.string.nav_history, R.drawable.ic_nav_history),
     TAGS(TagsRoute, TagsRoute::class, R.string.nav_tags, R.drawable.ic_nav_tags),
+    ASK(AskRoute, AskRoute::class, R.string.nav_ask, R.drawable.ic_nav_ask),
 }
 
 /**
@@ -93,6 +99,7 @@ fun LedgerNavigation(navController: NavHostController = rememberNavController())
             }
             composable<HistoryRoute> { HistoryScreen() }
             composable<TagsRoute> { TagsScreen() }
+            composable<AskRoute> { AskScreen() }
         }
     }
 }

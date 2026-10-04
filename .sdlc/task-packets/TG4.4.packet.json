@@ -1,0 +1,62 @@
+{
+  "task_id": "TG4.4",
+  "plan_revision": "tg4",
+  "objective": "Add the Gemini Nano implementation of core-domain's `QuestionExtractor` (core.domain.lookup, file LookupService.kt: QuestionCandidate(subject, action), QuestionExtractionResult Success/Failure(kind), QuestionExtractor { provenance; suspend extract(questionText) }) to core-ai, as a close twin of the existing activity extractor. Read these existing files first and mirror them (same style, KDoc tone, same containment rules): ExtractionPrompt.kt, ExtractionResponse.kt, ExtractionResponseDecoder.kt, GeminiNanoActivityExtractor.kt, GenAiRetry.kt, GenerativeModelSession.kt, and their tests (ExtractionPromptTest, ExtractionPromptDriftTest, ExtractionResponseSchemaTest, ExtractionResponseDecoderTest, GeminiNanoActivityExtractorTest, FakeGenerativeModelSession).\n\nNew files in core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/:\n1. QuestionPrompt.kt: QUESTION_PROMPT_VERSION = \"q1\"; QUESTION_SYSTEM_INSTRUCTION and `buildQuestionPrompt(questionText: String): String`. The prompt asks the model ONLY to pull out of a short question about the user's own past activity: the thing the question is about (subject: short noun phrase, user's own words, no article/possessive, keep its full name) and what was done (action: short verb phrase, plain verb form, keep the words that tell it apart). It must: never show or mention any list of existing activities/tags; never ask the model to answer the question, compute dates, or write anything but the two fields; say to leave a field empty when the question does not name it (e.g. 'what did I do on Monday?' has neither). Include 3-4 short worked examples that are NOT taken from the corpus files in core-testing, e.g. 'When did I last clean the gutters?' -> subject gutters / action clean; 'Did I ever service the generator?' -> generator / service; 'When did I last change the oil in the tractor?' -> subject tractor / action change oil; 'What did I do on Monday?' -> both empty. Keep the prompt short: on-device latency matters.\n2. QuestionResponse.kt: @Generable data class QuestionResponse(subject: String?, action: String?) with @param:Guide descriptions written for the model, same annotation style and containment as ExtractionResponse; QUESTION_SCHEMA_VERSION = 1 (internal const, placed in the extractor file like EXTRACTION_SCHEMA_VERSION).\n3. QuestionResponseDecoder.kt: internal object turning QuestionResponse into QuestionCandidate (trim; blank -> null; cap each field at the same maximum length the extraction decoder uses; no other validation -- the domain resolves the words) with a sealed Decoded/Failed result like ExtractionDecodeResult. Failed only where the extraction decoder would define the shape as unusable; both fields null is a valid Decoded (a question about nothing).\n4. GeminiNanoQuestionExtractor.kt: class GeminiNanoQuestionExtractor(capability: OnDeviceModelCapability) : QuestionExtractor with provenance (QUESTION_EXTRACTOR_VERSION = \"gemini-nano-question-1\", QUESTION_PROMPT_VERSION, QUESTION_SCHEMA_VERSION), identical readiness gate (not READY -> Failure UNAVAILABLE, never a download), one generation per call, identical generation settings by reference to the existing constants, identical failure mapping (busy/positive retry delay -> RETRYABLE, no candidate or undecodable -> MALFORMED, other exception -> OTHER, cancellation propagates), and a `warmUp()` like the activity extractor's. No logging; failures carry a kind only.\n\nTests (core-ai/src/test/...): QuestionPromptTest (contains the question text, mentions no tag/catalog words, version constant), QuestionPromptDriftTest (same drift-guard technique as ExtractionPromptDriftTest: pins the exact prompt text so any edit forces a version bump), QuestionResponseSchemaTest (mirror ExtractionResponseSchemaTest), QuestionResponseDecoderTest (trim, blank -> null, cap, both null OK), GeminiNanoQuestionExtractorTest (mirror GeminiNanoActivityExtractorTest: ready path success, not-ready -> UNAVAILABLE without calling the model, busy -> RETRYABLE, no candidate -> MALFORMED, bad shape -> MALFORMED, other exception -> OTHER, cancellation propagates, exactly one generation, provenance values). Reuse the existing fake session; if it needs a small extension, extend it additively without breaking existing tests.\n\nADR: add the next free ADR number in docs/DECISIONS.md ('Question extraction for Ask your history', Accepted, developer decision 2026-10-04, TG4.4): separate small prompt q1 and schema (not the activity prompt, whose corpus-gated baseline must not move), words only, nothing about existing tags shown, untrusted output resolved by program logic, ML Kit stays in core-ai (ADR-023), no recording or baseline yet -- measured on the Pixel in TG4.6.\n\nRULES: do not change ExtractionPrompt / ExtractionResponse / GeminiNanoActivityExtractor or any activity-extraction constant (their drift tests and the corpus baseline must stay green and untouched); every ML Kit import stays in core-ai; no logging of question text; no user text in exception messages; do not touch tracking docs.",
+  "non_goals": [
+    "No change to the activity extraction prompt, schema or baseline.",
+    "No on-device run (TG4.6).",
+    "No app-phone wiring (TG4.5).",
+    "No Ask corpus yet."
+  ],
+  "dependencies": [
+    "TG4.3"
+  ],
+  "read_paths": [
+    "core-ai/**",
+    "core-domain/src/main/**",
+    "core-testing/**",
+    "docs/DECISIONS.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/QuestionPrompt.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/QuestionResponse.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/QuestionResponseDecoder.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/GeminiNanoQuestionExtractor.kt",
+    "core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai/Question*.kt",
+    "core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai/GeminiNanoQuestionExtractorTest.kt",
+    "core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai/FakeGenerativeModelSession.kt",
+    "docs/DECISIONS.md"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "core-domain/**",
+    "core-data/**",
+    "core-testing/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-phone/**",
+    "app-wear/**",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/Extraction*.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/GeminiNanoActivityExtractor.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/GeminiNanoActivityInterpreter.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/Interpretation*.kt"
+  ],
+  "acceptance_criteria": [
+    "GeminiNanoQuestionExtractor implements QuestionExtractor with the readiness gate, one generation per call, shared generation constants, and the failure mapping UNAVAILABLE / RETRYABLE / MALFORMED / OTHER with cancellation propagating; failures carry a kind only.",
+    "Prompt q1 shows no tags or activities, asks for words only (subject, action), empty when not named, uses non-corpus examples; a drift test pins its exact text.",
+    "QuestionResponse (@Generable, subject + action) and QuestionResponseDecoder (trim, blank -> null, length cap, both-null valid) exist; all ML Kit imports stay in core-ai.",
+    "New tests cover prompt, drift, schema, decoder and extractor behaviours listed; all :core-ai tests pass, including every existing extraction/interpretation test unchanged.",
+    "Existing activity extraction files and constants are untouched; ADR written; no forbidden path changed."
+  ],
+  "verification_commands": [
+    "./gradlew :core-ai:test",
+    "./gradlew :core-domain:test :core-testing:test",
+    "git diff --stat -- core-domain core-data core-testing app-phone app-wear",
+    "git status --porcelain"
+  ]
+}

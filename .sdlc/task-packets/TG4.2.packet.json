@@ -1,0 +1,56 @@
+{
+  "task_id": "TG4.2",
+  "plan_revision": "tg4",
+  "objective": "Give 'Ask your history' its data: a read-only repository method that returns every logged entry that can answer a lookup.\n\n1. core-domain: add to TagRepository (core-domain/.../repository/TagRepository.kt) `suspend fun loadLookupEntries(): List<LookupEntry>` with full KDoc, using com.mcfrenchpants.activityledger.core.domain.lookup.LookupEntry (created in TG4.1: occurrenceId, subjectId, subjectName, actionId, actionName, occurredAt: Instant, durationSeconds: Long?). Contract: every occurrence with visibility ACTIVE (hidden/undone ones excluded) whose canonical activity is a tagged pair (subject_id and action_id both non-null) AND whose pair, subject and action are all status ACTIVE (merged-away tags/pairs never appear -- a merge already moved their occurrences to the target pair, so those occurrences DO appear under the target tag); subject/action names are the CURRENT display names; newest occurredAt first, occurrence id descending as tie-break; read only, never throws for an empty database (returns an empty list); bounded number of queries (one JOIN query is expected, no per-row queries).\n\n2. core-data: implement it in RoomActivityRepository (core-data/.../repository/RoomActivityRepository.kt) via ONE new @Query in an existing DAO (ActivityOccurrenceDao is the natural home; follow how RawCaptureDao.loadHistory joins activity_occurrences -> canonical_activities -> subjects/actions and how its row class and mapper look) plus a small row class and mapping in the same style. Run on the repository's existing io dispatcher helper like the other read methods. No schema change, no migration, no change to any existing query.\n\n3. Tests (core-data/src/test/.../repository/, new file RoomLookupEntriesTest.kt, same setup style as RoomTagRepositoryTest / RoomTagRenameMergeTest, real in-memory Room): empty database -> empty; two tagged entries -> both, newest first, names/ids/duration right; a hidden (undone) occurrence is excluded; an untagged v3-path occurrence is excluded; after a tag rename the CURRENT name is returned; after a merge the moved occurrences appear under the target tag and none under the merged-away tag; an occurrence whose pair is MERGED/not ACTIVE is excluded; tie-break by id is deterministic.\n   Any other class that implements TagRepository directly (not by delegation) must get the method too -- search first; the phone-app test fakes delegate with `by inner` so need nothing. If a non-delegating implementation exists outside your write_paths, report scope_change_requested instead of editing it.\n\nDOCS: none (the ADR from TG4.1 covers it). RULES: raw captures untouched; no logging; exception text carries ids only; do not touch tracking docs.",
+  "non_goals": [
+    "No ranking or matching logic (TG4.1 / TG4.3).",
+    "No schema change or migration.",
+    "No change to existing queries or methods."
+  ],
+  "dependencies": [
+    "TG4.1"
+  ],
+  "read_paths": [
+    "core-domain/**",
+    "core-data/**",
+    "core-testing/**",
+    "docs/DATA_MODEL.md",
+    "docs/DECISIONS.md",
+    "AGENTS.md"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/TagRepository.kt",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/repository/RoomActivityRepository.kt",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/dao/ActivityOccurrenceDao.kt",
+    "core-data/src/test/kotlin/com/mcfrenchpants/activityledger/core/data/repository/RoomLookupEntriesTest.kt"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/proposals/**",
+    "docs/analysis/**",
+    "core-data/schemas/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/migration/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/entity/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/ActivityLedgerDatabase.kt",
+    "core-ai/**",
+    "core-testing/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-phone/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "TagRepository.loadLookupEntries() exists with KDoc stating the contract above; RoomActivityRepository implements it with a single JOIN query and no per-row queries.",
+    "Only ACTIVE-visibility occurrences on ACTIVE tagged pairs with ACTIVE subject and action are returned, newest first with id tie-break, current display names, duration included.",
+    "Untagged (v3) occurrences, hidden occurrences and occurrences on non-ACTIVE pairs/tags are never returned; after a merge the moved occurrences appear under the target tag; after a rename the new name is returned.",
+    "No schema, migration, entity or existing-query change; raw captures untouched.",
+    "New RoomLookupEntriesTest covers every case listed; all core-domain and core-data tests pass; :app-phone:compileDebugKotlin still compiles (delegating fakes need no edit)."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test :core-data:test",
+    "./gradlew :app-phone:compileDebugKotlin",
+    "git diff --stat -- core-data/schemas core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/migration core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/entity"
+  ]
+}

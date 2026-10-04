@@ -278,3 +278,6 @@ Status vocabulary:
     network fallback must be prevented or made visible) are in ADR-035. The
     Wear milestone (build-guide Step 8) is unblocked. Next backlog item to
     create: the Wear capture app itself.
+
+18. **Ask: counting and date-window questions** — `idea` (2026-10-04)
+    Ask answers "when did I last ..." only. Questions like "how many times did I mow in August?" or "how often do I change the oil?" need the model to also extract a time window / question type and program logic to count. Also open: a recorded set of real questions to guard the question reader against regressions, and asking by voice has not been tried on a device.

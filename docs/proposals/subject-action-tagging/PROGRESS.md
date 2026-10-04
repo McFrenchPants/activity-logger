@@ -29,9 +29,24 @@ Registered in `.sdlc/state.json` as TG1.
 | TG3.7 | Device pass (Pixel 10 Pro + watch) | done | Phone typed pass, owner's watch + phone voice tests (14 entries), migration on real data, cards, Tags screen all seen working on device 2026-10-04; finding -> TG3.8. Not exercised by me on device: Change subject/action, History edit sheet, rename/merge (all covered by JVM tests) |
 | TG3.8 | Extraction split: object noun lands in the subject ("hot tub filter" / "change") | done | Verifier pass; deterministic guard (rule 5, OBJECT_NOUNS) adopted; prompt v5 measured on the Pixel and NOT adopted (reverted to v4); ADR-049 |
 | TG3.9 | Clean-up: remove old single-activity UI and wiring from the phone app | done | Orchestrator-checked (clean full rerun incl. release compile, androidTest compile); ADR-050 |
-| TG4+ | Stage 4 | todo | detail after the Stage 3 report |
+| TG4.1 | Lookup ranking + question detector (core-domain) | done | Spot-check; ADR-051; known false positive "Did the laundry" |
+| TG4.2 | Repository read: loadLookupEntries | done | Verifier pass attempt 1; orchestrator added the method to two core-domain test fakes and one test for non-ACTIVE subject/action |
+| TG4.3 | Lookup service + question-extractor seam | done | Spot-check + full core-domain rerun; ADR-051 amended |
+| TG4.4 | Gemini Nano question extractor (core-ai) | done | Verifier pass attempt 1; ADR-052; prompt q1 not yet recorded on a device (TG4.6) |
+| TG4.5 | Ask wiring + view model (phone, no UI) | done | Orchestrator rerun of app-phone/core tests; 274 app-phone tests; questions never persisted (tested) |
+| TG4.6 | Ask screen (phone UI) | done | Orchestrator rerun (all app-phone tests, assembleDebug, androidTest compile); 4th tab; not seen on a device |
+| TG4.7 | Device pass | done | Pixel 10 Pro, typed questions on the real catalog; two fixes (keyboard covered input bar; unknown subject answered with other subjects' entries, ADR-051 amended). Voice asking not tried (needs owner) |
 
 ## Session log
+
+### 2026-10-04 - TG4.7 device pass done; STAGE 4 COMPLETE
+Installed on the Pixel 10 Pro (debug, install -r). Typed on the real catalog: "When did I last change the furnace filter?" -> correct Last logged card (real Gemini Nano, prompt q1 works); "I washed the car" -> statement message; "When did I last clean the gutters?" -> WRONG at first (showed hot tub filter · clean via the action) -> fixed in LookupService (new subject => NotEnoughHistory), re-checked on device. Also fixed: keyboard covered the input bar (imePadding added). Not tried: voice asking (needs the owner to speak), a q1 recording for a regression gate. Left: counting/date-window questions (backlog 18). Questions are never stored.
+
+### 2026-10-04 - TG4.6 done (Ask screen + fourth tab)
+AskScreen/AskContent (thread of question bubbles + answer cards, pending indicator, input bar with Send and mic, Clear), AskAnswerFormatting (intervalWords, matchNote), nav tab Ask, ic_nav_ask. Answer card: 'Last logged: subject · action', date/time, duration, previous + gap, up to 5 other matches, closest-match note. No logging from Ask (statements point to the Log tab). Implementer edited MainActivityNavigationTest (outside packet paths) because the old test asserted no Ask tab; accepted. Unchecked on device: keyboard/imePadding in the input bar; tall answer cards scroll to their start. Next: TG4.7 device pass (Pixel 10 Pro).
+
+### 2026-10-04 - Stage 4 started: TG4.1-TG4.5 done (run budget of 5 tasks reached)
+Branch `feature/ask-history`. Done: ranking + question detector (TG4.1, ADR-051), repository read of lookup entries (TG4.2, verifier pass), lookup service + question-extractor seam (TG4.3), Gemini Nano question extractor with its own prompt q1 (TG4.4, verifier pass, ADR-052), Ask wiring + view model (TG4.5). Scope: last-time questions only; counting/date-window questions are a later backlog item. Prompt q1 has NOT yet run on a device. Remaining: TG4.6 Ask screen + fourth tab, TG4.7 device pass on the Pixel 10 Pro (also record q1 answers) then owner report. Not merged to main yet (feature incomplete: no screen).
 
 ### 2026-10-04 — TG3.9 clean-up done
 Removed from the phone app: ActivityPicker (+test), ReviewSuggestions, PickerState, old ServiceRefusal message functions (two remaining callers switched to tagRefusalMessage(OccurrenceNotFound), same string), LegacyActivityFixtures, BusyRetryInterpreter (+test; RETRY_WAITS moved into BusyRetryExtractor), v3 interpreter/orchestrator and review/correction services from CapturePipeline/ActivityLedgerApplication, 25 unused strings. Stray dot on the Saved card bar removed; TagDecision.resplit KDoc fixed. CaptureVerticalSliceTest (device test, not run) now uses the tagged orchestrator. core-domain v3 classes stay (old corpus gate). ADR-050. -968/+109 lines. Full rerun green. Open: CaptureVerticalSliceTest never run on a device since the rewrite.

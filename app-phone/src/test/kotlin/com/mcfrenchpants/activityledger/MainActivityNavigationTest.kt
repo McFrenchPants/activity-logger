@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.mcfrenchpants.activityledger.ui.ask.ASK_SCREEN_TAG
 import com.mcfrenchpants.activityledger.ui.history.HISTORY_SCREEN_TAG
 import com.mcfrenchpants.activityledger.ui.log.LOG_SCREEN_TAG
 import com.mcfrenchpants.activityledger.ui.tags.TAGS_SCREEN_TAG
@@ -70,7 +71,17 @@ class MainActivityNavigationTest {
     }
 
     @Test
-    fun noAskTab() {
-        composeRule.onNode(hasText("Ask") and isSelectable()).assertDoesNotExist()
+    fun askTabIsTheFourthTabAndOpensAsk() {
+        val askTab = composeRule.onNode(hasText("Ask") and isSelectable())
+        askTab.assertIsDisplayed().assertIsNotSelected()
+        askTab.performClick()
+        composeRule.onNodeWithTag(ASK_SCREEN_TAG).assertIsDisplayed()
+        askTab.assertIsSelected()
+        composeRule.onNodeWithTag(LOG_SCREEN_TAG).assertDoesNotExist()
+        // Order: Log, History, Tags, Ask (left to right).
+        val lefts = listOf("Log", "History", "Tags", "Ask").map {
+            composeRule.onNode(hasText(it) and isSelectable()).fetchSemanticsNode().boundsInRoot.left
+        }
+        assert(lefts == lefts.sorted()) { "tabs are not in the order Log, History, Tags, Ask: $lefts" }
     }
 }
