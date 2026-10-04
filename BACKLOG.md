@@ -279,20 +279,20 @@ Status vocabulary:
     Wear milestone (build-guide Step 8) is unblocked. Next backlog item to
     create: the Wear capture app itself.
 
-18. **Ask: counting and date-window questions** — `idea` (2026-10-04)
+18. **Ask: counting and date-window questions** — `merged into item 19` (2026-10-04)
     Ask answers "when did I last ..." only. Questions like "how many times did I mow in August?" or "how often do I change the oil?" need the model to also extract a time window / question type and program logic to count. Also open: a recorded set of real questions to guard the question reader against regressions, and asking by voice has not been tried on a device.
 
-19. **Dashboard: what I've logged, at a glance** — `ready` (2026-10-04)
-    Added 2026-10-04 by the owner. A phone screen of counts and patterns from
-    the saved history, complementing Ask: entries per day/week/month over 7
-    days / 30 days / 12 months / all time, days with entries, most-logged
-    activities (and roll-up by subject), recurring things with last time and
-    typical gap, weekday and part-of-day patterns, and total stated duration.
-    Pure program logic over stored entries — no AI call, no schema change.
-    No streaks, scores, goals or reminders (product boundary); averages and
-    typical gaps are newly allowed on this screen (UX_VISUAL_SPEC §4.5/§7 to
-    be amended, ADR to record). Initial design and research:
+19. **Explore: Ask, search and dashboard in one screen** — `ready` (2026-10-04)
+    Added 2026-10-04 by the owner as a dashboard; same day the owner chose to
+    fold it into the Ask tab. One screen: a single box that takes a question
+    or search words, a filter row (date range, subject, action) that
+    everything obeys, an answer line, three numbers that react to the
+    filters, one entries-over-time chart, and a switch between Entries
+    (sortable list), Activities (most logged / recurring, "usually every N
+    days") and Patterns (weekday, part of day, time mentioned). A question
+    just sets the filters, so what the AI understood stays visible and
+    editable; the AI never produces numbers or answers. No streaks, scores,
+    goals or reminders; averages and typical gaps newly allowed here
+    (UX_VISUAL_SPEC §4.5/§7 to amend, ADR to record). Absorbs item 18. Design:
     `docs/proposals/dashboard/DESIGN_SPEC.md` (work item DH1). Open owner
-    questions: fifth bottom tab vs. History top-bar entry; whether Recurring
-    things shows a "longer than usual" label. Its counting logic can later
-    serve item 18 (Ask counting questions).
+    questions: tab name (recommended "Explore"); "longer than usual" label.

@@ -1,95 +1,206 @@
-# Design spec — Dashboard (work item DH1, backlog item 19)
+# Design spec — Explore: Ask, search and dashboard in one screen (work item DH1, backlog item 19)
 
-Status: **initial design, 2026-10-04. Not started; awaiting owner sign-off on
-the two product questions at the end.** No code has been changed.
+Status: **design v2, 2026-10-04. Not started.** v1 (a separate Dashboard
+tab) was replaced the same day at the owner's direction: fold the dashboard
+into the Ask tab so one screen covers asking, manual search/filtering and
+metrics. No code has been changed.
 
 ## Plain-English summary
 
-A phone screen that shows, at a glance, what the owner has logged: how many
-entries per day over a chosen period, which activities come up most, how often
-recurring things get done and how long since the last time, and when in the
-week/day things tend to happen. Every number is counted by program logic from
-the saved history. The AI is not involved at all, so the screen is instant,
-works offline and is always exactly right about what was logged.
+The Ask tab becomes one place to find out anything about what has been
+logged. It has three layers, top to bottom:
 
-It complements Ask (which answers one question at a time) by showing the whole
-picture without having to know what to ask.
+1. **One search box** that takes either a question in plain words ("how many
+   times did I mow in August?") or a few words to look up ("hot tub").
+2. **A row of filters** — date range, subject, action — that everything below
+   obeys. A question typed into the box simply *sets these filters* and they
+   stay visible and editable, so the owner can always see what the app
+   understood and fix it with a tap.
+3. **Results for the current filters**: a short answer line, three numbers,
+   one chart, then a switch between **Entries** (the matching list, sortable),
+   **Activities** (most logged / recurring) and **Patterns** (when things
+   happen, time mentioned).
+
+With no filters set it opens on "last 30 days, everything" — which is the
+dashboard. Filtering down to one activity turns the same space into that
+activity's report (last time, usually every N days, every entry).
+
+All numbers are counted by program logic from the saved history. The AI is
+used only to turn a typed or spoken question into filter values; it never
+produces an answer or a number (ADR-011).
+
+## Why one screen works without getting busy
+
+- **One shared scope.** Every part of the screen answers "what does the
+  history say for *these* filters?". Nothing has its own separate date picker
+  or search.
+- **Questions become filters.** Asking is just a fast way to fill in the
+  filter row; there is no separate "AI mode". The filter chips double as the
+  explanation of what the question was read as — which also guards against
+  AI misreads (the owner sees "Subject: Hot tub" and can change it).
+- **Progressive disclosure.** Always visible: search box, filter row, answer
+  line, three numbers. One chart. Everything else sits behind a three-way
+  switch, so only one detailed view is on screen at a time.
+- **The screen adapts to the scope** instead of showing every metric always:
+  "everything" shows totals and top activities; one activity shows last
+  time, typical gap and its entries.
 
 ## Research summary (what is useful for this kind of app)
 
-Sources looked at: comparable logging apps ("Days Since"-style interval
-trackers, Track & Graph, Day History, LifeTracker), personal-visualization
-research (Choe et al., *Characterizing Visualization Insights from
-Quantified-Selfers' Personal Data Presentations*, VIS 2015; Choe et al.,
-*Personal Visualization and Personal Visual Analytics*, IEEE CG&A 2015) and
-recent work on streak mechanics.
+Sources: comparable logging apps ("Days Since"-style interval trackers,
+Track & Graph, Day History, LifeTracker), personal-visualization research
+(Choe et al., *Characterizing Visualization Insights from Quantified-Selfers'
+Personal Data Presentations*, VIS 2015; Choe et al., *Personal Visualization
+and Personal Visual Analytics*, IEEE CG&A 2015) and recent work on streaks.
 
 1. **"How long since" is the defining metric of occurrence logs.** Apps built
-   around one-off events (as opposed to habits) lead with *days since last
-   time* and *typical gap between times*. That matches this app's household /
-   maintenance use (furnace filter, oil change, hot tub chemicals) and the
-   product spec's own example questions.
-2. **People look for a small set of insight types** in their own data: trend
-   over time, comparison between periods, distribution (when things happen),
-   data summary, and outliers. A good personal dashboard gives one view per
-   type, with plain labels, rather than many charts.
-3. **Common failures** of self-tracking dashboards: information overload,
-   unexplained numbers, colour-only meaning, and charts too small to read on a
-   phone. Mitigation: few sections, a sentence under each chart, text
-   alternatives for every chart.
-4. **Streaks and scores backfire for many people.** Field studies show a
-   broken streak makes people *less* likely to continue (the "what the hell"
-   effect), more so when the app highlights the break. This independently
-   supports the existing product rule: no streaks, no scores, no goals
-   (PRODUCT_SPEC §8, UX_SPEC §15, UX_VISUAL_SPEC §7).
+   around one-off events lead with days since last time and typical gap.
+   Matches the household/maintenance use and the product spec's examples.
+2. **People look for a few insight types**: trend over time, comparison
+   between periods, distribution (when things happen), summary, outliers. One
+   view per type with plain labels beats many charts.
+3. **Common failures**: information overload, unexplained numbers,
+   colour-only meaning, charts too small for a phone. Hence few sections, a
+   sentence with each chart, and text alternatives.
+4. **Streaks and scores backfire** (a broken streak makes people likelier to
+   quit, more so when highlighted). Supports the existing rule: no streaks,
+   scores or goals (PRODUCT_SPEC §8, UX_SPEC §15, UX_VISUAL_SPEC §7).
 
-## Goals
+## Screen design
 
-- One new phone screen, **Dashboard**, with a period selector:
-  **7 days · 30 days · 12 months · All time** (default 30 days).
-- Sections, top to bottom (each hidden when it has nothing to show):
-  1. **Summary tiles** — entries in period; days with at least one entry
-     ("18 of 30 days"); different activities logged; previous equal period as
-     a plain number ("previous 30 days: 41"), never coloured up/down.
-  2. **Entries over time** — bar chart: per day (7/30 days), per week
-     (12 months), per month (all time). One line of text under it: "Average
-     2.1 entries per day on days you logged something".
-  3. **Most logged** — top activities (subject + action, e.g. "Hot tub ·
-     add chlorine") with count in period and last time. Toggle to group by
-     **subject** ("Hot tub — 12 entries, 3 kinds") so groupings emerge from
-     tags as decided for item 13. Tap opens the existing activity detail.
-  4. **Recurring things** — activities logged at least 3 times (all time):
-     last time, days since, typical gap (median of gaps between entries),
-     ordered by days since. This is the "maintenance view".
-  5. **When you log things** — entries by weekday (7 bars) and by part of day
-     (morning / afternoon / evening / night).
-  6. **Time spent** — total stated duration per activity, only for entries
-     where a duration was said ("walked the dogs for 30 minutes"). Labelled
-     "time you mentioned", since most entries have none.
-- Reachable from the bottom navigation (see question 1).
+### 1. Search box (top, always visible)
+
+- Placeholder: "Ask or search your history". Mic button inside it (spoken
+  questions use the existing phone speech path).
+- While typing, a suggestion list appears under the box:
+  - matching **subjects** and **actions** (by name and "also called"
+    aliases) — tapping one adds it as a filter chip, no AI;
+  - **"Search your words for 'hot'"** — matches the entries' recorded words
+    and tag names, no AI;
+  - **"Ask: <text>"** — sends it to the question reader.
+- Enter / search key: if the text looks like a question (existing rule,
+  ADR-051: trailing "?" or a question word first) it is asked; otherwise it is
+  a word search. No mode toggle.
+- An asked question: the question reader (ADR-052, extended per backlog item
+  18 to also return a date window and question type) produces words; program
+  logic resolves them to tags and dates and **sets the filter chips**. The
+  answer line then states the database fact. If the words resolve to nothing,
+  the existing "not enough history" message shows and filters are unchanged.
+
+### 2. Filter row (always visible, one line, scrolls sideways if needed)
+
+- **Date chip**: Last 7 days · Last 30 days (default) · Last 12 months · All
+  time · Custom range (date-range picker). Month names from a question
+  ("in August") appear as a custom range labelled "August 2026".
+- **Subject chip** and **Action chip**: searchable pickers over existing tags,
+  single choice each in v1. Near matches from a question are shown as the
+  chosen tag with "closest match" under the answer line (same rule as today's
+  Ask).
+- **Words chip** appears only when a word search is active ("words: hot").
+- Each set chip has an ✕; a "Clear" link appears when anything is set.
+- Filters persist while the app is open; they reset to the default when the
+  app is restarted.
+
+### 3. Answer line (shown after a question; otherwise a plain scope summary)
+
+- After a question: the fact, database first (UX_SPEC §9 style), e.g. "You
+  mowed the lawn 4 times in August 2026. Last: August 28." or "Last changed
+  the furnace filter September 15 — 19 days ago."
+- Without a question: "47 entries in the last 30 days."
+
+### 4. Three numbers (react to the filters)
+
+- **Scope = many activities**: Entries (with previous equal period as a
+  plain number, never coloured), Days with an entry ("18 of 30"), Different
+  activities.
+- **Scope = one activity** (subject + action set, or a subject with one
+  action): Times in period, Last time ("19 days ago"), Usually every ("30
+  days", needs ≥3 entries all time; otherwise "—").
+- **Scope = one subject**: Entries, Different actions, Last time.
+
+### 5. One chart
+
+Entries over time for the scope: bars per day (≤31 days), per week (≤1 year),
+per month (longer). One sentence under it: "Average 2.6 per day on days you
+logged something." *Show as list* toggle gives the same data as text rows.
+
+### 6. Three-way switch: Entries · Activities · Patterns
+
+- **Entries** (default after a question or filter): the matching entries,
+  same row design and tap-to-open sheet as History. Sort: Newest (default) ·
+  Oldest. Grouped under date headers.
+- **Activities** (default with no filters): activities in scope with count
+  and last time. Sort: Most logged (default) · Last done · Longest since ·
+  Name. Toggle *Group by subject* rolls them up ("Hot tub — 12 entries, 3
+  kinds"). Activities with ≥3 entries show "usually every N days". Tap sets
+  that activity as the filter (drill down); Back restores the previous
+  filters.
+- **Patterns**: entries by weekday, by part of day (morning / afternoon /
+  evening / night), and "time you mentioned" (total stated duration per
+  activity). Each says how many entries it had to leave out (e.g. no time of
+  day).
+
+### Wireframe — no filters (opens like this)
+
+```
+ [ Ask or search your history            🎤 ]
+ (Last 30 days ▾) (Subject ▾) (Action ▾)
+ 47 entries in the last 30 days.
+ ┌──────────┐ ┌──────────┐ ┌──────────┐
+ │ 47       │ │ 18 of 30 │ │ 14       │
+ │ entries  │ │ days     │ │ activities│
+ │ prev: 41 │ │          │ │          │
+ └──────────┘ └──────────┘ └──────────┘
+ ▁▃ ▅▂ ▁▇▃  ▂▅▁ ▃▂▆ ▁ ▃▄▂ ▅▁▂ ▃
+ Average 2.6 per day on days you logged something
+ [ Entries | •Activities | Patterns ]      Sort: Most logged ▾
+ Hot tub · add chlorine     9   2 days ago   usually every 3 days
+ Dogs · walk                8   today
+ Lawn · mow                 4   6 days ago   usually every 7 days
+```
+
+### Wireframe — after "how many times did I mow in August?"
+
+```
+ [ how many times did I mow in August?   ✕ ]
+ (August 2026 ✕) (Lawn ✕) (mow ✕)              Clear
+ You mowed the lawn 4 times in August 2026. Last: August 28.
+ ┌──────────┐ ┌──────────┐ ┌──────────┐
+ │ 4 times  │ │ Last     │ │ Usually  │
+ │          │ │ 37 d ago │ │ every 7 d│
+ └──────────┘ └──────────┘ └──────────┘
+ ▂ ▂ ▂ ▂   (per week)
+ [ •Entries | Activities | Patterns ]       Sort: Newest ▾
+ Aug 28  Lawn · mow   "Mowed the front and back"
+ Aug 21  Lawn · mow   "Cut the grass"
+ ...
+```
 
 ## Non-goals
 
-- No streaks, scores, goals, targets, badges, "personal bests", completion
-  percentages, or green/red good-bad colouring. Numbers are facts, not grades.
-- No reminders or notifications of any kind, including from "Recurring
-  things" (see question 2 for the only related display).
-- No calendar heatmap in this version: UX_VISUAL_SPEC §7 excludes calendar
-  grids, and a year grid of filled/empty days reads as a streak display.
-  Revisit only if the owner asks.
-- No watch screen. The watch stays a capture device.
-- No AI, no model call, no exporting/sharing of the dashboard.
-- Not answering Ask counting questions — that is backlog item 18, which can
-  later reuse this work's counting logic.
+- No streaks, scores, goals, targets, badges, personal bests, completion
+  percentages or green/red colouring. Numbers are facts, not grades.
+- No reminders or notifications, including from "usually every N days".
+- No calendar heatmap (UX_VISUAL_SPEC §7 excludes calendar grids; a year grid
+  of filled/empty days reads as a streak display).
+- No multi-select of tags in v1 (one subject, one action), no saved
+  searches, no export.
+- No watch changes. The watch's top-answer lookup is unaffected.
+- The AI never computes counts, dates or answers; it only supplies words.
 
-## Product-rule changes this needs (owner's request is the approval)
+## Product-rule changes this needs (owner request = approval)
 
 - UX_VISUAL_SPEC §4.5 says activity detail shows "no averages, streaks, or
-  scores". The dashboard shows *averages and typical gaps*; streaks and scores
-  stay excluded. Amend §4.5/§7 to say averages and typical gaps are allowed on
-  the Dashboard (and may later be added to activity detail), and record an ADR.
-- This brings forward part of ROADMAP "Post-MVP D — Analytics" (typical
-  interval, frequency trends, summaries by period). Note it there.
+  scores". This screen shows averages and typical gaps; streaks and scores
+  stay excluded. Amend §4.5/§7 and record an ADR.
+- UX_VISUAL_SPEC §3 D1 / §9 (Ask thread shape): Ask becomes this screen; the
+  conversational thread is replaced by search box + answer line. The tab may
+  be renamed (see question below). Record in an ADR amending ADR-019/ADR-051's
+  screen notes.
+- Brings forward part of ROADMAP "Post-MVP D — Analytics". Note it there.
+- Absorbs backlog item 18 (counting and date-window questions): the question
+  reader gains a date window and question type, and counting comes from this
+  work's counting logic.
 
 ## Counting rules (deterministic, PC-testable)
 
@@ -97,111 +208,82 @@ recent work on streak mechanics.
   `visibility_status = 'ACTIVE'`). Removed entries and entries still waiting
   in Needs review are not counted. Corrections are already reflected in the
   occurrence's effective interpretation.
-- Group by the entry's **occurred** time (when the user said it happened), not
-  capture time, in the phone's current time zone. Day boundaries are local
-  midnight; weeks start on the locale's first day of week.
+- Group by the entry's **occurred** time, not capture time, in the phone's
+  current time zone. Day boundaries are local midnight; weeks start on the
+  locale's first day of week.
 - Entries whose time is only known to the day count for per-day/weekday views
-  but are left out of "part of day". Each view says how many were left out if
-  any ("4 entries without a time of day not shown").
+  but are left out of "part of day", with a count of how many were left out.
 - Activity identity = the subject + action pair (canonical activity). Subject
-  roll-up groups by subject tag. Entries on old single-activity rows without
-  tags are grouped under their activity name.
-- Typical gap = median of consecutive gaps between entries of the same
-  activity (median, not mean, so one long pause does not distort it). Needs at
-  least 3 entries (2 gaps). Same-day duplicates count as separate entries but
-  produce a zero gap; median absorbs this.
-- "Previous period" = the same length immediately before the selected one;
-  not shown for "All time".
-- Period boundaries are inclusive of today; "30 days" = today and the 29 days
-  before it.
+  roll-up groups by subject tag. Old untagged rows group under their activity
+  name.
+- Typical gap ("usually every") = median of consecutive gaps between entries
+  of the same activity, over all time regardless of the date filter (so a
+  short window cannot hide the habit). Needs ≥3 entries.
+- "Previous period" = same length immediately before; not shown for All time
+  or custom ranges over a year.
+- Preset ranges include today ("30 days" = today and the 29 days before).
+- Word search: case-insensitive substring over the entry's recorded words
+  (raw capture text, read-only), subject/action names and their aliases.
+  Searching never modifies anything.
 
 ## Architecture
 
-- **core-domain `stats` package** (new, pure Kotlin): input = a list of plain
-  entry rows (occurrence id, occurred-at, time precision, duration, activity
-  id, subject id/name, action id/name) + period + time zone + "now"; output =
-  one `DashboardSummary` value. All rules above live here and are unit-tested
-  on the PC with a fixed clock and zone, including DST transitions and
-  midnight edges.
-- **core-data**: one read-only DAO query returning those rows for a time
-  window (joins occurrence → canonical activity → subject/action), exposed as
-  a `Flow` so the screen updates when an entry is logged, corrected or
-  removed. Personal-scale data (thousands of rows) is aggregated in Kotlin;
-  no SQL-side aggregation is needed, which keeps the counting rules in one
-  testable place. No schema change, no migration.
-- **app-phone**: `DashboardViewModel` + `DashboardScreen` (Compose). Charts
-  are drawn with Compose `Canvas` — no new chart library (decided: three
-  simple bar charts do not justify a dependency). Bars use tabular figures for
-  labels and the existing design tokens.
-- **Accessibility**: every chart has a one-sentence content description
-  ("Entries per day, last 30 days. Most: 6 on September 21. 12 days with no
-  entries.") and a *Show as list* toggle that renders the same data as text
-  rows. Bars are never colour-only; numbers reflow at 200% text.
-- **Privacy**: nothing new leaves the phone; no logging of activity names or
-  user words (AGENTS.md #11).
-
-### Wireframe (30 days)
-
-```
- Dashboard                                   [7d][30d][12m][All]
- ┌────────────┐ ┌────────────┐ ┌────────────┐
- │ 47 entries │ │ 18 of 30   │ │ 14         │
- │ prev 30: 41│ │ days logged│ │ activities │
- └────────────┘ └────────────┘ └────────────┘
- Entries per day
- ▁▃ ▅▂ ▁▇▃  ▂▅▁ ▃▂▆ ▁ ▃▄▂ ▅▁▂ ▃
- Average 2.6 per day on days you logged something     [Show as list]
-
- Most logged                         [Activities | Subjects]
- Hot tub · add chlorine        9   last: 2 days ago
- Dogs · walk                   8   last: today
- Lawn · mow                    4   last: 6 days ago
-
- Recurring things
- Furnace · change filter   last 41 days ago · usually every 30 days
- Tractor · change oil      last 3 months ago · usually every 4 months
-
- When you log things
- Mon ▃  Tue ▂  Wed ▂  Thu ▃  Fri ▂  Sat ▇  Sun ▅
- Morning ▅  Afternoon ▃  Evening ▆  Night ▁
-
- Time you mentioned
- Dogs · walk        4 h 10 min (8 entries)
-```
-
-Empty state (nothing logged in the period): "Nothing logged in the last 30
-days." All time with no entries: UX_SPEC §13 History empty-state copy.
+- **core-domain `stats` package** (pure Kotlin): `ExploreFilter` (date range,
+  subject id?, action id?, words?) + rows + zone + now → `ExploreSummary`
+  (answer-line facts, the three numbers by scope kind, chart buckets,
+  activity list, patterns, filtered entries). All rules above live here.
+- **core-domain `lookup`**: the question service (ADR-051) returns a filter
+  plus answer facts instead of only a ranked list. Last-time ranking by tag
+  tier stays for the watch and for near matches.
+- **core-data**: one read-only query returning entry rows (occurrence →
+  canonical activity → subject/action, plus raw words for search) as a `Flow`,
+  so the screen updates when entries are logged, corrected or removed.
+  Personal-scale data is filtered and aggregated in Kotlin. No schema change.
+- **core-ai**: question prompt gains date-window and question-type fields
+  (new prompt version, item 18). Dates are still resolved by program logic
+  (existing temporal resolver), never by the model.
+- **app-phone**: `AskScreen`/`AskViewModel` rebuilt as the Explore screen.
+  Charts drawn with Compose `Canvas` (decided: no chart library for a few bar
+  charts).
+- **Accessibility**: each chart has a one-sentence description and a list
+  alternative; chips announce "Date range, last 30 days, double-tap to
+  change"; sort and switch controls 48 dp; 200% text reflows (the three
+  numbers stack vertically).
+- **Privacy**: nothing leaves the phone except speech recognition as today;
+  no logging of activity names, questions or searches (AGENTS.md #11).
 
 ## Testing
 
-- JVM unit tests for every counting rule (fixed clock and zone, DST spring and
-  fall days, midnight, day-only precision, removed entries, median with even
-  and odd gap counts, previous-period edges).
-- DAO test with an in-memory database: only active entries returned, window
-  bounds inclusive, tag names joined.
-- Compose UI test: period switch, empty state, list toggle exposes the same
-  numbers.
-- Device pass on the Moto G (no AI needed — the dashboard does not use the
-  model), using real history pulled from the Pixel if available.
-- No semantic-regression impact: no prompt, model or matching change.
+- JVM tests for every counting rule (fixed clock and zone, DST days,
+  midnight, day-only precision, removed entries, median edges, previous
+  period, word search incl. aliases).
+- Question → filter mapping: replayed recordings for a new question corpus
+  (subject/action/date window), gated like the capture corpus; Pixel session
+  to record.
+- DAO test (in-memory): only active rows, window bounds, joins.
+- Compose UI tests: suggestion list, chip set/clear, scope switching of the
+  three numbers, sort, drill-down and Back, list alternative.
+- Device pass: Moto G for everything except asking; Pixel 10 Pro for asked
+  questions.
 
 ## Proposed stages
 
-1. Counting logic in core-domain + tests (no UI).
-2. DAO query + repository method + tests.
-3. Dashboard screen, navigation entry, accessibility, UI tests.
-4. Device pass, spec/ADR updates (UX_VISUAL_SPEC §4.5/§7 amendment, ROADMAP
-   note, new ADR for the counting rules).
+1. Counting logic + filter model in core-domain, with tests.
+2. Data query + repository, with tests.
+3. Explore screen with manual filters, search suggestions, word search,
+   numbers, chart and the three views (no AI changes; existing subject/action
+   questions set chips).
+4. Question reader extended with date windows and counting (item 18), new
+   question corpus and recording on the Pixel.
+5. Device pass, spec/ADR updates.
 
-## Questions for the owner
+Stage 3 is already useful on its own: the dashboard and manual search ship
+before any AI change.
 
-1. **Where does it live?** Recommended: a fifth bottom tab, **Dashboard**,
-   after Ask (Log · History · Tags · Ask · Dashboard). Five is the most the
-   bottom bar allows, so a future screen would have to go elsewhere.
-   Alternative: an icon in the History screen's top bar, keeping four tabs but
-   making the dashboard one tap deeper.
-2. **"Longer than usual" hint in Recurring things?** E.g. marking "Furnace ·
-   change filter — 41 days, usually every 30" with a small *longer than usual*
-   label. Useful for maintenance, but it edges toward a reminder, which the
-   product deliberately avoids. Recommended: show the plain numbers only in
-   the first version, and add the label later if the owner wants it.
+## Open product questions
+
+1. **Tab name.** "Ask" undersells it once it holds search and metrics.
+   Recommended: **Explore**. Alternatives: Insights, Ask (keep).
+2. **"Longer than usual" label** on activities whose time since last exceeds
+   their usual gap (e.g. 41 days, usually every 30). Recommended: plain
+   numbers only in v1, since it edges toward a reminder.
