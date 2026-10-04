@@ -104,9 +104,65 @@ transaction; history stays auditable.
 
 **STOP after TG2.4:** plain-English report to the owner; Stage 3 needs their go-ahead.
 
-## Stage 3 — App (outline)
-Wire phone and watch capture to the new pipeline; confirm-close-match card; merge/rename
-tags; Saved card shows subject and action. Device pass on phone and watch.
+## Stage 3 — App (detail written 2026-10-04 after the Stage 2 report)
+
+Owner go-ahead for Stage 3 given 2026-10-04 ("Implement Stage 3. Phone and watch are available via
+adb"). Devices: Pixel 10 Pro (USB, the AI phone) and the watch (OPWE242, Wi-Fi ADB). Verifier
+required for TG3.1-TG3.3 (AI output validation, persistence, watch transport idempotency).
+
+**Switch-over rule.** The v3 pipeline (`CaptureInterpretationOrchestrator`, `ActivityRepository`
+picker flows, `ReviewResolutionService`, `CorrectionService`, `GeminiNanoActivityInterpreter`)
+stays in the code base, untouched, because the old semantic corpus/gate still use it; the app
+simply stops calling it. Deleting v3 is a later clean-up. v3 rows already in a database keep
+showing (tags are nullable); the owner clears app storage once for the clean start (accepted).
+
+### TG3.1 — Tagged capture orchestrator (`core-domain` services)
+`TaggedCaptureOrchestrator.process(captureId)` over `LedgerRepository` + `ActivityExtractor`:
+extract -> `ExtractionGrounding` -> `TagDecisionPolicy.decide` against `loadTagCatalog()` ->
+time (`TemporalResolver`, same unreadable/future handling as `InterpretationValidator` and the
+ADR-028 amendment) and duration (`DurationResolver`, seconds) -> exactly one persisted outcome:
+AutoSaved (`acceptTagged`), NeedsConfirm / NeedsReview (`recordOutcome` NEEDS_REVIEW with an
+interpretation row carrying the extracted words, duration expression and resolved duration),
+Rejected (malformed/failed answer -> INVALID row), InterpreterUnavailable (FAILED_RETRYABLE),
+AlreadyHasOccurrence. Outcomes carry what the screens need (the decision, the grounded words,
+resolved time, duration, state). A missing activity state or a time problem downgrades an
+AUTO_SAVE to a review, never a silent save. Model confidence is not consulted.
+
+### TG3.2 — Resolution and correction service (`core-domain` services)
+`TaggedResolutionService`: (a) `resolve` -- the user answers a confirm card or reviews a waiting
+capture: choose subject and action (Existing id or New name), optional time and duration; saves
+through `acceptTagged`, with product refusals (capture missing / already has an occurrence /
+future time) and alias learning through `CorrectionAliases` (safe-alias rules, ADR-041). (b)
+`correct` -- change subject/action/duration of a saved occurrence through `correctTags`, learning
+aliases the same way, refusing hidden occurrences. Plus `TagManagementService` over
+`renameTag` / `mergeTags` (trimmed names, refusals as plain outcomes). Pure orchestration.
+
+### TG3.3 — Phone wiring and watch (`app-phone` pipeline + wear receiver)
+`CapturePipeline` builds the tagged orchestrator (extractor wrapped in busy-retry like v3),
+`ActivityLedgerApplication` exposes the new services, `WatchCaptureReceiver` runs the tagged
+orchestrator and acks with the "subject action" label; confirm/review/unavailable -> NEEDS_REVIEW
+ack as before. Idempotency on captureId unchanged. The Log/History view models are not changed
+here (they keep compiling against the old services until TG3.4 -- if that is impossible, keep
+both sets in the application class).
+
+### TG3.4 — Log screen
+Typed and spoken captures go through the tagged pipeline. Saved card shows subject, action and
+duration, with Undo and "change subject / change action" (correction + alias learning). A
+confirm card ("Did you mean furnace?" with yes / no, mine / pick another) and a review card
+(pick or type subject and action). Tag pickers replace the activity picker on these screens.
+
+### TG3.5 — History
+Rows show subject + action (+ duration); awaiting-review rows resolve through the tag pickers;
+corrections from History. v3-only rows still display.
+
+### TG3.6 — Tag management
+A phone screen listing subjects and actions with rename and merge ("Merge into ..."), using
+`TagManagementService`; plain-words refusals (name already used -> offer merge).
+
+### TG3.7 — Device pass
+Install on the Pixel 10 Pro and the watch, clear app storage, log real sentences by watch and
+phone, check Saved/confirm/review cards, correction, rename and merge; record findings. Fix what
+is found (deterministic fixes can be replayed without the phone). STOP: report to the owner.
 
 ## Stage 4 — Lookup (outline)
 Ranked query logic in `core-domain` (both tags, then subject-only, then action-only; newest

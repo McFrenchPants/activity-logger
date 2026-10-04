@@ -1233,6 +1233,125 @@
           "task_packet_path": ".sdlc/task-packets/TG2.4.packet.json",
           "report_path": null,
           "notes": "Verifier pass attempt 1; ADR-042"
+        },
+        {
+          "id": "TG3.1",
+          "title": "Tagged capture orchestrator",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "TG2.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/TG3.1.packet.json",
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "TG3.2",
+          "title": "Resolution, correction and tag management services",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "TG3.1"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/TG3.2.packet.json",
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "TG3.3",
+          "title": "Phone wiring and watch receiver",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "TG3.2"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/TG3.3.packet.json",
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "TG3.4",
+          "title": "Log screen on tags",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "TG3.3"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/TG3.4.packet.json",
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "TG3.5",
+          "title": "History on tags",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "TG3.4"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/TG3.5.packet.json",
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "TG3.6",
+          "title": "Tag management screen",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "TG3.5"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/TG3.6.packet.json",
+          "report_path": null,
+          "notes": ""
+        },
+        {
+          "id": "TG3.7",
+          "title": "Device pass",
+          "status": "todo",
+          "lifecycle_state": "planned",
+          "dependencies": [
+            "TG3.6"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 0
+          },
+          "task_packet_path": ".sdlc/task-packets/TG3.7.packet.json",
+          "report_path": null,
+          "notes": ""
         }
       ]
     }
