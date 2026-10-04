@@ -35,9 +35,12 @@ Registered in `.sdlc/state.json` as TG1.
 | TG4.4 | Gemini Nano question extractor (core-ai) | done | Verifier pass attempt 1; ADR-052; prompt q1 not yet recorded on a device (TG4.6) |
 | TG4.5 | Ask wiring + view model (phone, no UI) | done | Orchestrator rerun of app-phone/core tests; 274 app-phone tests; questions never persisted (tested) |
 | TG4.6 | Ask screen (phone UI) | done | Orchestrator rerun (all app-phone tests, assembleDebug, androidTest compile); 4th tab; not seen on a device |
-| TG4.7 | Device pass | todo | needs the Pixel 10 Pro; owner report after |
+| TG4.7 | Device pass | done | Pixel 10 Pro, typed questions on the real catalog; two fixes (keyboard covered input bar; unknown subject answered with other subjects' entries, ADR-051 amended). Voice asking not tried (needs owner) |
 
 ## Session log
+
+### 2026-10-04 - TG4.7 device pass done; STAGE 4 COMPLETE
+Installed on the Pixel 10 Pro (debug, install -r). Typed on the real catalog: "When did I last change the furnace filter?" -> correct Last logged card (real Gemini Nano, prompt q1 works); "I washed the car" -> statement message; "When did I last clean the gutters?" -> WRONG at first (showed hot tub filter · clean via the action) -> fixed in LookupService (new subject => NotEnoughHistory), re-checked on device. Also fixed: keyboard covered the input bar (imePadding added). Not tried: voice asking (needs the owner to speak), a q1 recording for a regression gate. Left: counting/date-window questions (backlog 18). Questions are never stored.
 
 ### 2026-10-04 - TG4.6 done (Ask screen + fourth tab)
 AskScreen/AskContent (thread of question bubbles + answer cards, pending indicator, input bar with Send and mic, Clear), AskAnswerFormatting (intervalWords, matchNote), nav tab Ask, ic_nav_ask. Answer card: 'Last logged: subject · action', date/time, duration, previous + gap, up to 5 other matches, closest-match note. No logging from Ask (statements point to the Log tab). Implementer edited MainActivityNavigationTest (outside packet paths) because the old test asserted no Ask tab; accepted. Unchecked on device: keyboard/imePadding in the input bar; tall answer cards scroll to their start. Next: TG4.7 device pass (Pixel 10 Pro).

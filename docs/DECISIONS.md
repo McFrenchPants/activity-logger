@@ -838,6 +838,8 @@ The app can answer "when did I last change the furnace filter?" from the logged 
 
 **Amendment (TG4.3, 2026-10-04): the lookup service.** `LookupService.ask` returns one of: NotAQuestion (blank or not a question; the model is never called), Unavailable / Busy / Failed (model failure kinds UNAVAILABLE / RETRYABLE / MALFORMED+OTHER), NotEnoughHistory (nothing logged, the words matched no existing tag, or no entry matched) or Answer (target plus non-empty ranked result). A near (closest-candidate) tag match still answers without asking the user; the matches carry exact=false so the screen can say it is the closest match. The service only reads and never saves or logs the question.
 
+**Amendment (TG4.7, 2026-10-04): a named subject that matches nothing.** Found on the Pixel: "When did I last clean the gutters?" (gutters never logged) answered with the last "hot tub filter · clean" because the ACTION matched. When the question names a subject and that subject resolves to no existing tag (New), the service now answers NotEnoughHistory instead of falling back to other subjects' entries of the same action. A question naming only an action, or a subject that resolves Exact/Near, is unchanged.
+
 ## ADR-052 — Question extraction for Ask your history
 
 **Status:** Accepted (developer decision, 2026-10-04; Ask your history, TG4.4)

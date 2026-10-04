@@ -4,6 +4,7 @@ import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterFa
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterProvenance
 import com.mcfrenchpants.activityledger.core.domain.repository.TagRepository
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagResolution
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagResolver
 
 /*
@@ -101,7 +102,8 @@ sealed interface LookupOutcome {
  *
  * Order: blank or not a question -> [LookupOutcome.NotAQuestion] (no extractor or repository
  * call); extract the words (failures map to Unavailable / Busy / Failed); resolve subject and
- * action words with [TagResolver] against the catalog; build the target with
+ * action words with [TagResolver] against the catalog (a named subject that matches no tag ->
+ * NotEnoughHistory, never another subject's entries); build the target with
  * [LookupTarget.fromResolutions] (none -> NotEnoughHistory); load entries (none -> NotEnoughHistory);
  * rank with [HistoryLookup.rank] (nothing -> NotEnoughHistory); otherwise [LookupOutcome.Answer].
  */
@@ -126,6 +128,9 @@ class LookupService(
         val catalog = repository.loadTagCatalog()
         val subject = TagResolver.resolve(candidate.subject, TagKind.SUBJECT, catalog)
         val action = TagResolver.resolve(candidate.action, TagKind.ACTION, catalog)
+        // A subject that was named but matches nothing logged means there is no history for what the
+        // user asked about; answering with other subjects' entries of the same action would mislead.
+        if (subject is TagResolution.New) return LookupOutcome.NotEnoughHistory
         val target = LookupTarget.fromResolutions(subject, action) ?: return LookupOutcome.NotEnoughHistory
 
         val entries = repository.loadLookupEntries()

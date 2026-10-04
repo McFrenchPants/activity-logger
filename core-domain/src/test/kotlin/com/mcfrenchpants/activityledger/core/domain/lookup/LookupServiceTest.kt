@@ -136,6 +136,12 @@ class LookupServiceTest {
     }
 
     @Test
+    fun `a named subject that matches nothing is not enough history even if the action matches`() = runSuspend {
+        val svc = service(words("gutters", "mow"))
+        assertEquals(LookupOutcome.NotEnoughHistory, svc.ask("when did I last mow the gutters"))
+    }
+
+    @Test
     fun `both words null is not enough history`() = runSuspend {
         val extractor = words(null, null)
         assertEquals(LookupOutcome.NotEnoughHistory, service(extractor).ask(question))
