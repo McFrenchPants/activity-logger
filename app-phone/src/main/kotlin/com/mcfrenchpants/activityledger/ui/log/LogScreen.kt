@@ -55,10 +55,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mcfrenchpants.activityledger.ActivityLedgerApplication
 import com.mcfrenchpants.activityledger.R
-import com.mcfrenchpants.activityledger.core.domain.repository.ActivityTarget
-import com.mcfrenchpants.activityledger.ui.components.ActivityPicker
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
 import com.mcfrenchpants.activityledger.ui.components.EvidenceText
 import com.mcfrenchpants.activityledger.ui.components.HistoryRow
+import com.mcfrenchpants.activityledger.ui.components.TagPicker
 import com.mcfrenchpants.activityledger.ui.review.resolve
 import com.mcfrenchpants.activityledger.ui.theme.LedgerShapes
 
@@ -146,10 +146,12 @@ fun LogScreen(
         onInputChange = viewModel::onInputChange,
         onSubmit = viewModel::submit,
         onUndo = viewModel::undo,
-        onChangeActivity = { viewModel.openPicker() },
-        onSuggestion = { viewModel.resolve(ActivityTarget.Existing(it)) },
-        onChooseActivity = { viewModel.openPicker() },
-        onCreateActivity = { viewModel.openPicker(startWithNewActivity = true) },
+        onChangeSubject = { viewModel.openPicker(TagKind.SUBJECT) },
+        onChangeAction = { viewModel.openPicker(TagKind.ACTION) },
+        onChooseCandidate = viewModel::chooseCandidate,
+        onKeepMine = viewModel::keepMine,
+        onPickTag = { viewModel.openPicker(it) },
+        onSave = viewModel::save,
         onDecideLater = viewModel::decideLater,
         onCardTouched = viewModel::setCardTouched,
         onOpenHistory = onOpenHistory,
@@ -168,11 +170,12 @@ fun LogScreen(
     )
 
     state.picker?.let { picker ->
-        ActivityPicker(
-            activities = picker.activities,
+        TagPicker(
+            kind = picker.kind,
+            tags = picker.tags,
             onChoose = viewModel::onPickerChoice,
             onDismiss = viewModel::closePicker,
-            startWithNewActivity = picker.startWithNewActivity,
+            startWithNewName = picker.startWithNewName,
         )
     }
 }
@@ -203,10 +206,12 @@ internal fun LogContent(
     onInputChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onUndo: () -> Unit,
-    onChangeActivity: () -> Unit,
-    onSuggestion: (String) -> Unit,
-    onChooseActivity: () -> Unit,
-    onCreateActivity: () -> Unit,
+    onChangeSubject: () -> Unit,
+    onChangeAction: () -> Unit,
+    onChooseCandidate: (TagKind, String) -> Unit,
+    onKeepMine: (TagKind) -> Unit,
+    onPickTag: (TagKind) -> Unit,
+    onSave: () -> Unit,
     onDecideLater: () -> Unit,
     onCardTouched: (Boolean) -> Unit,
     onOpenHistory: () -> Unit,
@@ -248,12 +253,11 @@ internal fun LogContent(
 
         val actionsEnabled = !state.actionInFlight
         when (val card = state.card) {
-            is ResultCard.Saved -> SavedCard(card, actionsEnabled, onUndo, onChangeActivity, onCardTouched)
-            is ResultCard.NeedsReview -> NeedsReviewCard(
-                card, actionsEnabled, onSuggestion, onChooseActivity, onCreateActivity, onDecideLater, onCardTouched,
+            is ResultCard.Saved ->
+                SavedCard(card, actionsEnabled, onUndo, onChangeSubject, onChangeAction, onCardTouched)
+            is ResultCard.Check -> CheckCard(
+                card, actionsEnabled, onChooseCandidate, onKeepMine, onPickTag, onSave, onDecideLater, onCardTouched,
             )
-            is ResultCard.NotCategorized ->
-                NotCategorizedCard(card, actionsEnabled, onChooseActivity, onDecideLater, onCardTouched)
             ResultCard.RecognitionFailed -> RecognitionFailedCard(
                 enabled = actionsEnabled,
                 onTryAgain = onTryAgain,

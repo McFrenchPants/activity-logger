@@ -1,24 +1,27 @@
 package com.mcfrenchpants.activityledger.ui.log
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mcfrenchpants.activityledger.R
-import com.mcfrenchpants.activityledger.core.domain.interpretation.ActivityInterpreter
+import com.mcfrenchpants.activityledger.core.data.createInMemoryActivityRepository
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterFailureKind
+import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
 import com.mcfrenchpants.activityledger.core.domain.model.CaptureSource
-import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
 import com.mcfrenchpants.activityledger.core.domain.model.ProcessingState
+import com.mcfrenchpants.activityledger.core.domain.model.TimePrecision
 import com.mcfrenchpants.activityledger.core.domain.model.VisibilityStatus
-import com.mcfrenchpants.activityledger.core.domain.repository.ActivityTarget
-import com.mcfrenchpants.activityledger.core.domain.services.CaptureInterpretationOrchestrator
-import com.mcfrenchpants.activityledger.core.domain.services.CorrectionService
-import com.mcfrenchpants.activityledger.core.domain.services.ResolutionResult
-import com.mcfrenchpants.activityledger.core.domain.services.ReviewResolutionService
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedCaptureOrchestrator
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedCorrectionService
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedResolutionResult
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedResolutionService
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagChoice
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
 import com.mcfrenchpants.activityledger.core.speech.SpeechEvent
 import com.mcfrenchpants.activityledger.core.speech.SpeechFailure
-import com.mcfrenchpants.activityledger.core.testing.FakeActivityInterpreter
-import com.mcfrenchpants.activityledger.core.testing.InMemoryActivityRepository
 import com.mcfrenchpants.activityledger.core.testing.MutableClock
 import com.mcfrenchpants.activityledger.core.testing.runSuspend
 import com.mcfrenchpants.activityledger.ui.components.RowState
@@ -31,6 +34,8 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -43,19 +48,21 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * JVM tests of [LogViewModel] over the real orchestrator and services, the in-memory repository,
- * a scripted interpreter, a fixed clock and a test Main dispatcher (virtual time drives the undo
- * window).
+ * Host-side tests of [LogViewModel] over the REAL ledger (an in-memory Room database from
+ * `createInMemoryActivityRepository`), the real tagged orchestrator and services, a scripted
+ * extractor, a fixed clock and a test Main dispatcher (virtual time drives the undo window).
+ * Tag meaning is never re-invented here: every outcome comes from the real domain rules.
  */
+@RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class LogViewModelTest {
 
     private val zone = ZoneId.of("America/Detroit")
     private val now: Instant = ZonedDateTime.of(2026, 9, 15, 20, 0, 0, 0, zone).toInstant()
     private val clock = MutableClock(now, zone)
-    private val memory = InMemoryActivityRepository(clock)
-    private val repository = RecordingRepository(memory)
-    private val fake = FakeActivityInterpreter()
+    private val ledger = createInMemoryActivityRepository(ApplicationProvider.getApplicationContext<Context>(), clock)
+    private val repository = RecordingLedger(ledger)
+    private val extractor = ScriptedExtractor()
     private val transcriber = ScriptedTranscriber()
     private val dispatcher = StandardTestDispatcher()
     private val scheduler get() = dispatcher.scheduler
@@ -63,11 +70,13 @@ class LogViewModelTest {
     private var aiReady = true
     private var readyChecks = 0
 
-    private val mowLawn = memory.seedActivity("Mow lawn")
+    /** Words and answers: an entry whose subject and action are both new, with a duration. */
+    private val filterWords = "Changed the hot tub filter for 30 minutes"
 
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
+        extractor.on(filterWords, Extracted.log("Hot tub", "Change filter", duration = "30 minutes"))
     }
 
     @After
@@ -76,14 +85,14 @@ class LogViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel(interpreter: ActivityInterpreter = fake): LogViewModel {
+    private fun viewModel(): LogViewModel {
         val factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T = LogViewModel(
                 repository = repository,
-                orchestrator = CaptureInterpretationOrchestrator(repository, interpreter, clock),
-                reviewResolutionService = ReviewResolutionService(repository, clock),
-                correctionService = CorrectionService(repository, clock),
+                orchestrator = TaggedCaptureOrchestrator(repository, extractor, clock),
+                resolution = TaggedResolutionService(repository, clock),
+                correction = TaggedCorrectionService(repository, clock),
                 transcriber = transcriber,
                 clock = clock,
                 isAiReady = { readyChecks++; aiReady },
@@ -94,8 +103,8 @@ class LogViewModelTest {
         return ViewModelProvider(store, factory)[LogViewModel::class.java]
     }
 
-    private fun started(interpreter: ActivityInterpreter = fake): LogViewModel =
-        viewModel(interpreter).also {
+    private fun started(): LogViewModel =
+        viewModel().also {
             it.onStart()
             scheduler.runCurrent()
         }
@@ -127,28 +136,57 @@ class LogViewModelTest {
 
     private fun <T> read(block: suspend () -> T): T = runSuspend(block)
 
-    private fun onlyCaptureId(): String = read { memory.loadHistory() }.single().captureId
+    private fun catalog() = read { ledger.loadTagCatalog() }
+
+    private fun subjectNames() = catalog().subjects.map { it.displayName }
+
+    private fun actionNames() = catalog().actions.map { it.displayName }
+
+    private fun subjectId(name: String) = catalog().subjects.single { it.displayName == name }.id
+
+    private fun actionId(name: String) = catalog().actions.single { it.displayName == name }.id
+
+    private fun history() = read { ledger.loadHistory() }
+
+    private fun onlyCaptureId(): String = history().single().captureId
+
+    private fun occurrenceOf(captureId: String) =
+        read { ledger.getOccurrence(history().single { it.captureId == captureId }.occurrence!!.occurrenceId) }!!
+
+    private fun seed(subject: String, action: String) = seedTags(ledger, clock, zone, subject, action)
+
+    /** Scripts [words] to extract as [subject] / [action] and types them. */
+    private fun LogViewModel.typeEntry(
+        words: String,
+        subject: String?,
+        action: String?,
+        time: String? = null,
+        duration: String? = null,
+        state: ActivityState? = ActivityState.COMPLETED,
+    ) {
+        extractor.on(words, Extracted.log(subject, action, state, time, duration))
+        type(words)
+    }
 
     // ---- Raw capture ------------------------------------------------------------------------
 
     @Test
-    fun typedTextIsStoredAsATrimmedPhoneTextCaptureThenProcessedByTheOrchestrator() {
-        fake.enqueue(Results.existing(mowLawn))
+    fun typedTextIsStoredAsATrimmedPhoneTextCaptureThenExtracted() {
         val vm = started()
 
-        vm.type("   I cut the grass  ")
+        vm.type("   $filterWords  ")
 
         val stored = repository.created.single()
         assertEquals(CaptureSource.PHONE_TEXT, stored.source)
         assertEquals(LOG_TYPED_SOURCE_SURFACE, stored.sourceSurface)
         assertEquals("log_typed", stored.sourceSurface)
         assertEquals(ProcessingState.CAPTURED, stored.processingState)
-        assertEquals("I cut the grass", stored.rawText)
+        assertEquals(filterWords, stored.rawText)
         assertEquals(now, stored.capturedAt)
         assertEquals(zone, stored.zoneId)
         assertNull(stored.speechConfidence)
         assertNull(stored.speechAlternativesJson)
-        assertEquals("I cut the grass", fake.receivedInputs.single().rawText)
+        assertEquals(filterWords, extractor.received.single().rawText)
         assertEquals("", vm.state.value.input)
         assertFalse(vm.state.value.isCapturing)
     }
@@ -159,99 +197,113 @@ class LogViewModelTest {
         vm.type("   ")
         assertTrue(repository.created.isEmpty())
         assertNull(vm.card)
-        assertEquals(0, fake.callCount)
+        assertEquals(0, extractor.callCount)
     }
 
     @Test
     fun submitIsBlockedUntilStartedAndAfterStop() {
         val vm = viewModel()
-        vm.type("I cut the grass")
+        vm.type(filterWords)
         assertTrue(repository.created.isEmpty())
         assertFalse(vm.state.value.canSubmit)
 
         vm.onStart()
         vm.onStop()
         scheduler.runCurrent()
-        vm.type("I cut the grass")
+        vm.type(filterWords)
         assertTrue(repository.created.isEmpty())
-        assertEquals("I cut the grass", vm.state.value.input)
+        assertEquals(filterWords, vm.state.value.input)
     }
 
-    // ---- Outcome mapping --------------------------------------------------------------------
+    // ---- Saved card -------------------------------------------------------------------------
 
     @Test
-    fun autoAcceptedShowsSavedCardWithNameTimeAndWords() {
-        fake.enqueue(Results.existing(mowLawn))
+    fun anAutoSavedEntryShowsTheSavedCardWithSubjectActionDurationTimeAndWords() {
         val vm = started()
-        vm.type("I cut the grass")
+        vm.type(filterWords)
 
         val saved = assertIs<ResultCard.Saved>(vm.card)
-        assertEquals("Mow lawn", saved.activityName)
+        assertEquals("Hot tub", saved.subjectName)
+        assertEquals("Change filter", saved.actionName)
+        assertEquals(1_800L, saved.durationSeconds)
         assertEquals("Today, 8:00 PM", saved.time)
-        assertEquals("I cut the grass", saved.rawText)
-        assertEquals(memory.occurrences.single().id, saved.occurrenceId)
+        assertEquals(filterWords, saved.rawText)
         assertEquals(1f, saved.undoFractionRemaining)
+        assertEquals(saved.occurrenceId, history().single().occurrence?.occurrenceId)
+        assertEquals(1_800L, occurrenceOf(saved.captureId).durationSeconds)
     }
 
     @Test
-    fun alreadyHasOccurrenceShowsSavedCardForTheExistingOccurrence() {
-        val review = ReviewResolutionService(repository, clock)
-        repository.afterCreate = { id -> review.resolve(id, ActivityTarget.Existing(mowLawn)) }
+    fun anEntryWithoutADurationShowsNoDuration() {
         val vm = started()
-        vm.type("I cut the grass")
+        vm.typeEntry("Fed the dog", "Dog", "Feed")
+        assertNull(assertIs<ResultCard.Saved>(vm.card).durationSeconds)
+    }
 
-        assertEquals(0, fake.callCount) // the orchestrator returned AlreadyHasOccurrence
+    @Test
+    fun aRepeatEntryReusesTheSameTags() {
+        val vm = started()
+        vm.type(filterWords)
+        val first = assertIs<ResultCard.Saved>(vm.card)
+        val subjectsBefore = catalog().subjects
+        val actionsBefore = catalog().actions
+
+        vm.typeEntry("Changed the hot tub filter again for 20 minutes", "Hot tub", "Change filter", duration = "20 minutes")
+
+        val second = assertIs<ResultCard.Saved>(vm.card)
+        assertEquals(first.subjectName, second.subjectName)
+        assertEquals(first.actionName, second.actionName)
+        assertEquals(1_200L, second.durationSeconds)
+        assertEquals(subjectsBefore, catalog().subjects)
+        assertEquals(actionsBefore, catalog().actions)
+        assertEquals(2, history().count { it.occurrence != null })
+    }
+
+    @Test
+    fun anOmittedSubjectIsFilledInFromTheOnlyKnownCombination() {
+        seed("Hot tub", "Change filter")
+        val vm = started()
+        vm.typeEntry("Changed the filter", null, "Change filter")
+        assertEquals("Hot tub", assertIs<ResultCard.Saved>(vm.card).subjectName)
+    }
+
+    @Test
+    fun alreadyHasOccurrenceShowsTheSavedCardForTheExistingEntry() {
+        val resolution = TaggedResolutionService(repository, clock)
+        repository.afterCreate = { id -> resolution.resolve(id, TagChoice.New("Hot tub"), TagChoice.New("Change filter")) }
+        val vm = started()
+        vm.type(filterWords)
+
+        assertEquals(0, extractor.callCount) // the orchestrator returned AlreadyHasOccurrence
         val saved = assertIs<ResultCard.Saved>(vm.card)
-        assertEquals(memory.occurrences.single().id, saved.occurrenceId)
-        assertEquals("Mow lawn", saved.activityName)
+        assertEquals(history().single().occurrence?.occurrenceId, saved.occurrenceId)
+        assertEquals("Hot tub", saved.subjectName)
     }
 
     @Test
-    fun needsReviewShowsNeedsReviewCard() {
-        fake.enqueue(Results.needsReview(mowLawn))
+    fun alreadyHasOccurrenceThatIsHiddenShowsNoCardAndRefreshesRecent() {
+        val resolution = TaggedResolutionService(repository, clock)
+        repository.afterCreate = { id ->
+            val resolved = resolution.resolve(id, TagChoice.New("Hot tub"), TagChoice.New("Change filter"))
+            ledger.hideOccurrence(assertIs<TaggedResolutionResult.Resolved>(resolved).occurrenceId)
+        }
         val vm = started()
-        vm.type("did the yard")
-        val card = assertIs<ResultCard.NeedsReview>(vm.card)
-        assertEquals("did the yard", card.rawText)
-        assertTrue(memory.occurrences.isEmpty())
-    }
+        vm.type(filterWords)
 
-    @Test
-    fun rejectedAnswerShowsNeedsReviewCard() {
-        fake.enqueue(Results.invalid)
-        val vm = started()
-        vm.type("hmm")
-        assertIs<ResultCard.NeedsReview>(vm.card)
-    }
-
-    @Test
-    fun malformedOrFailedInterpreterShowsNeedsReviewCard() {
-        fake.enqueue(Results.failure(InterpreterFailureKind.MALFORMED), Results.failure(InterpreterFailureKind.OTHER))
-        val vm = started()
-        vm.type("one")
-        assertIs<ResultCard.NeedsReview>(vm.card)
-        vm.type("two")
-        assertIs<ResultCard.NeedsReview>(vm.card)
-    }
-
-    @Test
-    fun unavailableOrRetryableInterpreterShowsNotCategorizedCard() {
-        fake.enqueue(Results.failure(InterpreterFailureKind.UNAVAILABLE), Results.failure(InterpreterFailureKind.RETRYABLE))
-        val vm = started()
-        vm.type("one")
-        assertEquals(ResultCard.NotCategorized(onlyCaptureId(), "one"), vm.card)
-        vm.type("two")
-        assertIs<ResultCard.NotCategorized>(vm.card)
+        assertNull(vm.card)
+        assertFalse(vm.state.value.isCapturing)
+        assertTrue(vm.state.value.recentLoaded)
+        assertTrue(vm.state.value.recent.isEmpty())
     }
 
     @Test
     fun submittingANewCaptureDismissesTheCurrentCardFirst() {
-        fake.enqueue(Results.failure(InterpreterFailureKind.UNAVAILABLE), Results.existing(mowLawn))
+        extractor.fallback = Extracted.failure(InterpreterFailureKind.UNAVAILABLE)
         val vm = started()
         vm.type("one")
-        assertIs<ResultCard.NotCategorized>(vm.card)
+        assertIs<ResultCard.Check>(vm.card)
 
-        vm.onInputChange("two")
+        vm.onInputChange(filterWords)
         vm.submit() // not yet run: the old card is already gone and submit is disabled
         assertNull(vm.card)
         assertTrue(vm.state.value.isCapturing)
@@ -266,18 +318,17 @@ class LogViewModelTest {
 
     @Test
     fun inFlightCaptureSurvivesStopAndItsCardShowsAfterStart() {
-        val gated = GatedInterpreter(fake)
-        fake.enqueue(Results.existing(mowLawn))
-        val vm = started(gated)
-        vm.type("I cut the grass")
+        extractor.holdAnswers()
+        val vm = started()
+        vm.type(filterWords)
         assertTrue(vm.state.value.isCapturing)
 
         vm.onStop()
-        gated.release()
+        extractor.release()
         scheduler.runCurrent()
 
         // Finished while in the background: exactly one outcome, card waiting, undo window paused.
-        assertEquals(1, memory.occurrences.size)
+        assertEquals(1, history().count { it.occurrence != null })
         assertIs<ResultCard.Saved>(vm.card)
         scheduler.advanceTimeBy(60_000)
         scheduler.runCurrent()
@@ -286,111 +337,135 @@ class LogViewModelTest {
         vm.onStart()
         scheduler.runCurrent()
         assertIs<ResultCard.Saved>(vm.card)
-        assertEquals(1, fake.callCount)
+        assertEquals(1, extractor.callCount)
     }
 
     @Test
-    fun leavingLogDismissesTheSavedCardButTheOccurrenceStays() {
-        fake.enqueue(Results.existing(mowLawn))
+    fun leavingLogDismissesTheSavedCardButTheEntryStays() {
         val vm = started()
-        vm.type("I cut the grass")
+        vm.type(filterWords)
+        val captureId = onlyCaptureId()
         vm.onLeftLog()
         assertNull(vm.card)
-        assertEquals(VisibilityStatus.ACTIVE, memory.occurrences.single().visibilityStatus)
+        assertEquals(VisibilityStatus.ACTIVE, occurrenceOf(captureId).visibilityStatus)
     }
 
-    // ---- Saved card: Undo and Change activity -------------------------------------------------
+    // ---- Saved card: Undo, Change subject, Change action ---------------------------------------
 
     @Test
-    fun undoHidesTheOccurrenceKeepsTheCaptureAndDropsItFromRecent() {
-        fake.enqueue(Results.existing(mowLawn))
+    fun undoHidesTheEntryKeepsTheCaptureAndDropsItFromRecent() {
         val vm = started()
-        vm.type("I cut the grass")
+        vm.type(filterWords)
         val captureId = onlyCaptureId()
+        val occurrenceId = assertIs<ResultCard.Saved>(vm.card).occurrenceId
         assertEquals(1, vm.state.value.recent.size)
 
         vm.undo()
         scheduler.runCurrent()
 
         assertNull(vm.card)
-        assertEquals(VisibilityStatus.HIDDEN, memory.occurrences.single().visibilityStatus)
-        val capture = assertNotNull(read { memory.getCapture(captureId) })
-        assertEquals("I cut the grass", capture.rawText)
+        assertEquals(VisibilityStatus.HIDDEN, read { ledger.getOccurrence(occurrenceId) }?.visibilityStatus)
+        val capture = assertNotNull(read { ledger.getCapture(captureId) })
+        assertEquals(filterWords, capture.rawText)
         assertTrue(vm.state.value.recent.none { it.captureId == captureId })
     }
 
     @Test
-    fun changeActivityToExistingAppliesAUserCorrectionAndUpdatesTheCard() {
-        val walk = memory.seedActivity("Walk dog")
-        fake.enqueue(Results.existing(mowLawn))
+    fun changeSubjectToAnExistingSubjectAppliesOneCorrectionAndRefreshesTheCard() {
+        seed("Furnace", "Change filter")
         val vm = started()
-        vm.type("I cut the grass")
+        vm.type(filterWords)
         scheduler.advanceTimeBy(2_000)
         scheduler.runCurrent()
         val before = assertIs<ResultCard.Saved>(vm.card).undoFractionRemaining
 
-        vm.changeActivity(ActivityTarget.Existing(walk))
+        vm.openPicker(TagKind.SUBJECT)
+        scheduler.runCurrent()
+        val picker = assertNotNull(vm.state.value.picker)
+        assertEquals(TagKind.SUBJECT, picker.kind)
+        assertEquals(setOf("Furnace", "Hot tub"), picker.tags.map { it.displayName }.toSet())
+        vm.onPickerChoice(TagChoice.Existing(subjectId("Furnace")))
         scheduler.runCurrent()
 
         val saved = assertIs<ResultCard.Saved>(vm.card)
-        assertEquals("Walk dog", saved.activityName)
+        assertEquals("Furnace", saved.subjectName)
+        assertEquals("Change filter", saved.actionName)
         assertEquals(before, saved.undoFractionRemaining) // the window stays as is
-        assertEquals(walk, memory.occurrences.single().canonicalActivityId)
-        assertEquals(CorrectionSource.USER, memory.corrections.single().source)
-        assertEquals("Walk dog", vm.state.value.recent.first().activityName)
+        assertNull(vm.state.value.picker)
+        assertEquals(1, repository.corrections.size)
     }
 
     @Test
-    fun changeActivityToNewCreatesItAndUpdatesTheCard() {
-        fake.enqueue(Results.existing(mowLawn))
+    fun changeActionToANewNameCreatesItAndRefreshesTheCard() {
         val vm = started()
-        vm.type("I cut the grass")
+        vm.type(filterWords)
 
-        vm.changeActivity(ActivityTarget.New("Trim hedge"))
+        vm.openPicker(TagKind.ACTION)
+        scheduler.runCurrent()
+        vm.onPickerChoice(TagChoice.New("Drain"))
         scheduler.runCurrent()
 
-        assertEquals("Trim hedge", assertIs<ResultCard.Saved>(vm.card).activityName)
-        assertEquals(1, memory.corrections.size)
-        assertTrue(memory.activities.any { it.displayName == "Trim hedge" })
+        val saved = assertIs<ResultCard.Saved>(vm.card)
+        assertEquals("Hot tub", saved.subjectName)
+        assertEquals("Drain", saved.actionName)
+        assertEquals(1, repository.corrections.size)
+        assertTrue("Drain" in actionNames())
     }
 
     @Test
-    fun changeActivityToTheSameActivityChangesNothing() {
-        fake.enqueue(Results.existing(mowLawn))
+    fun changingToTheSameTagChangesNothing() {
         val vm = started()
-        vm.type("I cut the grass")
-        vm.changeActivity(ActivityTarget.Existing(mowLawn))
+        vm.type(filterWords)
+        vm.openPicker(TagKind.SUBJECT)
         scheduler.runCurrent()
-        assertTrue(memory.corrections.isEmpty())
+        vm.onPickerChoice(TagChoice.Existing(subjectId("Hot tub")))
+        scheduler.runCurrent()
+
         assertNull(vm.state.value.message)
-        assertEquals("Mow lawn", assertIs<ResultCard.Saved>(vm.card).activityName)
+        assertEquals("Hot tub", assertIs<ResultCard.Saved>(vm.card).subjectName)
+        assertTrue(subjectNames().size == 1)
     }
 
     @Test
-    fun refusedChangeShowsAPlainWordsMessageAndKeepsTheCard() {
-        fake.enqueue(Results.existing(mowLawn))
+    fun aRefusedChangeShowsAPlainWordsMessageAndKeepsTheCard() {
         val vm = started()
-        vm.type("I cut the grass")
+        vm.type(filterWords)
 
-        vm.changeActivity(ActivityTarget.New("mow  LAWN"))
+        vm.openPicker(TagKind.SUBJECT)
         scheduler.runCurrent()
-        assertEquals(UserMessage(R.string.refusal_name_matches_existing, listOf("Mow lawn")), vm.state.value.message)
-        assertIs<ResultCard.Saved>(vm.card)
+        vm.onPickerChoice(TagChoice.New("I mowed the lawn"))
+        scheduler.runCurrent()
 
-        vm.changeActivity(ActivityTarget.New("I mowed the lawn"))
-        scheduler.runCurrent()
         assertEquals(UserMessage(R.string.refusal_name_first_person), vm.state.value.message)
-        assertTrue(memory.corrections.isEmpty())
+        assertEquals("Hot tub", assertIs<ResultCard.Saved>(vm.card).subjectName)
+        assertTrue(repository.corrections.isEmpty() || subjectNames() == listOf("Hot tub"))
+        assertEquals(listOf("Hot tub"), subjectNames())
+    }
+
+    @Test
+    fun aSecondChangeWhileOneIsInFlightIsIgnored() {
+        val vm = started()
+        vm.type(filterWords)
+        vm.openPicker(TagKind.SUBJECT)
+        scheduler.runCurrent()
+
+        vm.onPickerChoice(TagChoice.New("Pool"))
+        vm.onPickerChoice(TagChoice.New("Sauna"))
+        scheduler.runCurrent()
+
+        assertEquals(1, repository.corrections.size)
+        assertEquals("Pool", assertIs<ResultCard.Saved>(vm.card).subjectName)
+        assertNull(vm.state.value.message)
     }
 
     // ---- Undo window --------------------------------------------------------------------------
 
     @Test
-    fun undoWindowExpiresAfterTheGivenTimeoutAndTheOccurrenceStays() {
-        fake.enqueue(Results.existing(mowLawn))
+    fun undoWindowExpiresAfterTheGivenTimeoutAndTheEntryStays() {
         val vm = started()
         vm.setUndoTimeoutMillis(8_000)
-        vm.type("I cut the grass")
+        vm.type(filterWords)
+        val captureId = onlyCaptureId()
 
         scheduler.advanceTimeBy(4_000)
         scheduler.runCurrent()
@@ -401,15 +476,14 @@ class LogViewModelTest {
         scheduler.advanceTimeBy(300)
         scheduler.runCurrent()
         assertNull(vm.card)
-        assertEquals(VisibilityStatus.ACTIVE, memory.occurrences.single().visibilityStatus)
+        assertEquals(VisibilityStatus.ACTIVE, occurrenceOf(captureId).visibilityStatus)
     }
 
     @Test
     fun undoWindowHonoursALongerAccessibilityTimeout() {
-        fake.enqueue(Results.existing(mowLawn))
         val vm = started()
         vm.setUndoTimeoutMillis(30_000)
-        vm.type("I cut the grass")
+        vm.type(filterWords)
         scheduler.advanceTimeBy(20_000)
         scheduler.runCurrent()
         assertIs<ResultCard.Saved>(vm.card)
@@ -420,9 +494,8 @@ class LogViewModelTest {
 
     @Test
     fun undoWindowPausesWhileTheCardIsTouched() {
-        fake.enqueue(Results.existing(mowLawn))
         val vm = started()
-        vm.type("I cut the grass")
+        vm.type(filterWords)
         vm.setCardTouched(true)
         scheduler.advanceTimeBy(60_000)
         scheduler.runCurrent()
@@ -436,10 +509,9 @@ class LogViewModelTest {
 
     @Test
     fun undoWindowPausesWhileThePickerIsOpen() {
-        fake.enqueue(Results.existing(mowLawn))
         val vm = started()
-        vm.type("I cut the grass")
-        vm.openPicker()
+        vm.type(filterWords)
+        vm.openPicker(TagKind.ACTION)
         scheduler.runCurrent()
         assertNotNull(vm.state.value.picker)
         scheduler.advanceTimeBy(60_000)
@@ -452,185 +524,312 @@ class LogViewModelTest {
         assertNull(vm.card)
     }
 
-    // ---- Needs review / Not categorized -------------------------------------------------------
+    // ---- Check card: a close match ------------------------------------------------------------
+
+    private val hvacWords = "The hvac filter needs changing, done 20 minutes"
+
+    /** A catalog with Furnace / Change filter, and words whose subject is only a close match. */
+    private fun LogViewModel.typeCloseMatch(time: String? = null, words: String = hvacWords) {
+        seed("Furnace", "Change filter")
+        typeEntry(words, "HVAC", "Change filter", time = time, duration = "20 minutes")
+    }
 
     @Test
-    fun resolveNeedsReviewToExistingShowsSavedCardWithUndoWindow() {
-        fake.enqueue(Results.needsReview(mowLawn))
+    fun aCloseMatchShowsTheCheckCardWithCandidatesAndSavesNothing() {
         val vm = started()
-        vm.type("did the yard")
-        vm.resolve(ActivityTarget.Existing(mowLawn))
+        vm.typeCloseMatch()
+
+        val card = assertIs<ResultCard.Check>(vm.card)
+        assertEquals(hvacWords, card.rawText)
+        assertEquals(listOf("Furnace"), card.subject.candidates.map { it.displayName })
+        assertNull(card.subject.chosen)
+        assertEquals("hvac", card.subject.keepMine?.lowercase())
+        assertEquals("Change filter", card.action.chosen?.name)
+        assertEquals(TagChoice.Existing(actionId("Change filter")), card.action.chosen?.choice)
+        assertFalse(card.canSave)
+        assertEquals(1_200L, card.durationSeconds)
+        // Nothing saved: the words wait, with no entry.
+        assertTrue(history().all { it.occurrence == null })
+
+        vm.save() // not possible with a side unchosen
+        scheduler.runCurrent()
+        assertIs<ResultCard.Check>(vm.card)
+        assertTrue(history().all { it.occurrence == null })
+    }
+
+    @Test
+    fun pickingTheCandidateSavesUnderTheExistingTagAndLearnsTheAlias() {
+        val vm = started()
+        vm.typeCloseMatch()
+        val furnace = subjectId("Furnace")
+
+        vm.chooseCandidate(TagKind.SUBJECT, furnace)
+        assertTrue(assertIs<ResultCard.Check>(vm.card).canSave)
+        assertTrue(history().all { it.occurrence == null }) // still nothing saved
+        vm.save()
         scheduler.runCurrent()
 
         val saved = assertIs<ResultCard.Saved>(vm.card)
-        assertEquals("Mow lawn", saved.activityName)
-        assertEquals("did the yard", saved.rawText)
+        assertEquals("Furnace", saved.subjectName)
+        assertEquals("Change filter", saved.actionName)
+        assertEquals(1_200L, saved.durationSeconds)
+        assertEquals(listOf("Furnace"), subjectNames()) // no new subject
+        val aliases = catalog().subjects.single { it.id == furnace }.aliases
+        assertTrue(aliases.any { it.equals("hvac", ignoreCase = true) }, "alias learned: $aliases")
+        // The undo window starts once the entry is saved.
         scheduler.advanceTimeBy(8_200)
         scheduler.runCurrent()
         assertNull(vm.card)
     }
 
     @Test
-    fun resolveNeedsReviewToNewActivityShowsSavedCard() {
-        fake.enqueue(Results.needsReview(mowLawn))
+    fun keepMineCreatesANewTag() {
         val vm = started()
-        vm.type("flushed the water heater")
-        vm.onPickerChoice(ActivityTarget.New("Flush water heater"))
+        vm.typeCloseMatch()
+
+        vm.keepMine(TagKind.SUBJECT)
+        assertTrue(assertIs<ResultCard.Check>(vm.card).canSave)
+        vm.save()
         scheduler.runCurrent()
-        assertEquals("Flush water heater", assertIs<ResultCard.Saved>(vm.card).activityName)
+
+        val saved = assertIs<ResultCard.Saved>(vm.card)
+        assertEquals("hvac", saved.subjectName.lowercase())
+        assertEquals(2, subjectNames().size)
+        assertTrue("Furnace" in subjectNames())
     }
 
     @Test
-    fun refusedResolveKeepsTheCardAndShowsTheMessage() {
-        fake.enqueue(Results.needsReview(mowLawn))
+    fun theProposalTimeIsUsedWhenItIsClean() {
         val vm = started()
-        vm.type("did the yard")
+        vm.typeCloseMatch(time = "yesterday morning", words = "$hvacWords yesterday morning")
+
+        val card = assertIs<ResultCard.Check>(vm.card)
+        assertNotNull(card.time)
+        vm.chooseCandidate(TagKind.SUBJECT, subjectId("Furnace"))
+        vm.save()
+        scheduler.runCurrent()
+
+        val saved = assertIs<ResultCard.Saved>(vm.card)
+        val occurrence = occurrenceOf(saved.captureId)
+        assertTrue(occurrence.occurredAt.isBefore(now.minus(Duration.ofHours(12))))
+        assertEquals(TimePrecision.APPROXIMATE, occurrence.timePrecision)
+    }
+
+    @Test
+    fun aTimeInTheFutureIsDroppedAndTheCaptureTimeIsUsed() {
+        seed("Hot tub", "Change filter")
+        val vm = started()
+        vm.typeEntry("Change the hot tub filter tomorrow", "Hot tub", "Change filter", time = "tomorrow")
+
+        val card = assertIs<ResultCard.Check>(vm.card)
+        assertNull(card.time)
+        // Both sides were understood exactly, so both start chosen.
+        assertNotNull(card.subject.chosen)
+        assertNotNull(card.action.chosen)
+        assertTrue(card.canSave)
+        vm.save()
+        scheduler.runCurrent()
+
+        val saved = assertIs<ResultCard.Saved>(vm.card)
+        val occurrence = occurrenceOf(saved.captureId)
+        assertEquals(now, occurrence.occurredAt)
+        assertEquals(TimePrecision.INFERRED_NOW, occurrence.timePrecision)
+    }
+
+    @Test
+    fun aMissingStateGivesACheckCardAndSavesAsCompleted() {
+        seed("Hot tub", "Change filter")
+        val vm = started()
+        vm.typeEntry("Hot tub filter change", "Hot tub", "Change filter", state = null)
+
+        val card = assertIs<ResultCard.Check>(vm.card)
+        assertTrue(card.canSave)
+        assertNull(card.activityState)
+        vm.save()
+        scheduler.runCurrent()
+
+        val saved = assertIs<ResultCard.Saved>(vm.card)
+        assertEquals(ActivityState.COMPLETED, occurrenceOf(saved.captureId).activityState)
+    }
+
+    @Test
+    fun decideLaterDismissesTheCardAndTheCaptureStaysWaitingWithoutAnEntry() {
+        val vm = started()
+        vm.typeCloseMatch()
+
+        vm.decideLater()
+
+        assertNull(vm.card)
+        val capture = assertNotNull(read { ledger.getCapture(onlyCaptureId()) })
+        assertEquals(ProcessingState.NEEDS_REVIEW, capture.processingState)
+        assertFalse(capture.hasOccurrence)
+        assertTrue(history().all { it.occurrence == null })
+    }
+
+    // ---- Check card: a side with nothing understood --------------------------------------------
+
+    @Test
+    fun anEmptySubjectNeedsAPickBeforeSaveIsPossible() {
+        val vm = started()
+        vm.typeEntry("Fixed the fence", null, "Fix fence")
+
+        var card = assertIs<ResultCard.Check>(vm.card)
+        assertNull(card.subject.chosen)
+        assertEquals("Fix fence", card.action.chosen?.name)
+        assertFalse(card.canSave)
+        vm.save()
+        scheduler.runCurrent()
+        assertIs<ResultCard.Check>(vm.card)
+        assertTrue(history().all { it.occurrence == null })
+
+        vm.openPicker(TagKind.SUBJECT)
+        scheduler.runCurrent()
+        assertEquals(TagKind.SUBJECT, vm.state.value.picker?.kind)
+        vm.onPickerChoice(TagChoice.New("Fence"))
+        card = assertIs<ResultCard.Check>(vm.card)
+        assertEquals("Fence", card.subject.chosen?.name)
+        assertNull(vm.state.value.picker)
+        assertTrue(card.canSave)
+
+        vm.save()
+        scheduler.runCurrent()
+        val saved = assertIs<ResultCard.Saved>(vm.card)
+        assertEquals("Fence", saved.subjectName)
+        assertEquals("Fix fence", saved.actionName)
+    }
+
+    @Test
+    fun anUnavailableInterpreterShowsTheCheckCardWithBothSidesBlankAndSaveWorksAfterTwoPicks() {
+        seed("Hot tub", "Change filter")
+        extractor.fallback = Extracted.failure(InterpreterFailureKind.UNAVAILABLE)
+        val vm = started()
+        vm.type("cut grass")
+
+        val card = assertIs<ResultCard.Check>(vm.card)
+        assertEquals("cut grass", card.rawText)
+        assertEquals(onlyCaptureId(), card.captureId)
+        assertNull(card.subject.chosen)
+        assertNull(card.action.chosen)
+        assertTrue(card.subject.candidates.isEmpty())
+        assertFalse(card.canSave)
+        val capture = assertNotNull(read { ledger.getCapture(card.captureId) })
+        assertEquals(ProcessingState.FAILED_RETRYABLE, capture.processingState)
+
+        vm.openPicker(TagKind.SUBJECT)
+        scheduler.runCurrent()
+        assertEquals(listOf("Hot tub"), vm.state.value.picker?.tags?.map { it.displayName })
+        vm.onPickerChoice(TagChoice.Existing(subjectId("Hot tub")))
+        assertFalse(assertIs<ResultCard.Check>(vm.card).canSave) // only one side so far
+        vm.openPicker(TagKind.ACTION)
+        scheduler.runCurrent()
+        vm.onPickerChoice(TagChoice.Existing(actionId("Change filter")))
+        assertTrue(assertIs<ResultCard.Check>(vm.card).canSave)
+        vm.save()
+        scheduler.runCurrent()
+
+        val saved = assertIs<ResultCard.Saved>(vm.card)
+        assertEquals("Hot tub", saved.subjectName)
+        assertEquals("Change filter", saved.actionName)
+        assertEquals("cut grass", saved.rawText)
+        scheduler.advanceTimeBy(8_200)
+        scheduler.runCurrent()
+        assertNull(vm.card)
+    }
+
+    @Test
+    fun aRejectedOrMalformedAnswerShowsTheSameCheckCardWithBothSidesBlank() {
+        extractor.on("one", Extracted.failure(InterpreterFailureKind.MALFORMED))
+        extractor.on("two", Extracted.failure(InterpreterFailureKind.OTHER))
+        extractor.on("three", Extracted.failure(InterpreterFailureKind.RETRYABLE))
+        val vm = started()
+        listOf("one", "two", "three").forEach { words ->
+            vm.type(words)
+            val card = assertIs<ResultCard.Check>(vm.card)
+            assertEquals(words, card.rawText)
+            assertNull(card.subject.chosen)
+            assertNull(card.action.chosen)
+        }
+        assertTrue(history().all { it.occurrence == null })
+    }
+
+    @Test
+    fun anExtractorThatThrowsAfterTheWordsAreStoredStillShowsTheCheckCard() {
+        extractor.throwOnExtract = IllegalStateException("extractor blew up")
+        val vm = started()
+        vm.type(filterWords)
+
+        val card = assertIs<ResultCard.Check>(vm.card)
+        assertEquals(filterWords, card.rawText)
+        assertEquals(onlyCaptureId(), card.captureId)
+        assertFalse(vm.state.value.isCapturing)
+        assertTrue(history().all { it.occurrence == null })
+        val capture = assertNotNull(read { ledger.getCapture(card.captureId) })
+        assertEquals(filterWords, capture.rawText)
+        assertEquals(CaptureSource.PHONE_TEXT, capture.source)
+    }
+
+    @Test
+    fun aQuestionOrNotALogShowsTheCheckCard() {
+        extractor.fallback = com.mcfrenchpants.activityledger.core.domain.extraction.ExtractionResult.Success(
+            com.mcfrenchpants.activityledger.core.domain.extraction.ExtractionCandidate(
+                operation = com.mcfrenchpants.activityledger.core.domain.model.InterpretationOperation.UNSUPPORTED,
+                subject = null,
+                action = null,
+                activityState = null,
+                temporalExpression = null,
+                durationExpression = null,
+            ),
+        )
+        val vm = started()
+        vm.type("hmm")
+        val card = assertIs<ResultCard.Check>(vm.card)
+        assertNull(card.subject.chosen)
+        assertNull(card.action.chosen)
+    }
+
+    // ---- Refusals and failures ----------------------------------------------------------------
+
+    @Test
+    fun aRefusedNewNameOnSaveKeepsTheCardAndShowsAPlainMessage() {
+        val vm = started()
+        vm.typeEntry("Fixed the fence", null, "Fix fence")
+        vm.openPicker(TagKind.SUBJECT)
+        scheduler.runCurrent()
+        vm.onPickerChoice(TagChoice.New("Yard stuff"))
         val card = vm.card
 
-        vm.resolve(ActivityTarget.New("Yard stuff"))
+        vm.save()
         scheduler.runCurrent()
 
         assertEquals(card, vm.card)
         assertEquals(UserMessage(R.string.refusal_name_filler_word), vm.state.value.message)
-        assertTrue(memory.occurrences.isEmpty())
+        assertTrue(history().all { it.occurrence == null })
     }
 
     @Test
-    fun decideLaterDismissesAndTheCaptureStaysInReview() {
-        fake.enqueue(Results.needsReview(mowLawn))
+    fun savingWordsThatWereAlreadyLoggedSaysSoAndKeepsTheCard() {
         val vm = started()
-        vm.type("did the yard")
-        vm.decideLater()
-        assertNull(vm.card)
-        val capture = assertNotNull(read { memory.getCapture(onlyCaptureId()) })
-        assertEquals(ProcessingState.NEEDS_REVIEW, capture.processingState)
-        assertTrue(memory.occurrences.isEmpty())
-    }
-
-    @Test
-    fun notCategorizedCanBeResolvedThroughThePicker() {
-        fake.enqueue(Results.failure(InterpreterFailureKind.UNAVAILABLE))
-        val vm = started()
-        vm.type("cut grass")
-        vm.openPicker()
-        scheduler.runCurrent()
-        assertEquals(listOf("Mow lawn"), vm.state.value.picker?.activities?.map { it.displayName })
-
-        vm.onPickerChoice(ActivityTarget.Existing(mowLawn))
-        scheduler.runCurrent()
-        assertNull(vm.state.value.picker)
-        assertEquals("Mow lawn", assertIs<ResultCard.Saved>(vm.card).activityName)
-    }
-
-    @Test
-    fun notCategorizedDecideLaterDismisses() {
-        fake.enqueue(Results.failure(InterpreterFailureKind.UNAVAILABLE))
-        val vm = started()
-        vm.type("cut grass")
-        vm.decideLater()
-        assertNull(vm.card)
-        val capture = assertNotNull(read { memory.getCapture(onlyCaptureId()) })
-        assertEquals(ProcessingState.FAILED_RETRYABLE, capture.processingState)
-    }
-
-    // ---- Suggestions ----------------------------------------------------------------------------
-
-    @Test
-    fun suggestionsPutThePendingMatchFirstThenSelectorOrderCappedAtThree() {
-        val walk = memory.seedActivity("Walk dog")
-        memory.seedActivity("Fix fence")
-        memory.seedActivity("Bake bread")
-        fake.enqueue(Results.needsReview(walk))
-        val vm = started()
-        vm.type("took the dog out")
-
-        val card = assertIs<ResultCard.NeedsReview>(vm.card)
-        // Pending match first, then CandidateSelector's order (normalized name), capped at 3.
-        assertEquals(listOf("Walk dog", "Bake bread", "Fix fence"), card.suggestions.map { it.displayName })
-    }
-
-    @Test
-    fun suggestionsAreDeduplicated() {
-        val bake = memory.seedActivity("Bake bread")
-        fake.enqueue(Results.needsReview(bake))
-        val vm = started()
-        vm.type("made a loaf")
-        val card = assertIs<ResultCard.NeedsReview>(vm.card)
-        assertEquals(listOf("Bake bread", "Mow lawn"), card.suggestions.map { it.displayName })
-        assertEquals(listOf(bake, mowLawn), card.suggestions.map { it.activityId })
-    }
-
-    @Test
-    fun noSuggestionsWhenTheCatalogIsEmpty() {
-        val repo = InMemoryActivityRepository(clock)
-        val vm = LogViewModel(
-            repository = repo,
-            orchestrator = CaptureInterpretationOrchestrator(repo, fake, clock),
-            reviewResolutionService = ReviewResolutionService(repo, clock),
-            correctionService = CorrectionService(repo, clock),
-            transcriber = transcriber,
-            clock = clock,
-            isAiReady = { true },
-            zone = { zone },
-            locale = { Locale.US },
-        )
-        fake.enqueue(Results.invalid)
-        vm.onStart()
-        scheduler.runCurrent()
-        vm.type("something")
-        assertEquals(emptyList(), assertIs<ResultCard.NeedsReview>(vm.card).suggestions)
-    }
-
-    @Test
-    fun suggestionPickResolvesToThatActivity() {
-        fake.enqueue(Results.needsReview(mowLawn))
-        val vm = started()
-        vm.type("did the yard")
-        val suggestion = assertIs<ResultCard.NeedsReview>(vm.card).suggestions.first()
-        vm.resolve(ActivityTarget.Existing(suggestion.activityId))
-        scheduler.runCurrent()
-        assertEquals(mowLawn, memory.occurrences.single().canonicalActivityId)
-    }
-
-    // ---- Storage failures and double taps -------------------------------------------------------
-
-    @Test
-    fun processThrowingAfterTheCaptureIsStoredShowsNotCategorized() {
-        fake.respondWith { throw IllegalStateException("interpreter blew up") }
-        val vm = started()
-        vm.type("I cut the grass")
-
-        assertEquals(ResultCard.NotCategorized(onlyCaptureId(), "I cut the grass"), vm.card)
-        assertFalse(vm.state.value.isCapturing)
-        assertTrue(memory.occurrences.isEmpty())
-        val capture = assertNotNull(read { memory.getCapture(onlyCaptureId()) })
-        assertEquals("I cut the grass", capture.rawText)
-        assertEquals(now, capture.capturedAt)
-        assertEquals(CaptureSource.PHONE_TEXT, capture.source)
-        assertFalse(capture.hasOccurrence)
-    }
-
-    @Test
-    fun alreadyHasOccurrenceThatIsHiddenShowsNoCardAndRefreshesRecent() {
-        val review = ReviewResolutionService(repository, clock)
-        repository.afterCreate = { id ->
-            val resolved = review.resolve(id, ActivityTarget.Existing(mowLawn))
-            memory.hideOccurrence(assertIs<ResolutionResult.Resolved>(resolved).occurrenceId)
+        vm.typeCloseMatch()
+        vm.chooseCandidate(TagKind.SUBJECT, subjectId("Furnace"))
+        // Behind the card's back, the same capture gets logged.
+        read {
+            TaggedResolutionService(ledger, clock).resolve(
+                onlyCaptureId(), TagChoice.Existing(subjectId("Furnace")), TagChoice.Existing(actionId("Change filter")),
+            )
         }
-        val vm = started()
-        vm.type("I cut the grass")
 
-        assertNull(vm.card)
-        assertFalse(vm.state.value.isCapturing)
-        assertTrue(vm.state.value.recentLoaded)
-        assertTrue(vm.state.value.recent.isEmpty())
+        vm.save()
+        scheduler.runCurrent()
+
+        assertIs<ResultCard.Check>(vm.card)
+        assertEquals(UserMessage(R.string.refusal_capture_already_logged), vm.state.value.message)
     }
 
     @Test
     fun failedUndoKeepsTheCardAndSaysSo() {
-        fake.enqueue(Results.existing(mowLawn))
         val vm = started()
-        vm.type("I cut the grass")
+        vm.type(filterWords)
+        val captureId = onlyCaptureId()
         repository.failOn = setOf(FailPoint.HIDE)
 
         vm.undo()
@@ -638,132 +837,137 @@ class LogViewModelTest {
 
         assertIs<ResultCard.Saved>(vm.card)
         assertEquals(UserMessage(R.string.log_action_failed), vm.state.value.message)
-        assertEquals(VisibilityStatus.ACTIVE, memory.occurrences.single().visibilityStatus)
+        assertEquals(VisibilityStatus.ACTIVE, occurrenceOf(captureId).visibilityStatus)
         assertFalse(vm.state.value.actionInFlight)
     }
 
     @Test
-    fun failedChangeActivityKeepsTheCardAndSaysSo() {
-        val walk = memory.seedActivity("Walk dog")
-        fake.enqueue(Results.existing(mowLawn))
+    fun failedChangeKeepsTheCardAndSaysSo() {
         val vm = started()
-        vm.type("I cut the grass")
+        vm.type(filterWords)
+        vm.openPicker(TagKind.SUBJECT)
+        scheduler.runCurrent()
         repository.failOn = setOf(FailPoint.CORRECT)
 
-        vm.changeActivity(ActivityTarget.Existing(walk))
+        vm.onPickerChoice(TagChoice.New("Pool"))
         scheduler.runCurrent()
 
-        assertEquals("Mow lawn", assertIs<ResultCard.Saved>(vm.card).activityName)
+        assertEquals("Hot tub", assertIs<ResultCard.Saved>(vm.card).subjectName)
         assertEquals(UserMessage(R.string.log_action_failed), vm.state.value.message)
-        assertEquals(mowLawn, memory.occurrences.single().canonicalActivityId)
         assertFalse(vm.state.value.actionInFlight)
     }
 
     @Test
-    fun failedResolveKeepsTheCardAndSaysSo() {
-        fake.enqueue(Results.needsReview(mowLawn))
+    fun failedSaveKeepsTheCardAndSaysSo() {
         val vm = started()
-        vm.type("did the yard")
+        vm.typeCloseMatch()
+        vm.keepMine(TagKind.SUBJECT)
         val card = vm.card
         repository.failOn = setOf(FailPoint.ACCEPT)
 
-        vm.resolve(ActivityTarget.Existing(mowLawn))
+        vm.save()
         scheduler.runCurrent()
 
         assertEquals(card, vm.card)
         assertEquals(UserMessage(R.string.log_action_failed), vm.state.value.message)
-        assertTrue(memory.occurrences.isEmpty())
+        assertTrue(history().all { it.occurrence == null })
+        assertFalse(vm.state.value.actionInFlight)
+    }
+
+    @Test
+    fun aServiceRaceThatThrowsIllegalArgumentIsTreatedLikeAnyStorageFailure() {
+        val vm = started()
+        vm.typeCloseMatch()
+        vm.keepMine(TagKind.SUBJECT)
+        val card = vm.card
+        repository.failOn = setOf(FailPoint.ACCEPT)
+        repository.failWith = { IllegalArgumentException(it) }
+
+        vm.save()
+        scheduler.runCurrent()
+
+        assertEquals(card, vm.card)
+        assertEquals(UserMessage(R.string.log_action_failed), vm.state.value.message)
         assertFalse(vm.state.value.actionInFlight)
     }
 
     @Test
     fun failedPickerLoadKeepsTheCardAndSaysSo() {
-        fake.enqueue(Results.needsReview(mowLawn))
         val vm = started()
-        vm.type("did the yard")
+        vm.typeCloseMatch()
         val card = vm.card
         repository.failOn = setOf(FailPoint.CATALOG)
 
-        vm.openPicker()
+        vm.openPicker(TagKind.SUBJECT)
         scheduler.runCurrent()
 
         assertEquals(card, vm.card)
         assertNull(vm.state.value.picker)
-        assertEquals(UserMessage(R.string.log_activities_not_loaded), vm.state.value.message)
+        assertEquals(UserMessage(R.string.log_tags_not_loaded), vm.state.value.message)
         assertFalse(vm.state.value.actionInFlight)
     }
 
     @Test
-    fun aSecondResolveWhileOneIsInFlightIsIgnored() {
-        fake.enqueue(Results.needsReview(mowLawn))
+    fun aSecondSaveWhileOneIsInFlightIsIgnored() {
         val vm = started()
-        vm.type("did the yard")
+        vm.typeCloseMatch()
+        vm.keepMine(TagKind.SUBJECT)
 
-        vm.resolve(ActivityTarget.Existing(mowLawn))
+        vm.save()
         assertTrue(vm.state.value.actionInFlight)
-        vm.resolve(ActivityTarget.Existing(mowLawn))
-        vm.onPickerChoice(ActivityTarget.New("Yard work"))
+        vm.save()
         scheduler.runCurrent()
 
-        assertEquals(1, memory.occurrences.size)
+        assertEquals(1, history().count { it.occurrence != null })
         assertIs<ResultCard.Saved>(vm.card)
         assertNull(vm.state.value.message)
-        assertFalse(vm.state.value.actionInFlight)
     }
 
     @Test
-    fun aSecondChangeWhileOneIsInFlightIsIgnored() {
-        val walk = memory.seedActivity("Walk dog")
-        fake.enqueue(Results.existing(mowLawn))
+    fun noMessageEverCarriesTheOwnersWords() {
         val vm = started()
-        vm.type("I cut the grass")
-
-        vm.changeActivity(ActivityTarget.Existing(walk))
-        vm.changeActivity(ActivityTarget.New("Trim hedge"))
+        vm.typeEntry("Fixed the fence", null, "Fix fence")
+        vm.openPicker(TagKind.SUBJECT)
         scheduler.runCurrent()
-
-        assertEquals(1, memory.corrections.size)
-        assertEquals("Walk dog", assertIs<ResultCard.Saved>(vm.card).activityName)
-        assertNull(vm.state.value.message)
+        vm.onPickerChoice(TagChoice.New("Yard stuff"))
+        vm.save()
+        scheduler.runCurrent()
+        val message = assertNotNull(vm.state.value.message)
+        assertTrue(message.args.isEmpty())
     }
 
     // ---- Recent and AI readiness ---------------------------------------------------------------
 
     @Test
     fun recentShowsTheThreeNewestRowsWithStates() {
-        fake.enqueue(
-            Results.existing(mowLawn),
-            Results.needsReview(mowLawn),
-            Results.failure(InterpreterFailureKind.UNAVAILABLE),
-            Results.existing(mowLawn),
-        )
+        extractor.on("second", Extracted.failure(InterpreterFailureKind.UNAVAILABLE))
         val vm = started()
         assertTrue(vm.state.value.recentLoaded)
         assertTrue(vm.state.value.recent.isEmpty())
-        listOf("first", "second", "third", "fourth").forEach { words ->
-            clock.advance(java.time.Duration.ofMinutes(1))
-            vm.type(words)
-        }
+        clock.advance(Duration.ofMinutes(1))
+        vm.type(filterWords)
+        clock.advance(Duration.ofMinutes(1))
+        vm.type("second")
+        clock.advance(Duration.ofMinutes(1))
+        vm.typeEntry("Changed the hot tub filter again", "Hot tub", "Change filter")
 
         val recent = vm.state.value.recent
-        assertEquals(listOf("fourth", "third", "second"), recent.map { it.rawText })
-        assertEquals("Mow lawn", recent[0].activityName)
+        assertEquals(listOf("Changed the hot tub filter again", "second", filterWords), recent.map { it.rawText })
+        assertEquals("Hot tub Change filter", recent[0].activityName)
         assertNull(recent[0].state)
         assertEquals(RowState.NOT_CATEGORIZED, recent[1].state)
         assertNull(recent[1].activityName)
-        assertEquals(RowState.NEEDS_REVIEW, recent[2].state)
-        assertEquals("Today, 8:02 PM", recent[2].time)
     }
 
     @Test
     fun aiNotReadyRowShowsWhenTheCheckSaysNoAndTypedCapturesStillWork() {
         aiReady = false
-        fake.enqueue(Results.failure(InterpreterFailureKind.UNAVAILABLE))
+        extractor.fallback = Extracted.failure(InterpreterFailureKind.UNAVAILABLE)
         val vm = started()
         assertTrue(vm.state.value.showAiNotReady)
         assertTrue(vm.state.value.canSubmit.not()) // nothing typed yet
         vm.type("cut grass")
-        assertIs<ResultCard.NotCategorized>(vm.card)
+        assertIs<ResultCard.Check>(vm.card)
     }
 
     @Test
@@ -779,13 +983,12 @@ class LogViewModelTest {
         assertTrue(vm.state.value.showAiNotReady)
     }
 
-    // ---- Voice capture: the listening state (VC1.3 stubs, no recognizer) ---------------------
+    // ---- Voice capture: the listening state -----------------------------------------------------
 
     @Test
     fun startListeningBlocksTypedSubmitAndDropsAnyCard() {
-        fake.enqueue(Results.existing(mowLawn))
         val vm = started()
-        vm.type("I cut the grass")
+        vm.type(filterWords)
         assertIs<ResultCard.Saved>(vm.card)
         vm.onInputChange("more words")
 
@@ -815,7 +1018,6 @@ class LogViewModelTest {
 
     @Test
     fun stopListeningHandsTheScreenBackToTypingWithoutWaitingForAnEvent() {
-        fake.enqueue(Results.existing(mowLawn))
         val vm = started()
         vm.listen(partial("I cut the"))
         assertEquals("I cut the", vm.state.value.partialTranscript)
@@ -828,29 +1030,29 @@ class LogViewModelTest {
         scheduler.runCurrent()
         assertEquals(1, transcriber.sessionsCancelled)
         assertFalse(transcriber.isOpen)
-        vm.type("I cut the grass")
+        vm.type(filterWords)
         assertIs<ResultCard.Saved>(vm.card)
     }
 
     @Test
-    fun partialsAreShownButNeverStoredNeverInterpretedAndNeverOutliveTheSession() {
+    fun partialsAreShownButNeverStoredNeverExtractedAndNeverOutliveTheSession() {
         val vm = started()
         vm.listen(partial("I cut the"))
 
         assertEquals("I cut the", vm.state.value.partialTranscript)
-        // Display only: no capture exists and the interpreter has not been asked anything.
+        // Display only: no capture exists and the extractor has not been asked anything.
         assertTrue(repository.created.isEmpty())
-        assertEquals(0, fake.callCount)
+        assertEquals(0, extractor.callCount)
 
         transcriber.emitNow(failed(SpeechFailure.NOTHING_HEARD))
         scheduler.runCurrent()
 
         assertEquals("", vm.state.value.partialTranscript)
         assertTrue(repository.created.isEmpty())
-        assertEquals(0, fake.callCount)
+        assertEquals(0, extractor.callCount)
     }
 
-    // ---- Voice capture: the recognition-failure card -----------------------------------------
+    // ---- Voice capture: the recognition-failure card -------------------------------------------
 
     @Test
     fun recognitionFailureShowsACardWithNoCaptureAndSavesNothing() {
@@ -862,7 +1064,7 @@ class LogViewModelTest {
         assertFalse(vm.state.value.isListening)
         // Nothing was heard, so nothing was stored: no raw capture exists at all.
         assertTrue(repository.created.isEmpty())
-        assertTrue(read { memory.loadHistory() }.isEmpty())
+        assertTrue(history().isEmpty())
     }
 
     @Test
@@ -884,73 +1086,74 @@ class LogViewModelTest {
     }
 
     @Test
-    fun theFailureCardIsNeitherResolvableNorCorrectable() {
+    fun theFailureCardIsNeitherSavableNorCorrectable() {
         val vm = started()
         vm.listen(failed(SpeechFailure.NOTHING_HEARD))
 
-        // There is no capture behind it, so the review paths must simply not apply to it.
-        vm.resolve(ActivityTarget.Existing(mowLawn))
+        // There is no capture behind it, so the check and change paths must simply not apply.
+        vm.save()
         scheduler.runCurrent()
         assertEquals(ResultCard.RecognitionFailed, vm.card)
 
         vm.decideLater()
         assertEquals(ResultCard.RecognitionFailed, vm.card)
 
-        vm.onPickerChoice(ActivityTarget.Existing(mowLawn))
+        vm.openPicker(TagKind.SUBJECT)
+        scheduler.runCurrent()
+        assertNull(vm.state.value.picker)
+
+        vm.onPickerChoice(TagChoice.New("Anything"))
         scheduler.runCurrent()
         assertEquals(ResultCard.RecognitionFailed, vm.card)
-        assertTrue(read { memory.loadHistory() }.isEmpty())
+        assertTrue(history().isEmpty())
     }
 
-    // ---- Voice capture: microphone permission outcomes ---------------------------------------
+    // ---- Voice capture: microphone permission outcomes -----------------------------------------
 
     @Test
     fun refusingTheMicrophoneSaysSoAndLeavesTypingWorking() {
-        fake.enqueue(Results.existing(mowLawn))
         val vm = started()
 
         vm.onMicrophonePermissionDenied()
 
         assertFalse(vm.state.value.isListening)
         assertEquals(UserMessage(R.string.log_mic_permission_denied), vm.state.value.message)
-        vm.type("I cut the grass")
+        vm.type(filterWords)
         assertIs<ResultCard.Saved>(vm.card)
     }
 
     @Test
     fun refusingTheMicrophoneForGoodSaysSoAndLeavesTypingWorking() {
-        fake.enqueue(Results.existing(mowLawn))
         val vm = started()
 
         vm.onMicrophonePermissionBlocked()
 
         assertFalse(vm.state.value.isListening)
         assertEquals(UserMessage(R.string.log_mic_permission_blocked), vm.state.value.message)
-        vm.type("I cut the grass")
+        vm.type(filterWords)
         assertIs<ResultCard.Saved>(vm.card)
     }
 
-    // ---- Voice capture: spoken words reaching the ledger --------------------------------------
+    // ---- Voice capture: spoken words reaching the ledger ---------------------------------------
 
     @Test
     fun oneRecognitionStoresExactlyOneVoiceCaptureAndShowsItsCard() {
-        fake.enqueue(Results.existing(mowLawn))
         val vm = started()
 
-        vm.listen(partial("I cut"), final("I cut the grass", confidence = 0.82f, alternatives = listOf("I cut the gas")))
+        vm.listen(partial("I cut"), final(filterWords, confidence = 0.82f, alternatives = listOf("I cut the gas")))
 
         val stored = repository.created.single()
         assertEquals(CaptureSource.PHONE_VOICE, stored.source)
         assertEquals(LOG_VOICE_SOURCE_SURFACE, stored.sourceSurface)
         assertEquals("log_voice", stored.sourceSurface)
         assertEquals(ProcessingState.CAPTURED, stored.processingState)
-        assertEquals("I cut the grass", stored.rawText)
+        assertEquals(filterWords, stored.rawText)
         assertEquals(now, stored.capturedAt)
         assertEquals(zone, stored.zoneId)
         assertEquals(0.82f.toDouble(), stored.speechConfidence)
         assertEquals("[\"I cut the gas\"]", stored.speechAlternativesJson)
-        // The final transcript is what reached the model -- never the partial.
-        assertEquals("I cut the grass", fake.receivedInputs.single().rawText)
+        // The final transcript is what reached the extractor -- never the partial.
+        assertEquals(filterWords, extractor.received.single().rawText)
         assertIs<ResultCard.Saved>(vm.card)
         assertFalse(vm.state.value.isListening)
         assertEquals("", vm.state.value.partialTranscript)
@@ -959,10 +1162,9 @@ class LogViewModelTest {
 
     @Test
     fun anUnknownConfidenceStaysUnknownAndNoAlternativesMeansNoJson() {
-        fake.enqueue(Results.existing(mowLawn))
         val vm = started()
 
-        vm.listen(final("I cut the grass", confidence = null, alternatives = emptyList()))
+        vm.listen(final(filterWords, confidence = null, alternatives = emptyList()))
 
         val stored = repository.created.single()
         assertNull(stored.speechConfidence)
@@ -971,10 +1173,9 @@ class LogViewModelTest {
 
     @Test
     fun severalAlternativesAreStoredAsAJsonArrayWithTheirQuotesEscaped() {
-        fake.enqueue(Results.existing(mowLawn))
         val vm = started()
 
-        vm.listen(final("I cut the grass", alternatives = listOf("I cut the gas", "I \"cut\" the grass")))
+        vm.listen(final(filterWords, alternatives = listOf("I cut the gas", "I \"cut\" the grass")))
 
         assertEquals(
             "[\"I cut the gas\",\"I \\\"cut\\\" the grass\"]",
@@ -984,32 +1185,29 @@ class LogViewModelTest {
 
     @Test
     fun theRawCaptureIsCreatedOnceAndOnlyReadAfterwards() {
-        fake.enqueue(Results.existing(mowLawn))
         val vm = started()
 
-        vm.listen(final("I cut the grass", confidence = 0.5f))
+        vm.listen(final(filterWords, confidence = 0.5f))
 
         // One create for the whole session, and the stored capture is still exactly what was
         // created: the repository offers no way to rewrite one, and nothing here tries (ADR-007).
         val created = repository.created.single()
         val captureId = assertIs<ResultCard.Saved>(vm.card).captureId
-        val stored = assertNotNull(read { memory.getCapture(captureId) })
+        val stored = assertNotNull(read { ledger.getCapture(captureId) })
         assertEquals(created.rawText, stored.rawText)
         assertEquals(created.source, stored.source)
         assertEquals(created.capturedAt, stored.capturedAt)
         assertEquals(created.speechConfidence, stored.speechConfidence)
-        assertEquals(1, read { memory.loadHistory() }.size)
+        assertEquals(1, history().size)
     }
 
     @Test
     fun spokenAndTypedWordsProduceTheSameCardThroughTheSamePath() {
-        fake.enqueue(Results.existing(mowLawn))
-        fake.enqueue(Results.existing(mowLawn))
         val vm = started()
 
-        vm.listen(final("I cut the grass", confidence = 0.9f, alternatives = listOf("I cut the gas")))
+        vm.listen(final(filterWords, confidence = 0.9f, alternatives = listOf("I cut the gas")))
         val spoken = assertIs<ResultCard.Saved>(vm.card)
-        vm.type("I cut the grass")
+        vm.type(filterWords)
         val typed = assertIs<ResultCard.Saved>(vm.card)
 
         // Same card, identifiers aside: no branch anywhere depends on how the words arrived.
@@ -1017,9 +1215,21 @@ class LogViewModelTest {
             typed.copy(captureId = "", occurrenceId = ""),
             spoken.copy(captureId = "", occurrenceId = ""),
         )
-        // And both went through the orchestrator's one interpreter call with the same words.
-        assertEquals(2, fake.callCount)
-        assertEquals(listOf("I cut the grass", "I cut the grass"), fake.receivedInputs.map { it.rawText })
+        assertEquals(2, extractor.callCount)
+        assertEquals(listOf(filterWords, filterWords), extractor.received.map { it.rawText })
+    }
+
+    @Test
+    fun spokenWordsCanReachTheCheckCardToo() {
+        val vm = started()
+        extractor.fallback = Extracted.failure(InterpreterFailureKind.UNAVAILABLE)
+
+        vm.listen(final("cut grass"))
+
+        val card = assertIs<ResultCard.Check>(vm.card)
+        assertEquals("cut grass", card.rawText)
+        assertNull(card.subject.chosen)
+        assertNull(card.action.chosen)
     }
 
     @Test
@@ -1027,18 +1237,18 @@ class LogViewModelTest {
         val vm = started()
         repository.failOn = setOf(FailPoint.CREATE)
 
-        vm.listen(final("I cut the grass"))
+        vm.listen(final(filterWords))
 
         assertTrue(repository.created.isEmpty())
-        assertTrue(read { memory.loadHistory() }.isEmpty())
+        assertTrue(history().isEmpty())
         // Nothing was saved, so the words are handed back to the capture field, not lost.
-        assertEquals("I cut the grass", vm.state.value.input)
+        assertEquals(filterWords, vm.state.value.input)
         assertEquals(UserMessage(R.string.log_capture_not_saved), vm.state.value.message)
         assertFalse(vm.state.value.isCapturing)
         assertNull(vm.card)
     }
 
-    // ---- Voice capture: failed sessions store nothing ------------------------------------------
+    // ---- Voice capture: failed sessions store nothing -------------------------------------------
 
     @Test
     fun engineErrorShowsTheFailureCardAndStoresNothing() {
@@ -1088,14 +1298,13 @@ class LogViewModelTest {
         assertNull(vm.state.value.message)
         assertFalse(vm.state.value.isListening)
         assertTrue(repository.created.isEmpty())
-        assertTrue(read { memory.loadHistory() }.isEmpty())
+        assertTrue(history().isEmpty())
     }
 
     @Test
     fun aResultAlreadyOnItsWayWhenTheUserStopsIsDroppedAndStoresNothing() {
-        fake.enqueue(Results.existing(mowLawn))
         val vm = started()
-        transcriber.willEmit(final("I cut the grass"))
+        transcriber.willEmit(final(filterWords))
         vm.startListening()
 
         // The result is queued but not yet delivered when the user taps stop.
@@ -1105,7 +1314,7 @@ class LogViewModelTest {
         assertTrue(repository.created.isEmpty())
         assertNull(vm.card)
         assertFalse(vm.state.value.isListening)
-        assertEquals(0, fake.callCount)
+        assertEquals(0, extractor.callCount)
     }
 
     // ---- Voice capture: one session at a time, and none that outlives the screen ----------------
@@ -1125,8 +1334,8 @@ class LogViewModelTest {
 
     @Test
     fun listeningCannotStartWhileTheScreenIsStoppedOrWhileACaptureIsProcessed() {
-        val gated = GatedInterpreter(fake)
-        val vm = viewModel(gated)
+        extractor.holdAnswers()
+        val vm = viewModel()
         vm.startListening()
         scheduler.runCurrent()
         assertEquals(0, transcriber.sessionsStarted) // stopped: ADR-029
@@ -1134,8 +1343,7 @@ class LogViewModelTest {
 
         vm.onStart()
         scheduler.runCurrent()
-        fake.enqueue(Results.existing(mowLawn))
-        vm.type("I cut the grass") // still in flight: the interpreter is gated
+        vm.type(filterWords) // still in flight: the extractor is held
         assertTrue(vm.state.value.isCapturing)
 
         vm.startListening()
@@ -1143,7 +1351,7 @@ class LogViewModelTest {
         assertEquals(0, transcriber.sessionsStarted)
         assertFalse(vm.state.value.isListening)
 
-        gated.release()
+        extractor.release()
         scheduler.runCurrent()
     }
 

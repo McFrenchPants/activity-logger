@@ -268,16 +268,22 @@ short (4 s) and long (10 s) durations.
 - Listening: "Listening…" live region, live transcript in evidence style,
   stop button with rings, "Tap to stop"; recent list dimmed and hidden from
   accessibility.
-- Result card replaces the prompt:
-  - **Saved:** primaryContainer card, "Mow lawn — this morning", quoted words,
-    Undo (D5). New row highlighted at top of Recent.
-  - **Needs review:** reviewContainer card, "Needs review", quoted words, "Your
-    words are saved. Nothing was guessed." Then *Which activity was this?* with
-    existing-activity candidates, *Choose another activity*, *Create new
-    activity*, *Say it again*, *Decide later*.
-  - **Not categorized (AI unavailable):** dashed-outline card with a two-step
-    indicator *Captured ✓ — Categorized: not yet*, quoted words, "Saved your
-    words, but couldn't categorize them yet."
+- Result card replaces the prompt (**Log result cards (tags)**, ADR-046; the
+  Log screen works on a subject and an action, not one activity name):
+  - **Saved:** primaryContainer card, "✓ Hot tub · Change filter — 30 min —
+    just now" (the duration part is left out when there is none), quoted words,
+    *Undo* (D5), *Change subject* and *Change action* (each opens the tag
+    picker; the card then shows the new names and the undo window keeps
+    running). New row highlighted at top of Recent.
+  - **Check this** (one card for a close match, a needs-review or rejected
+    result, and an unavailable AI): reviewContainer card, "Needs review" tag,
+    quoted words, "Your words are saved. Nothing was guessed." Then two sides,
+    *Subject* and *Action*. A side that was understood exactly (or as a new
+    name) starts chosen, with *Change*; a close match offers its existing tags
+    as one-tap options plus *Keep mine: <words>*; a side with nothing
+    understood says "Nothing chosen yet" and offers *Choose subject* / *Choose
+    action*. *Save* is on only when both sides are chosen; nothing is saved
+    before it. *Decide later* dismisses the card and the words stay waiting.
   - **Recognition failure:** errorContainer card, no fabricated text, *Try
     again* and *Type instead*.
 - Recent shows three rows and *All history*.
@@ -329,8 +335,8 @@ top bar. No averages, streaks, or scores.
 ## 5. Accessibility (UX_SPEC §12)
 
 - Capture button content descriptions: "Log by voice" / "Stop listening".
-  Transcript and result cards are polite live regions (e.g. "Saved. Mow lawn,
-  this morning. Undo available.").
+  Transcript and result cards are polite live regions (e.g. "Saved. Hot tub,
+  Change filter, 30 min, just now. Undo available.").
 - Rows use merged semantics read as one sentence: name, time, source, "Your
   words: …".
 - State is never color alone (§3 D3 state vocabulary).

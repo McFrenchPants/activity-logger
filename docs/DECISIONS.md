@@ -739,3 +739,23 @@ Three services in `core-domain` (`services`) apply the USER's decisions on the t
 **Watch captures use the tag pipeline now.** `WatchCaptureListenerService` passes `taggedOrchestrator::process`. `WatchCaptureReceiver` maps the outcome: `AutoSaved` and `AlreadyHasOccurrence` ack SAVED (for `AutoSaved`, with the time and the label); `NeedsConfirm`, `NeedsReview`, `Rejected` and `InterpreterUnavailable` ack NEEDS_REVIEW with `needsReview = true`; a thrown non-cancellation exception acks FAILED_RETRYABLE as before. A "did you mean" question cannot be asked on the watch, so the owner answers it on the phone; the raw capture is durable and the ack stops the watch resending. No user text is added to any ack.
 
 **The label comes from the pair's cached display name.** A tagged pair's canonical activity display name is the cache label "<subject> <action>" (ADR-040), so the receiver's existing `getActivity(occurrence.canonicalActivityId).displayName` read is already the label the watch shows; no new read or repository dependency (the receiver keeps `ActivityRepository`).
+
+## ADR-046 — Log screen on the tag pipeline
+
+**Status:** Accepted (developer decision, 2026-10-04; subject + action tagging redesign, TG3.4)
+
+The Log screen (typed and spoken capture) now runs through `TaggedCaptureOrchestrator` and the tag services, with a Saved card, one Check card and a shared tag picker. The capture path itself is unchanged: one `captureAndInterpret`, one `createRawCapture` write site, the raw capture never touched again, submit only while started, speech sessions, the undo window and the never-downloading AI-readiness check, nothing logged, no user words in any message. History keeps the v3 services until TG3.5.
+
+**One Check card for everything that is not an automatic save.** `NeedsConfirm`, `NeedsReview`, `Rejected` and `InterpreterUnavailable` all show the same card with two sides, Subject and Action; it replaces the old Needs-review and Not-categorized cards. A side that resolved `Exact` or `New` starts chosen (tap to change); a `Near` side offers its candidate tags as one-tap options plus "Keep mine" (a new tag from the owner's words); an `Empty` side, a side with no proposal (rejected, AI unavailable) and a failed extraction start blank and offer "Choose subject" / "Choose action". A subject filled in from the owner's usual combination (`subjectInferred`) is shown chosen and marked as assumed.
+
+**Save only with both sides chosen, and nothing is saved before it.** Choosing options, "Keep mine" or a picker result only edits the card. Save calls `TaggedResolutionService.resolve` with the two `TagChoice`s. The time passed is the proposal's `occurredAt` / `timePrecision` only when the proposal has one AND the outcome's problems contain neither `TIME_IN_FUTURE` nor `TIME_UNRESOLVABLE`; otherwise it is null (the capture time). Duration and state come from the proposal (state defaults to COMPLETED when the words did not say). "Decide later" dismisses the card and the capture stays waiting; History shows it (TG3.5). A refusal keeps the card and shows a plain-words message; an `IllegalArgumentException` from a service (a race) is treated like any storage failure (card kept, generic failure message).
+
+**Aliases are learned only through the services.** The view model never writes an alias: picking an offered tag or typing a new name goes through `resolve` / `correct`, which ask `CorrectionAliases` (ADR-044) what is safe to learn.
+
+**Saved card and corrections.** The Saved card shows subject, action, optional duration and time, with Undo (unchanged), Change subject and Change action (`TaggedCorrectionService.correct`, undo window keeps running). Names come from the occurrence's pair via one catalog read per card, not per row. Durations are shown in plain words from seconds by a small pure formatter (rounded to the nearest minute, never shown as nothing when real).
+
+**Tag picker.** A new shared `TagPicker` (subject or action) lists the ACTIVE tags of one kind, filters by name and alias, and returns a `TagChoice`; `ActivityPicker` stays for History.
+
+**Tests use the real ledger.** `core-data` gained `createInMemoryActivityRepository` (same code and schema as `createActivityRepository`, in-memory, work on the caller's thread, for tests only). The Log view-model and screen tests run on it with the real orchestrator and services and a scripted extractor, so tag meaning is not re-invented in a fake.
+
+**Consequences.** The v3 interpreter, orchestrator and services stay in `CapturePipeline` and `ActivityLedgerApplication` for History. The old Log result-card strings stay in `strings.xml` (additive) until the History switch removes the last users.

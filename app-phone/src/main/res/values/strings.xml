@@ -68,6 +68,60 @@
     <string name="log_not_categorized_a11y">Captured, not categorized yet. Saved your words, but couldn\'t categorize them yet.</string>
     <string name="log_choose_an_activity">Choose an activity</string>
 
+    <!-- Log result cards on the subject + action tags (ADR-046). A tag is a subject (the thing)
+         or an action (what was done to it); the card shows both. -->
+    <string name="log_saved_title_with_duration">✓ %1$s · %2$s — %3$s — %4$s</string>
+    <string name="log_saved_title_no_duration">✓ %1$s · %2$s — %3$s</string>
+    <string name="log_saved_tags_a11y_with_duration">Saved. %1$s, %2$s, %3$s, %4$s. Undo available.</string>
+    <string name="log_saved_tags_a11y_no_duration">Saved. %1$s, %2$s, %3$s. Undo available.</string>
+    <string name="log_change_subject">Change subject</string>
+    <string name="log_change_action">Change action</string>
+    <string name="log_tags_not_loaded">Couldn\'t load your subjects and actions. Try again.</string>
+
+    <!-- The one Check card: a close match, a needs-review result, a rejection or an unavailable AI. -->
+    <string name="log_check_title">Check this</string>
+    <string name="log_check_a11y">Check this. Your words are saved. Nothing was guessed. Choose a subject and an action, then save.</string>
+    <string name="log_check_subject_label">Subject</string>
+    <string name="log_check_action_label">Action</string>
+    <string name="log_check_did_you_mean_subject">Did you mean one of these?</string>
+    <string name="log_check_did_you_mean_action">Did you mean one of these?</string>
+    <string name="log_check_keep_mine">Keep mine: %1$s</string>
+    <string name="log_check_choose_subject">Choose subject</string>
+    <string name="log_check_choose_action">Choose action</string>
+    <string name="log_check_choose_another">Choose another</string>
+    <string name="log_check_change">Change</string>
+    <string name="log_check_nothing_chosen">Nothing chosen yet</string>
+    <string name="log_check_new_tag">New</string>
+    <string name="log_check_assumed">Assumed from your usual entries</string>
+    <string name="log_check_chosen">Chosen</string>
+    <string name="log_check_duration">Duration: %1$s</string>
+    <string name="log_check_save">Save</string>
+    <string name="log_check_side_a11y_chosen">%1$s: %2$s</string>
+    <string name="log_check_side_a11y_empty">%1$s: nothing chosen yet</string>
+
+    <!-- Durations in plain words. -->
+    <string name="duration_minutes">%1$d min</string>
+    <string name="duration_hours">%1$d h</string>
+    <string name="duration_hours_minutes">%1$d h %2$d min</string>
+
+    <!-- Shared tag picker (subject or action). -->
+    <string name="tag_picker_subject_title">Choose a subject</string>
+    <string name="tag_picker_action_title">Choose an action</string>
+    <string name="tag_picker_subject_search">Search subjects</string>
+    <string name="tag_picker_action_search">Search actions</string>
+    <string name="tag_picker_subject_no_matches">No matching subjects.</string>
+    <string name="tag_picker_action_no_matches">No matching actions.</string>
+    <string name="tag_picker_new_subject">New subject</string>
+    <string name="tag_picker_new_action">New action</string>
+    <string name="tag_picker_new_subject_name">Subject name</string>
+    <string name="tag_picker_new_action_name">Action name</string>
+
+    <!-- Refusals from tag changes, in plain words (the rest reuse the refusals below). -->
+    <string name="refusal_tag_invalid_duration">That duration isn\'t valid.</string>
+    <string name="refusal_tag_not_found">That subject or action no longer exists. Choose another one.</string>
+    <string name="refusal_tag_both_needed">Choose both a subject and an action.</string>
+    <string name="refusal_tag_same">The subject and the action can\'t be the same.</string>
+
     <!-- History screen (UX_VISUAL_SPEC D1, D7, 4.2; UX_SPEC 6, 13, 15). The "nothing logged"
          empty state reuses log_recent_empty; the resolution sheet reuses the Needs-review copy. -->
     <string name="history_filter_all">All</string>

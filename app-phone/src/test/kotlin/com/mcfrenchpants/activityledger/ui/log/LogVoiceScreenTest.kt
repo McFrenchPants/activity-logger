@@ -4,6 +4,7 @@ import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.result.ActivityResultRegistry
 import androidx.activity.result.ActivityResultRegistryOwner
 import androidx.activity.result.contract.ActivityResultContract
+import android.content.Context
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,15 +21,15 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.test.core.app.ApplicationProvider
 import androidx.core.app.ActivityOptionsCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.mcfrenchpants.activityledger.core.domain.services.CaptureInterpretationOrchestrator
-import com.mcfrenchpants.activityledger.core.domain.services.CorrectionService
-import com.mcfrenchpants.activityledger.core.domain.services.ReviewResolutionService
+import com.mcfrenchpants.activityledger.core.data.createInMemoryActivityRepository
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedCaptureOrchestrator
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedCorrectionService
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedResolutionService
 import com.mcfrenchpants.activityledger.core.speech.SpeechEvent
 import com.mcfrenchpants.activityledger.core.speech.SpeechFailure
-import com.mcfrenchpants.activityledger.core.testing.FakeActivityInterpreter
-import com.mcfrenchpants.activityledger.core.testing.InMemoryActivityRepository
 import com.mcfrenchpants.activityledger.core.testing.MutableClock
 import com.mcfrenchpants.activityledger.ui.theme.ActivityLedgerTheme
 import org.junit.Rule
@@ -61,9 +62,8 @@ class LogVoiceScreenTest {
 
     private val zone = ZoneId.of("America/Detroit")
     private val clock = MutableClock(ZonedDateTime.of(2026, 9, 15, 20, 0, 0, 0, zone).toInstant(), zone)
-    private val repository = InMemoryActivityRepository(clock)
-    private val interpreter = FakeActivityInterpreter()
-    private val mowLawn = repository.seedActivity("Mow lawn")
+    private val repository = createInMemoryActivityRepository(ApplicationProvider.getApplicationContext<Context>(), clock)
+    private val extractor = ScriptedExtractor()
     private val transcriber = ScriptedTranscriber()
 
     private lateinit var viewModel: LogViewModel
@@ -84,9 +84,9 @@ class LogVoiceScreenTest {
     private fun showLog(permissionGranted: Boolean = true, canAskAgain: Boolean = true) {
         viewModel = LogViewModel(
             repository = repository,
-            orchestrator = CaptureInterpretationOrchestrator(repository, interpreter, clock),
-            reviewResolutionService = ReviewResolutionService(repository, clock),
-            correctionService = CorrectionService(repository, clock),
+            orchestrator = TaggedCaptureOrchestrator(repository, extractor, clock),
+            resolution = TaggedResolutionService(repository, clock),
+            correction = TaggedCorrectionService(repository, clock),
             transcriber = transcriber,
             clock = clock,
             isAiReady = { true },
@@ -243,7 +243,7 @@ class LogVoiceScreenTest {
 
     @Test
     fun typeInsteadDismissesTheCardAndLeavesTypingWorking() {
-        interpreter.enqueue(Results.existing(mowLawn))
+        extractor.fallback = Extracted.log("Lawn", "Mow")
         showLog(permissionGranted = true)
         tapMicrophone()
         composeRule.runOnUiThread { transcriber.emitNow(SpeechEvent.Failed(SpeechFailure.NOTHING_HEARD)) }
@@ -262,7 +262,7 @@ class LogVoiceScreenTest {
 
     @Test
     fun spokenWordsBecomeACaptureAndShowTheSavedCardLikeTypedOnesDo() {
-        interpreter.enqueue(Results.existing(mowLawn))
+        extractor.fallback = Extracted.log("Lawn", "Mow")
         showLog(permissionGranted = true)
         tapMicrophone()
 
@@ -281,7 +281,7 @@ class LogVoiceScreenTest {
 
     @Test
     fun refusingTheMicrophoneSaysSoInPlainWordsAndLeavesTypingAvailable() {
-        interpreter.enqueue(Results.existing(mowLawn))
+        extractor.fallback = Extracted.log("Lawn", "Mow")
         showLog(permissionGranted = false, canAskAgain = true)
 
         tapMicrophone()
@@ -295,7 +295,7 @@ class LogVoiceScreenTest {
 
     @Test
     fun refusingTheMicrophoneForGoodSaysSoOnceAndLeavesTypingAvailable() {
-        interpreter.enqueue(Results.existing(mowLawn))
+        extractor.fallback = Extracted.log("Lawn", "Mow")
         showLog(permissionGranted = false, canAskAgain = false)
 
         tapMicrophone()
@@ -311,7 +311,7 @@ class LogVoiceScreenTest {
 
     @Test
     fun grantingTheMicrophoneStartsListeningAndStillLeavesTypingAvailable() {
-        interpreter.enqueue(Results.existing(mowLawn))
+        extractor.fallback = Extracted.log("Lawn", "Mow")
         showLog(permissionGranted = true)
 
         tapMicrophone()
@@ -343,10 +343,12 @@ class LogVoiceScreenTest {
                     onInputChange = {},
                     onSubmit = {},
                     onUndo = {},
-                    onChangeActivity = {},
-                    onSuggestion = {},
-                    onChooseActivity = {},
-                    onCreateActivity = {},
+                    onChangeSubject = {},
+                    onChangeAction = {},
+                    onChooseCandidate = { _, _ -> },
+                    onKeepMine = {},
+                    onPickTag = {},
+                    onSave = {},
                     onDecideLater = {},
                     onCardTouched = {},
                     onOpenHistory = {},

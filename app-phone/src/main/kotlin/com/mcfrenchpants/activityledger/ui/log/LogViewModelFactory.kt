@@ -24,9 +24,9 @@ class LogViewModelFactory(private val application: ActivityLedgerApplication) : 
         val pipeline = application.capturePipeline
         return LogViewModel(
             repository = pipeline.repository,
-            orchestrator = pipeline.orchestrator,
-            reviewResolutionService = application.reviewResolutionService,
-            correctionService = application.correctionService,
+            orchestrator = pipeline.taggedOrchestrator,
+            resolution = application.taggedResolutionService,
+            correction = application.taggedCorrectionService,
             // The one Android speech implementation (ADR-024), on the application context: it
             // outlives any Activity and never holds one.
             transcriber = PlatformSpeechTranscriber(application.applicationContext),

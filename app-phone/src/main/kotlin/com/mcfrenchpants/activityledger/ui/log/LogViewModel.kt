@@ -4,28 +4,32 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mcfrenchpants.activityledger.R
+import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
 import com.mcfrenchpants.activityledger.core.domain.model.CaptureSource
 import com.mcfrenchpants.activityledger.core.domain.model.ProcessingState
-import com.mcfrenchpants.activityledger.core.domain.repository.ActivityRepository
-import com.mcfrenchpants.activityledger.core.domain.repository.ActivityTarget
+import com.mcfrenchpants.activityledger.core.domain.repository.LedgerRepository
 import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
-import com.mcfrenchpants.activityledger.core.domain.services.CaptureInterpretationOrchestrator
-import com.mcfrenchpants.activityledger.core.domain.services.CaptureProcessingOutcome
-import com.mcfrenchpants.activityledger.core.domain.services.CorrectionRequest
-import com.mcfrenchpants.activityledger.core.domain.services.CorrectionResult
-import com.mcfrenchpants.activityledger.core.domain.services.CorrectionService
-import com.mcfrenchpants.activityledger.core.domain.services.ResolutionResult
-import com.mcfrenchpants.activityledger.core.domain.services.ReviewResolutionService
+import com.mcfrenchpants.activityledger.core.domain.services.OccurrenceTime
 import com.mcfrenchpants.activityledger.core.domain.services.ServiceRefusal
+import com.mcfrenchpants.activityledger.core.domain.services.TagRefusal
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedCaptureOrchestrator
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedCorrectionResult
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedCorrectionService
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedProcessingOutcome
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedProposal
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedResolutionResult
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedResolutionService
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagChoice
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagResolution
+import com.mcfrenchpants.activityledger.core.domain.validation.ValidationReason
 import com.mcfrenchpants.activityledger.core.speech.SpeechEvent
 import com.mcfrenchpants.activityledger.core.speech.SpeechFailure
 import com.mcfrenchpants.activityledger.core.speech.SpeechTranscriber
 import com.mcfrenchpants.activityledger.ui.components.toHistoryRow
-import com.mcfrenchpants.activityledger.ui.review.PickerState
-import com.mcfrenchpants.activityledger.ui.review.ReviewSuggestions
 import com.mcfrenchpants.activityledger.ui.review.UserMessage
 import com.mcfrenchpants.activityledger.ui.review.refusalMessage
-import com.mcfrenchpants.activityledger.ui.review.refusalMessageFor
+import com.mcfrenchpants.activityledger.ui.review.tagRefusalMessage
 import com.mcfrenchpants.activityledger.ui.time.OccurrenceTimeFormatter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -55,15 +59,15 @@ const val UNDO_TICK_MILLIS: Long = 100L
 private const val RECENT_ROWS = 3
 
 /**
- * State holder of the Log screen: typed capture through the real capture pipeline, the result
- * cards, the shared activity picker and the Recent list.
+ * State holder of the Log screen: typed and spoken capture through the subject + action tag pipeline, the
+ * result cards, the shared tag picker and the Recent list.
  *
  * Built from plain collaborators so it runs on the JVM without Android ([LogViewModelFactory]
  * wires the real ones; ADR-032, no DI framework).
  *
  * Rules it keeps:
  * - Typed *and* spoken words become an immutable raw capture first, then go through
- *   [orchestrator] only. Each [CaptureProcessingOutcome] maps to exactly one card; the outcome's
+ *   [orchestrator] only. Each [TaggedProcessingOutcome] maps to exactly one card; the outcome's
  *   reasons are never inspected (ADR-010).
  * - There is exactly one place in this class that writes to the ledger -- [captureAndInterpret]'s
  *   single `createRawCapture` call -- and no call anywhere that could update, rewrite or delete a
@@ -92,10 +96,10 @@ private const val RECENT_ROWS = 3
  * @param locale The locale times are formatted in.
  */
 class LogViewModel(
-    private val repository: ActivityRepository,
-    private val orchestrator: CaptureInterpretationOrchestrator,
-    private val reviewResolutionService: ReviewResolutionService,
-    private val correctionService: CorrectionService,
+    private val repository: LedgerRepository,
+    private val orchestrator: TaggedCaptureOrchestrator,
+    private val resolution: TaggedResolutionService,
+    private val correction: TaggedCorrectionService,
     private val transcriber: SpeechTranscriber,
     private val clock: Clock,
     private val isAiReady: suspend () -> Boolean,
@@ -231,30 +235,78 @@ class LogViewModel(
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (expected: Exception) {
-            // The words are stored, but no outcome was recorded: that is exactly
-            // "saved your words, but couldn't categorize them yet".
-            ResultCard.NotCategorized(captureId, text)
+            // The words are stored, but no outcome was recorded: the owner can still pick both
+            // sides by hand, so this is the Check card with nothing chosen.
+            blankCheckCard(captureId, text)
         }
         _state.update { it.copy(isCapturing = false) }
         showCard(card)
         reloadRecent()
     }
 
-    /** The one mapping from pipeline outcome to card. Reasons are never inspected (ADR-010). */
-    private suspend fun cardFor(captureId: String, rawText: String, outcome: CaptureProcessingOutcome): ResultCard? =
+    /** The one mapping from pipeline outcome to card (or to a refreshed Recent list). */
+    private suspend fun cardFor(captureId: String, rawText: String, outcome: TaggedProcessingOutcome): ResultCard? =
         when (outcome) {
-            is CaptureProcessingOutcome.AutoAccepted -> savedCard(outcome.occurrenceId)
-            CaptureProcessingOutcome.AlreadyHasOccurrence ->
+            is TaggedProcessingOutcome.AutoSaved -> savedCard(outcome.occurrenceId)
+            TaggedProcessingOutcome.AlreadyHasOccurrence ->
                 // If that occurrence is not in history (e.g. hidden), show no card and refresh Recent.
                 existingOccurrenceId(captureId)?.let { savedCard(it) } ?: run { reloadRecent(); null }
-            is CaptureProcessingOutcome.NeedsReview,
-            is CaptureProcessingOutcome.Rejected,
-            -> ResultCard.NeedsReview(captureId, rawText, suggestionsFor(captureId, rawText))
-            is CaptureProcessingOutcome.InterpreterUnavailable -> ResultCard.NotCategorized(captureId, rawText)
+            is TaggedProcessingOutcome.NeedsConfirm -> checkCard(rawText, outcome.proposal, emptySet())
+            is TaggedProcessingOutcome.NeedsReview ->
+                outcome.proposal?.let { checkCard(rawText, it, outcome.problems) } ?: blankCheckCard(captureId, rawText)
+            is TaggedProcessingOutcome.Rejected -> blankCheckCard(captureId, rawText)
+            is TaggedProcessingOutcome.InterpreterUnavailable -> blankCheckCard(captureId, rawText)
         }
 
     private suspend fun existingOccurrenceId(captureId: String): String? =
         repository.loadHistory().firstOrNull { it.captureId == captureId }?.occurrence?.occurrenceId
+
+    private fun blankCheckCard(captureId: String, rawText: String) = ResultCard.Check(
+        captureId = captureId,
+        rawText = rawText,
+        subject = CheckSide(TagKind.SUBJECT),
+        action = CheckSide(TagKind.ACTION),
+    )
+
+    /**
+     * The Check card for [proposal]. A side that resolved exactly or as a new name starts chosen;
+     * a close match offers its candidates and starts unchosen; an empty side starts unchosen.
+     * The proposal's time is kept only when it is clean: present, and not flagged as in the
+     * future or unresolvable by [problems].
+     */
+    private fun checkCard(rawText: String, proposal: TaggedProposal, problems: Set<ValidationReason>): ResultCard.Check {
+        val occurredAt = proposal.occurredAt
+        val precision = proposal.timePrecision
+        val time = if (
+            occurredAt != null && precision != null &&
+            ValidationReason.TIME_IN_FUTURE !in problems && ValidationReason.TIME_UNRESOLVABLE !in problems
+        ) {
+            OccurrenceTime(occurredAt, precision)
+        } else {
+            null
+        }
+        return ResultCard.Check(
+            captureId = proposal.captureId,
+            rawText = rawText,
+            subject = sideOf(TagKind.SUBJECT, proposal.extractedSubject, proposal.subject, proposal.subjectInferred),
+            action = sideOf(TagKind.ACTION, proposal.extractedAction, proposal.action, false),
+            time = time,
+            durationSeconds = proposal.durationSeconds,
+            activityState = proposal.activityState,
+        )
+    }
+
+    private fun sideOf(kind: TagKind, words: String?, resolution: TagResolution, inferred: Boolean): CheckSide =
+        when (resolution) {
+            TagResolution.Empty -> CheckSide(kind, words)
+            is TagResolution.Exact -> CheckSide(
+                kind, words, ChosenTag(TagChoice.Existing(resolution.tag.id), resolution.tag.displayName), assumed = inferred,
+            )
+            is TagResolution.New ->
+                CheckSide(kind, words, ChosenTag(TagChoice.New(resolution.name), resolution.name), assumed = inferred)
+            is TagResolution.Near ->
+                CheckSide(kind, words, candidates = resolution.candidates, keepMine = resolution.newName)
+        }
 
     // ---- Saved card ---------------------------------------------------------------------
 
@@ -277,18 +329,30 @@ class LogViewModel(
         }
     }
 
-    /** Moves the saved occurrence to [target] as a user correction. The undo window keeps running. */
-    fun changeActivity(target: ActivityTarget) {
+    /**
+     * Changes the saved entry's subject or action to [choice] as a user correction. The undo
+     * window keeps running and the card shows the new names.
+     */
+    private fun changeTag(kind: TagKind, choice: TagChoice) {
         val card = _state.value.card as? ResultCard.Saved ?: return
         runAction(closePicker = true) {
-            when (val result = correctionService.correct(card.occurrenceId, CorrectionRequest(activity = target))) {
-                is CorrectionResult.Applied -> {
+            val result = if (kind == TagKind.SUBJECT) {
+                correction.correct(card.occurrenceId, subject = choice)
+            } else {
+                correction.correct(card.occurrenceId, action = choice)
+            }
+            when (result) {
+                is TaggedCorrectionResult.Applied -> {
                     val refreshed = savedCard(card.occurrenceId)
                     _state.update { current ->
                         val shown = current.card as? ResultCard.Saved
                         if (refreshed != null && shown?.occurrenceId == card.occurrenceId) {
                             current.copy(
-                                card = shown.copy(activityName = refreshed.activityName, time = refreshed.time),
+                                card = shown.copy(
+                                    subjectName = refreshed.subjectName,
+                                    actionName = refreshed.actionName,
+                                    time = refreshed.time,
+                                ),
                             )
                         } else {
                             current
@@ -296,8 +360,8 @@ class LogViewModel(
                     }
                     reloadRecent()
                 }
-                CorrectionResult.NothingChanged -> Unit
-                is CorrectionResult.Refused -> showRefusal(result.refusal)
+                TaggedCorrectionResult.NothingChanged -> Unit
+                is TaggedCorrectionResult.Refused -> showTagRefusal(result.refusal)
             }
         }
     }
@@ -342,26 +406,60 @@ class LogViewModel(
         }
     }
 
-    // ---- Needs review / Not categorized -------------------------------------------------
+    // ---- Check card -----------------------------------------------------------------------
 
-    /** Logs the card's capture as [target] via [ReviewResolutionService]. */
-    fun resolve(target: ActivityTarget) {
-        // Only an unresolved card has a capture waiting for an activity; the type says so.
-        val card = _state.value.card as? ResultCard.Unresolved ?: return
+    /** Chooses the offered close-match tag [tagId] for the [kind] side of the Check card. */
+    fun chooseCandidate(kind: TagKind, tagId: String) {
+        val card = _state.value.card as? ResultCard.Check ?: return
+        val tag = card.side(kind).candidates.firstOrNull { it.id == tagId } ?: return
+        updateCheck(card.captureId) { it.choose(kind, ChosenTag(TagChoice.Existing(tag.id), tag.displayName)) }
+    }
+
+    /** "Keep mine": chooses a new tag from the owner's words for the [kind] side. */
+    fun keepMine(kind: TagKind) {
+        val card = _state.value.card as? ResultCard.Check ?: return
+        val name = card.side(kind).keepMine ?: return
+        updateCheck(card.captureId) { it.choose(kind, ChosenTag(TagChoice.New(name), name)) }
+    }
+
+    private fun updateCheck(captureId: String, transform: (ResultCard.Check) -> ResultCard.Check) {
+        _state.update { current ->
+            val shown = current.card as? ResultCard.Check
+            if (shown == null || shown.captureId != captureId) current else current.copy(card = transform(shown), picker = null)
+        }
+    }
+
+    /**
+     * Saves the Check card's capture with the chosen subject and action. Only possible with both
+     * sides chosen; nothing is saved before this. The time is the proposal's only when it was
+     * clean (see [checkCard]); otherwise it is the capture time.
+     */
+    fun save() {
+        val card = _state.value.card as? ResultCard.Check ?: return
+        val subject = card.subject.chosen ?: return
+        val action = card.action.chosen ?: return
         runAction(closePicker = true) {
-            when (val result = reviewResolutionService.resolve(card.captureId, target)) {
-                is ResolutionResult.Resolved -> {
+            val result = resolution.resolve(
+                captureId = card.captureId,
+                subject = subject.choice,
+                action = action.choice,
+                time = card.time,
+                durationSeconds = card.durationSeconds,
+                activityState = card.activityState ?: ActivityState.COMPLETED,
+            )
+            when (result) {
+                is TaggedResolutionResult.Resolved -> {
                     showCard(savedCard(result.occurrenceId))
                     reloadRecent()
                 }
-                is ResolutionResult.Refused -> showRefusal(result.refusal)
+                is TaggedResolutionResult.Refused -> showTagRefusal(result.refusal)
             }
         }
     }
 
-    /** Dismisses the card; the capture stays waiting for review (reachable from History). */
+    /** Dismisses the card; the capture stays waiting for the owner (reachable from History). */
     fun decideLater() {
-        if (_state.value.card !is ResultCard.Unresolved) return
+        if (_state.value.card !is ResultCard.Check) return
         dismissCard()
     }
 
@@ -524,13 +622,18 @@ class LogViewModel(
 
     // ---- Picker -------------------------------------------------------------------------
 
-    /** Opens the activity picker over the ACTIVE catalog (optionally on the new-name field). */
-    fun openPicker(startWithNewActivity: Boolean = false) {
-        if (_state.value.card == null) return
-        runAction(failure = UserMessage(R.string.log_activities_not_loaded)) {
-            val catalog = repository.loadCatalog()
+    /** Opens the tag picker for [kind] over the ACTIVE tags (optionally on the new-name field). */
+    fun openPicker(kind: TagKind, startWithNewName: Boolean = false) {
+        if (_state.value.card !is ResultCard.Saved && _state.value.card !is ResultCard.Check) return
+        runAction(failure = UserMessage(R.string.log_tags_not_loaded)) {
+            val tags = repository.loadTagCatalog().tagsOf(kind)
             _state.update {
-                if (it.card == null) it else it.copy(picker = PickerState(catalog, startWithNewActivity))
+                val card = it.card
+                if (card is ResultCard.Saved || card is ResultCard.Check) {
+                    it.copy(picker = TagPickerState(kind, tags, startWithNewName))
+                } else {
+                    it
+                }
             }
         }
     }
@@ -540,11 +643,23 @@ class LogViewModel(
         _state.update { it.copy(picker = null) }
     }
 
-    /** The picker returned [target]: a correction for a Saved card, a resolution otherwise. */
-    fun onPickerChoice(target: ActivityTarget) {
-        when (_state.value.card) {
-            is ResultCard.Saved -> changeActivity(target)
-            is ResultCard.Unresolved -> resolve(target)
+    /** The picker returned [choice]: a correction for a Saved card, a side choice for a Check card. */
+    fun onPickerChoice(choice: TagChoice) {
+        val picker = _state.value.picker ?: return
+        when (val card = _state.value.card) {
+            is ResultCard.Saved -> changeTag(picker.kind, choice)
+            is ResultCard.Check -> {
+                val name = when (choice) {
+                    is TagChoice.Existing -> picker.tags.firstOrNull { it.id == choice.tagId }?.displayName
+                    is TagChoice.New -> choice.name.trim().takeIf { it.isNotEmpty() }
+                }
+                if (name == null) {
+                    closePicker()
+                } else {
+                    val stored = if (choice is TagChoice.New) TagChoice.New(name) else choice
+                    updateCheck(card.captureId) { it.choose(picker.kind, ChosenTag(stored, name)) }
+                }
+            }
             // No picker can be opened over a card with no capture, or over no card at all.
             ResultCard.RecognitionFailed, null -> closePicker()
         }
@@ -553,7 +668,7 @@ class LogViewModel(
     // ---- Internals ----------------------------------------------------------------------
 
     /**
-     * Runs one card action (Undo, Change activity, resolve, open picker) unless another is
+     * Runs one card action (Undo, Change subject/action, Save, open picker) unless another is
      * already running -- a second tap while one is in flight is ignored. A storage failure keeps
      * the current card and shows [failure]; messages never contain the user's words.
      */
@@ -599,29 +714,33 @@ class LogViewModel(
         _state.update { it.copy(message = UserMessage(messageRes)) }
     }
 
-    private suspend fun showRefusal(refusal: ServiceRefusal) {
-        val message = refusalMessageFor(repository, refusal)
-        _state.update { it.copy(message = message) }
+    private fun showTagRefusal(refusal: TagRefusal) {
+        _state.update { it.copy(message = tagRefusalMessage(refusal)) }
     }
 
+    /**
+     * The Saved card for [occurrenceId]: the subject and action names come from the occurrence's
+     * pair, read once from the tag catalog (no per-row queries). Null if anything needed is gone.
+     */
     private suspend fun savedCard(occurrenceId: String): ResultCard.Saved? {
         val occurrence = repository.getOccurrence(occurrenceId) ?: return null
         val activity = repository.getActivity(occurrence.canonicalActivityId) ?: return null
         val capture = repository.getCapture(occurrence.rawCaptureId) ?: return null
+        val catalog = repository.loadTagCatalog()
+        val subject = activity.subjectId?.let { catalog.tag(TagKind.SUBJECT, it) } ?: return null
+        val action = activity.actionId?.let { catalog.tag(TagKind.ACTION, it) } ?: return null
         return ResultCard.Saved(
             captureId = capture.id,
             rawText = capture.rawText,
             occurrenceId = occurrence.id,
-            activityName = activity.displayName,
+            subjectName = subject.displayName,
+            actionName = action.displayName,
+            durationSeconds = occurrence.durationSeconds,
             time = OccurrenceTimeFormatter.format(
                 occurrence.occurredAt, occurrence.timePrecision, capture.zoneId, clock.instant(), locale(),
             ),
         )
     }
-
-    /** Suggestions per [ReviewSuggestions] (shared with History). */
-    private suspend fun suggestionsFor(captureId: String, rawText: String) =
-        ReviewSuggestions.suggest(repository, captureId, rawText)
 
     private suspend fun reloadRecent() {
         val history = try {

@@ -1,84 +1,123 @@
 package com.mcfrenchpants.activityledger.ui.log
 
-import com.mcfrenchpants.activityledger.core.domain.interpretation.ActivityInterpreter
-import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpretationCandidate
-import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpretationInput
-import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpretationResult
+import com.mcfrenchpants.activityledger.core.domain.extraction.ActivityExtractor
+import com.mcfrenchpants.activityledger.core.domain.extraction.ExtractionCandidate
+import com.mcfrenchpants.activityledger.core.domain.extraction.ExtractionInput
+import com.mcfrenchpants.activityledger.core.domain.extraction.ExtractionResult
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterFailureKind
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterProvenance
-import com.mcfrenchpants.activityledger.core.domain.model.ActivityResolution
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
-import com.mcfrenchpants.activityledger.core.domain.model.ConfidenceBand
+import com.mcfrenchpants.activityledger.core.domain.model.CaptureSource
 import com.mcfrenchpants.activityledger.core.domain.model.InterpretationOperation
-import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpretationRecord
-import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
-import com.mcfrenchpants.activityledger.core.domain.model.TimePrecision
-import com.mcfrenchpants.activityledger.core.domain.repository.ActivityRepository
-import com.mcfrenchpants.activityledger.core.domain.repository.ActivityTarget
-import com.mcfrenchpants.activityledger.core.domain.repository.CatalogActivity
-import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionChanges
+import com.mcfrenchpants.activityledger.core.domain.model.ProcessingState
 import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionOutcome
 import com.mcfrenchpants.activityledger.core.domain.repository.HistoryEntry
+import com.mcfrenchpants.activityledger.core.domain.repository.LedgerRepository
 import com.mcfrenchpants.activityledger.core.domain.repository.NewRawCapture
+import com.mcfrenchpants.activityledger.core.domain.repository.TagCorrectionRequest
+import com.mcfrenchpants.activityledger.core.domain.repository.TaggedAcceptRequest
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedResolutionResult
+import com.mcfrenchpants.activityledger.core.domain.services.TaggedResolutionService
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagCatalog
+import com.mcfrenchpants.activityledger.core.domain.tagging.TagChoice
 import com.mcfrenchpants.activityledger.core.speech.SpeechEvent
 import com.mcfrenchpants.activityledger.core.speech.SpeechTranscriber
+import com.mcfrenchpants.activityledger.core.testing.runSuspend
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import java.time.Instant
+import java.time.Clock
+import java.time.Duration
+import java.time.ZoneId
 
-/** Interpreter results used by the Log tests. */
-internal object Results {
-    fun existing(activityId: String, confidence: ConfidenceBand = ConfidenceBand.HIGH): InterpretationResult =
-        InterpretationResult.Success(
-            InterpretationCandidate(
-                operation = InterpretationOperation.LOG_ACTIVITY,
-                activityResolution = ActivityResolution.EXISTING_ACTIVITY,
-                matchedActivityId = activityId,
-                proposedCanonicalName = null,
-                activityState = ActivityState.COMPLETED,
-                temporalExpression = null,
-                confidenceBand = confidence,
-            ),
-            structuredResultJson = null,
-        )
+/** Extraction results used by the Log tests. */
+internal object Extracted {
 
-    /** A valid but not-high-confidence match: the validator sends it to review. */
-    fun needsReview(activityId: String): InterpretationResult = existing(activityId, ConfidenceBand.MEDIUM)
-
-    /** A structurally unacceptable answer: the validator rejects it. */
-    val invalid: InterpretationResult = InterpretationResult.Success(
-        InterpretationCandidate(
-            operation = InterpretationOperation.UNSUPPORTED,
-            activityResolution = ActivityResolution.UNRESOLVED,
-            matchedActivityId = null,
-            proposedCanonicalName = null,
-            activityState = null,
-            temporalExpression = null,
-            confidenceBand = ConfidenceBand.HIGH,
+    /** A logged activity as the extractor would report it (state COMPLETED unless told otherwise). */
+    fun log(
+        subject: String?,
+        action: String?,
+        state: ActivityState? = ActivityState.COMPLETED,
+        time: String? = null,
+        duration: String? = null,
+    ): ExtractionResult = ExtractionResult.Success(
+        ExtractionCandidate(
+            operation = InterpretationOperation.LOG_ACTIVITY,
+            subject = subject,
+            action = action,
+            activityState = state,
+            temporalExpression = time,
+            durationExpression = duration,
         ),
-        structuredResultJson = null,
     )
 
-    fun failure(kind: InterpreterFailureKind): InterpretationResult = InterpretationResult.Failure(kind, null)
+    fun failure(kind: InterpreterFailureKind): ExtractionResult = ExtractionResult.Failure(kind)
 }
 
-/** Repository calls [RecordingRepository] can be told to fail, simulating a storage error. */
+/**
+ * An [ActivityExtractor] that answers exactly what a test scripts for each raw text (and
+ * [fallback] otherwise), optionally holding every answer back until [release] is called.
+ */
+internal class ScriptedExtractor : ActivityExtractor {
+    override val provenance = InterpreterProvenance("test-extractor", "test-prompt", 1)
+
+    private val answers = mutableMapOf<String, ExtractionResult>()
+    private var gate: CompletableDeferred<Unit>? = null
+
+    /** What is answered for a text nobody scripted. */
+    var fallback: ExtractionResult = Extracted.failure(InterpreterFailureKind.OTHER)
+
+    /** When set, the extractor throws this instead of answering (a crash after the words were stored). */
+    var throwOnExtract: Exception? = null
+
+    /** Every input that reached the extractor, in order. */
+    val received = mutableListOf<ExtractionInput>()
+
+    val callCount: Int get() = received.size
+
+    fun on(rawText: String, result: ExtractionResult) {
+        answers[rawText] = result
+    }
+
+    /** From now on every answer waits until [release]. */
+    fun holdAnswers() {
+        gate = CompletableDeferred()
+    }
+
+    fun release() {
+        gate?.complete(Unit)
+    }
+
+    override suspend fun extract(input: ExtractionInput): ExtractionResult {
+        received += input
+        gate?.await()
+        throwOnExtract?.let { throw it }
+        return answers[input.rawText] ?: fallback
+    }
+}
+
+/** Repository calls [RecordingLedger] can be told to fail, simulating a storage error. */
 internal enum class FailPoint { CREATE, HIDE, CORRECT, ACCEPT, CATALOG, HISTORY }
 
 /**
- * Records every raw capture as given, can run a hook right after one is stored, and throws a
- * storage-style error from any call listed in [failOn].
+ * The real ledger with a recorder in front: remembers every raw capture as given, can run a hook
+ * right after one is stored, and throws a storage-style error from any call listed in [failOn].
  */
-internal class RecordingRepository(private val inner: ActivityRepository) : ActivityRepository by inner {
+internal class RecordingLedger(private val inner: LedgerRepository) : LedgerRepository by inner {
     val created = mutableListOf<NewRawCapture>()
     var afterCreate: (suspend (String) -> Unit)? = null
     var failOn: Set<FailPoint> = emptySet()
 
+    /** Every tag correction that reached the ledger, in order. */
+    val corrections = mutableListOf<TagCorrectionRequest>()
+
+    /** What is thrown when a call in [failOn] is made. */
+    var failWith: (String) -> Exception = { IllegalStateException(it) }
+
     private fun maybeFail(point: FailPoint) {
-        if (point in failOn) throw IllegalStateException("simulated storage failure: $point")
+        if (point in failOn) throw failWith("simulated storage failure: $point")
     }
 
     override suspend fun createRawCapture(capture: NewRawCapture): String {
@@ -94,37 +133,54 @@ internal class RecordingRepository(private val inner: ActivityRepository) : Acti
         inner.hideOccurrence(occurrenceId)
     }
 
-    override suspend fun applyCorrection(
-        occurrenceId: String,
-        changes: CorrectionChanges,
-        source: CorrectionSource,
-        reason: String?,
-        now: Instant,
-    ): CorrectionOutcome {
+    override suspend fun correctTags(request: TagCorrectionRequest): CorrectionOutcome {
         maybeFail(FailPoint.CORRECT)
-        return inner.applyCorrection(occurrenceId, changes, source, reason, now)
+        corrections += request
+        return inner.correctTags(request)
     }
 
-    override suspend fun acceptInterpretation(
-        captureId: String,
-        interpretation: InterpretationRecord,
-        target: ActivityTarget,
-        occurredAt: Instant,
-        timePrecision: TimePrecision,
-        activityState: ActivityState,
-    ): String {
+    override suspend fun acceptTagged(request: TaggedAcceptRequest): String {
         maybeFail(FailPoint.ACCEPT)
-        return inner.acceptInterpretation(captureId, interpretation, target, occurredAt, timePrecision, activityState)
+        return inner.acceptTagged(request)
     }
 
-    override suspend fun loadCatalog(): List<CatalogActivity> {
+    override suspend fun loadTagCatalog(): TagCatalog {
         maybeFail(FailPoint.CATALOG)
-        return inner.loadCatalog()
+        return inner.loadTagCatalog()
     }
 
     override suspend fun loadHistory(): List<HistoryEntry> {
         maybeFail(FailPoint.HISTORY)
         return inner.loadHistory()
+    }
+}
+
+/**
+ * Makes the ledger know a subject and an action as a pair, the way the owner's earlier entries
+ * would have, without leaving an entry behind in History: the seeding entry is saved through the
+ * real resolution service and then hidden.
+ */
+internal fun seedTags(ledger: LedgerRepository, clock: Clock, zone: ZoneId, subject: String, action: String) {
+    runSuspend {
+        val captureId = ledger.createRawCapture(
+            NewRawCapture(
+                source = CaptureSource.PHONE_TEXT,
+                sourceSurface = "seed",
+                capturedAt = clock.instant().minus(Duration.ofHours(1)),
+                zoneId = zone,
+                rawText = "seed",
+                speechConfidence = null,
+                speechAlternativesJson = null,
+                processingState = ProcessingState.CAPTURED,
+            ),
+        )
+        val resolved = TaggedResolutionService(ledger, clock).resolve(
+            captureId,
+            TagChoice.New(subject),
+            TagChoice.New(action),
+        )
+        check(resolved is TaggedResolutionResult.Resolved) { "seeding refused: $resolved" }
+        ledger.hideOccurrence(resolved.occurrenceId)
     }
 }
 
@@ -183,20 +239,5 @@ internal class ScriptedTranscriber : SpeechTranscriber {
             isOpen = false
             if (live === inbox) live = null
         }
-    }
-}
-
-/** An interpreter that suspends until [release] is called, then delegates. */
-internal class GatedInterpreter(private val inner: ActivityInterpreter) : ActivityInterpreter {
-    private val gate = CompletableDeferred<Unit>()
-    override val provenance: InterpreterProvenance get() = inner.provenance
-
-    fun release() {
-        gate.complete(Unit)
-    }
-
-    override suspend fun interpret(input: InterpretationInput): InterpretationResult {
-        gate.await()
-        return inner.interpret(input)
     }
 }
