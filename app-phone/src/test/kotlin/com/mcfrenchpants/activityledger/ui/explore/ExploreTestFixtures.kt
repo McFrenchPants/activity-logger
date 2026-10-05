@@ -74,15 +74,20 @@ internal class ExploreQuestionExtractor : QuestionExtractor {
 
 /**
  * The real ledger seen through [TagRepository], refusing (and recording) every write so a test can
- * prove the Explore view model never stores anything. [failLoads] makes the Explore read throw.
+ * prove the Explore view model never stores anything. [failLoads] makes the Explore read throw;
+ * [loadGate] holds it back.
  */
 internal class WriteRefusingExploreTags(private val inner: LedgerRepository) : TagRepository by inner {
     val writeAttempts = mutableListOf<String>()
     var failLoads = false
     var exploreLoads = 0
 
+    /** When set, the Explore read waits for it before reading (a load "in flight"). */
+    var loadGate: CompletableDeferred<Unit>? = null
+
     override suspend fun loadExploreEntries(): List<ExploreEntry> {
         exploreLoads++
+        loadGate?.await()
         check(!failLoads) { "scripted load failure" }
         return inner.loadExploreEntries()
     }

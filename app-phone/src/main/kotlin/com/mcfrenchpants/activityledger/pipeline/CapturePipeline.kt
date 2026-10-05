@@ -5,9 +5,12 @@ import com.mcfrenchpants.activityledger.core.ai.GeminiNanoActivityExtractor
 import com.mcfrenchpants.activityledger.core.ai.ModelReadiness
 import com.mcfrenchpants.activityledger.core.ai.OnDeviceModelCapability
 import com.mcfrenchpants.activityledger.core.data.createActivityRepository
+import com.mcfrenchpants.activityledger.core.data.ledgerChanges
 import com.mcfrenchpants.activityledger.core.domain.extraction.ActivityExtractor
 import com.mcfrenchpants.activityledger.core.domain.repository.LedgerRepository
 import com.mcfrenchpants.activityledger.core.domain.services.TaggedCaptureOrchestrator
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import java.time.Clock
 
 /**
@@ -72,6 +75,12 @@ class CapturePipeline private constructor(
     val extractor: GeminiNanoActivityExtractor,
     /** Drives one capture to exactly one persisted subject + action outcome. */
     val taggedOrchestrator: TaggedCaptureOrchestrator,
+    /**
+     * Emits (no data, never user text) each time a write changes what the Explore and History
+     * screens show, so they can reload while on screen; built once from [repository] by
+     * `ledgerChanges`. Read-only observation; empty unless built by [create].
+     */
+    val ledgerChanges: Flow<Unit> = emptyFlow(),
 ) : AutoCloseable {
 
     /**
@@ -112,7 +121,7 @@ class CapturePipeline private constructor(
                 extractor = extractorDecorator(BusyRetryExtractor(extractor)),
                 clock = clock,
             )
-            return CapturePipeline(repository, capability, clock, extractor, taggedOrchestrator)
+            return CapturePipeline(repository, capability, clock, extractor, taggedOrchestrator, ledgerChanges(repository))
         }
     }
 }

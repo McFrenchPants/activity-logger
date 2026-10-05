@@ -1683,6 +1683,23 @@
           "notes": "see docs/proposals/explore/PROGRESS.md"
         },
         {
+          "id": "DH4.6",
+          "title": "Explore and History refresh when entries change",
+          "status": "done",
+          "lifecycle_state": "verified",
+          "dependencies": [
+            "DH4.5"
+          ],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 2
+          },
+          "task_packet_path": ".sdlc/task-packets/DH4.6.packet.json",
+          "report_path": null,
+          "notes": "see docs/proposals/explore/PROGRESS.md"
+        },
+        {
           "id": "DH5.1",
           "title": "Device pass, docs, owner report",
           "status": "todo",

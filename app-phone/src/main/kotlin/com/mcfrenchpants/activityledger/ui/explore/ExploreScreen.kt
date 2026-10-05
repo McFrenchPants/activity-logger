@@ -167,8 +167,13 @@ fun ExploreScreen(
     LifecycleStartEffect(viewModel, historyViewModel) {
         viewModel.onStart()
         historyViewModel.onStart()
-        // A voice session must not keep listening once the screen is no longer showing.
-        onStopOrDispose { viewModel.stopListening() }
+        // A voice session must not keep listening once the screen is no longer showing, and
+        // neither view model keeps watching for ledger changes then.
+        onStopOrDispose {
+            viewModel.stopListening()
+            viewModel.onStop()
+            historyViewModel.onStop()
+        }
     }
 
     // The shared Edit sheet may change or remove an entry: recount once it closes.
