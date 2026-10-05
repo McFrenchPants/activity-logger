@@ -1,0 +1,55 @@
+{
+  "task_id": "DH4.1",
+  "plan_revision": "dh1",
+  "objective": "Add a deterministic resolver that turns the date-window words of a question (e.g. 'in August', 'this year', 'last month', 'since June', 'in 2025', 'last 30 days') into the Explore screen's DateRangeSelection. Pure Kotlin in core-domain, new files in package com.mcfrenchpants.activityledger.core.domain.temporal, beside the existing TemporalResolver (which resolves a single capture time and MUST NOT change: the capture semantic-regression baseline depends on it).\n\nRead first: core-domain temporal/TemporalResolver.kt (style: ordered phrase rules over a normalized expression, first match wins; MONTHS map with abbreviations; WORD_NUMBER quantities; PLACEHOLDERS), temporal/TemporalResolution.kt, stats/DateRange.kt (DateRangeSelection.Preset / Custom(start, endInclusive, label), DateRangePreset, RangeLabel.Month(YearMonth) / RangeLabel.Year(Int)), naming/NameNormalizer.kt, and temporal/TemporalResolverTest.kt for test style. Context: in the next tasks the question reader (AI) will return the question's date words as a short string (untrusted model output); this resolver is the only thing that turns them into dates (the model never produces dates).\n\n1. New result type `TemporalRange` (sealed, its own file TemporalRange.kt):\n   - `Resolved(val selection: DateRangeSelection)`\n   - `NoWindow` -- input null/blank/punctuation-only or a model placeholder (reuse the same placeholder words as TemporalResolver: unresolved, unknown, none, null, n/a, na, undefined, unspecified, not specified, not given, nothing; copy the list, do not edit TemporalResolver). The caller will treat this as 'no date words' (All time).\n   - `Future` -- the window lies entirely after today ('next month', 'tomorrow', 'next week', 'next year', 'in 2030', 'December 2026' when today is in October 2026).\n   - `Unrecognised` -- non-blank words that match no rule. Never guess.\n2. New class `TemporalRangeResolver` (file TemporalRangeResolver.kt) with `fun resolve(expression: String?, today: LocalDate, firstDayOfWeek: DayOfWeek): TemporalRange`. Stateless, clock-free, no zone (works on local dates), no Android, no logging. Normalize with NameNormalizer.normalize (lowercase, trims leading/trailing punctuation incl. a trailing '?'), map the curly apostrophe (U+2019) to a plain one, then strip at most one leading filler word from: 'in ', 'during ', 'over ', 'within ', 'for ', 'on ', 'of ' (the 'from'/'between' span forms of rule h are matched before filler stripping). Ordered phrase rules, first match wins. A word number one..twelve, 'a'/'an' (=1), 'a couple of' (=2), or 1-999 digits are accepted as N.\n   Rules (D = today; all ranges are DateRangeSelection.Custom unless a preset is named; any computed end after D is clamped to D; a window whose start is after D -> Future):\n   a. 'ever', 'all time', 'of all time', 'ever before', 'at all' -> Preset(ALL_TIME).\n   b. Rolling windows ending today: '(the )?(last|past) N days' / '(the )?(last|past) N weeks' (N*7 days) / '(the )?(last|past) N months' / '(the )?(last|past) N years', and the N=1 forms '(the )?past (day|week|month|year)', 'the last (day|week|month|year)', 'this past (week|month|year)'. Exactly 7 days or 1 week -> Preset(LAST_7_DAYS); exactly 30 days -> Preset(LAST_30_DAYS); exactly 12 months or 1 year -> Preset(LAST_12_MONTHS). Otherwise Custom(start, D) where start = D.minusDays(n-1) for days, D.minusDays(7n-1) for weeks, D.minusMonths(n).plusDays(1) for months, D.minusYears(n).plusDays(1) for years; no label. ('past day' / 'last 1 day' = today only.)\n   c. Calendar periods: 'today' -> Custom(D, D); 'yesterday' -> Custom(D-1, D-1); 'this week' -> week containing D starting on firstDayOfWeek, end clamped to D; 'last week' (without 'the') -> the full previous calendar week; 'this month' -> first of D's month .. D, label Month(YearMonth of D); 'last month' (without 'the') -> the full previous calendar month, label Month; 'this year' -> Jan 1 .. D, label Year(D.year); 'last year' (without 'the') -> full previous calendar year, label Year. 'next week|month|year', 'tomorrow', 'later' and anything starting with 'next ' -> Future.\n   d. A named month with no year ('august', 'aug', 'aug.', 'sept'): the most recent such month that has started on or before D (same month as D -> this month, clamped to D; a later month -> that month last year). Custom(first day, last day clamped to D), label Month(YearMonth).\n   e. A named month with a year ('august 2025', 'aug 2025', 'august of 2025', 'august, 2025'): that month, label Month; entirely after D -> Future; years before 1900 -> Unrecognised.\n   f. A year alone ('2025', also 'the year 2025'): Jan 1 .. Dec 31 clamped to D, label Year; a year after D.year -> Future; before 1900 -> Unrecognised.\n   g. 'since X' -> Custom(start of X, D), no label, where X is: a named month (no year: most recent started one, as in d), a month with a year, a year, 'last week' / 'last month' / 'last year' (start of that previous calendar period), 'yesterday', a weekday name or 'last <weekday>' (the most recent such day strictly before today, the same rule TemporalResolver uses for bare weekdays), or a month-day date ('june 3', 'june 3rd', '3 june', 'the 3rd of june' -- most recent such date not after D, as in TemporalResolver's monthDate; invalid day -> Unrecognised). X after D -> Future.\n   h. Explicit spans: '(from|between) X (to|and|through|until|till) Y' where X and Y are each a named month (optionally with a year) or a year: Custom(start of X, end of Y clamped to D), no label. Months without a year: if both lack a year, Y is the most recent started month as in d and X is the latest such month not after Y; if one side has a year, the other side without a year uses that same year. Start after end -> Unrecognised. Start after D -> Future.\n   i. Single days: a weekday name or 'last <weekday>' (most recent such day strictly before today) and a month-day date ('august 3', 'aug 3rd', '3 august', 'the 3rd of august', with an optional year 'august 3 2025' / 'august 3, 2025') -> Custom(that day, that day), no label. Invalid dates (feb 30) -> Unrecognised; a dated day after D -> Future.\n   j. Anything else -> Unrecognised.\n3. Tests: new TemporalRangeResolverTest.kt (JUnit, same style as TemporalResolverTest), fixed today values (e.g. 2026-10-05, a Monday; plus edge todays such as Jan 1, Feb 29 2028, Dec 31) and both DayOfWeek.MONDAY and DayOfWeek.SUNDAY week starts. Cover every rule a-j incl.: null / blank / '?' / placeholders -> NoWindow; each preset mapping in b (7 days, 1 week, 30 days, 12 months, 1 year, 'past year'); non-preset rolling windows with word numbers ('the last two weeks', 'past 3 months'); 'this week' with each week start incl. when today is the first day of the week; 'last week' across a year boundary; 'last month' in January (-> December last year) and from March 31 (-> all of February; leap year 2028 has 29 days); 'this month' clamped; 'in August' when today is in October, in August (clamped), and in March (-> previous year); abbreviations incl. 'sept' and 'aug.'; month+year; future month+year and future year -> Future; 'in 2025' and 'this year' labels; 'since June', 'since 2025', 'since last month', 'since monday' (today a Monday -> a week ago), 'since june 3rd'; 'from June to August', 'between March and May 2026', 'from 2024 to 2025', reversed span -> Unrecognised; single weekday and month-day forms; 'next month' / 'tomorrow' -> Future; filler stripping ('during the past week', 'over the last 3 months'); gibberish ('banana', 'when it rained') -> Unrecognised; the curly apostrophe is accepted. Every Resolved Custom range must satisfy start <= endInclusive <= today (assert this in a helper used by all Resolved tests).\n\nDeveloper decisions already made (do not reopen): 'last week/month/year' without 'the' = previous calendar period; 'the last week' / 'past week' = rolling. Ranges never extend past today. Seasons, weekends, holidays, quarters and relative 'N days ago' single days are out of scope (Unrecognised).",
+  "non_goals": [
+    "Do not modify TemporalResolver.kt, TemporalResolution.kt, DurationResolver.kt or their tests (the capture path and its regression baseline must stay byte-identical).",
+    "No change to the stats package (DateRange.kt etc.), lookup, core-ai, prompts, app-phone, or any UI/strings.",
+    "No wiring into LookupService or the question reader (DH4.2/DH4.3).",
+    "No wording/localisation: structured values only."
+  ],
+  "dependencies": ["DH3.3"],
+  "read_paths": [
+    "core-domain/**",
+    "docs/proposals/explore/DESIGN_SPEC.md",
+    "AGENTS.md",
+    "gradle/**",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/TemporalRange.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/TemporalRangeResolver.kt",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/TemporalRangeResolverTest.kt"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/TemporalResolver.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/TemporalResolution.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/DurationResolver.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/stats/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/**",
+    "core-data/**",
+    "core-ai/**",
+    "core-testing/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-phone/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "TemporalRange (Resolved/NoWindow/Future/Unrecognised) and TemporalRangeResolver.resolve(expression, today, firstDayOfWeek) exist in core.domain.temporal and implement rules a-j of the objective, first match wins.",
+    "Presets are returned exactly for 7 days / 1 week, 30 days, 12 months / 1 year rolling windows and for 'ever' / 'all time'; month and year windows carry RangeLabel.Month / RangeLabel.Year; 'since' and span ranges carry no label.",
+    "No Resolved Custom range ends after today or starts after its end; windows wholly after today are Future; unknown non-blank words are Unrecognised; blank/placeholder input is NoWindow.",
+    "The resolver is pure: no clock reads, no zone, no Android, no I/O or logging.",
+    "TemporalRangeResolverTest covers every case listed in the objective's test list and passes; ./gradlew :core-domain:test passes in full.",
+    "TemporalResolver.kt and every other file outside the three write paths are unchanged."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test",
+    "git status --porcelain"
+  ]
+}
