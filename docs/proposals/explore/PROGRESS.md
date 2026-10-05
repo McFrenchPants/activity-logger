@@ -14,7 +14,7 @@ Registered in `.sdlc/state.json` as DH1.
 | DH2.1 | `loadExploreEntries()` repository read, DAO, Room, fakes | done | Verifier pass attempt 1; 3 queries in one read transaction; reuses existing alias DAOs |
 | DH3.1 | Explore view model + state (phone, no UI) in new ui/explore | done | Verifier pass attempt 1; 26 tests; ExploreEntry gained captureId; ui/ask still present until DH3.2 |
 | DH3.2 | Explore screen UI + tab rename | done | Orchestrator rerun (all module tests, assembleDebug); 331 app-phone tests; ui/ask deleted; not yet seen on a device |
-| DH3.3 | Device check (Pixel 10 Pro or Moto G 2025); merge stage 3 | blocked | Debug build installed on the Pixel 2026-10-04; phone locked (fingerprint), needs owner to unlock or attach the Moto G |
+| DH3.3 | Device check (Pixel 10 Pro or Moto G 2025); merge stage 3 | blocked | Current debug build installed on both the Pixel and the Moto G 2026-10-04; both have a secure lock (Moto G PIN pad, 10% battery), so the owner must unlock one and leave it awake; no emulator installed |
 | DH4.1 | Temporal ranges ("in August", "this year") | todo | after DH3.3 |
 | DH4.2 | Question reader q2 (core-ai) + domain seam | todo | after DH4.1; verifier |
 | DH4.3 | Lookup -> Explore question result (count / how often) | todo | after DH4.2; verifier |
@@ -22,6 +22,9 @@ Registered in `.sdlc/state.json` as DH1.
 | DH5.1 | Device pass incl. voice; docs/ADRs; owner report | todo | needs owner to speak |
 
 ## Session log
+
+### 2026-10-04 - DH3.3 retry: both phones locked
+Both phones were attached (Moto G by USB, Pixel over Wi-Fi ADB). Installed the current debug build (built from d0b9d78) on the Moto G with install -r. The Moto G was awake when checked but locked a few seconds later; a swipe brings up a PIN pad (screencap black = secure keyguard). Pixel dozing on its lock screen. Did not change any screen-timeout/stay-awake setting (owner rule). Both screens put back to sleep. No Android emulator in the SDK. Still waiting on an unlocked phone; device-check list unchanged (see entry below).
 
 ### 2026-10-04 - Stopped before DH3.3 (device check)
 Run total: DH1.1, DH2.1, DH3.1, DH3.2 done. New debug build installed on the Pixel 10 Pro over Wi-Fi ADB (install -r, data kept), but the phone is locked, so nothing was looked at; screen put back to sleep. Moto G not attached. Stage 3 stays on feature/explore (not merged) until the device check passes. Device-check list: default overview, chip row scrolling, date-range dialog, tag picker sheet, chart look + list toggle, three views, drill-down + Back, tapping an entry opens the edit sheet (and counts refresh after), empty states, large font, dark mode, and a typed question on the Pixel ("When did I last change the furnace filter?").
