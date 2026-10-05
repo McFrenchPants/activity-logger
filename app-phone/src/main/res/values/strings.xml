@@ -6,7 +6,7 @@
     <string name="nav_log">Log</string>
     <string name="nav_history">History</string>
     <string name="nav_tags">Tags</string>
-    <string name="nav_ask">Ask</string>
+    <string name="nav_explore">Explore</string>
 
     <!-- Row state tags (UX_VISUAL_SPEC D3 state vocabulary). -->
     <string name="state_in_progress">In progress</string>
@@ -188,42 +188,202 @@
     <string name="tags_confirm_body">Everything logged under “%1$s” will count as “%2$s” instead. Your original words are kept. This can\'t be undone yet.</string>
     <string name="tags_confirm_merge">Merge</string>
 
-    <!-- Ask your history: voice notices (same meaning as the Log ones, worded for questions). -->
-    <string name="ask_mic_permission_denied">Asking by voice needs the microphone. You can still type your question.</string>
-    <string name="ask_mic_permission_blocked">The microphone is switched off for this app in Settings, so asking by voice can\'t start. You can still type your question.</string>
-    <string name="ask_voice_unavailable">This phone can\'t listen for your question. You can still type it.</string>
-    <string name="ask_voice_nothing_heard">I didn\'t catch that. Try again, or type your question.</string>
+    <!-- Explore (ask, search and counts in one screen): voice notices. -->
+    <string name="explore_mic_permission_denied">Asking by voice needs the microphone. You can still type your question.</string>
+    <string name="explore_mic_permission_blocked">The microphone is switched off for this app in Settings, so asking by voice can\'t start. You can still type your question.</string>
+    <string name="explore_voice_unavailable">This phone can\'t listen for your question. You can still type it.</string>
+    <string name="explore_voice_nothing_heard">I didn\'t catch that. Try again, or type your question.</string>
 
-    <!-- Ask your history: the screen. -->
-    <string name="ask_empty_hint">Ask when you last did something, like: When did I last change the furnace filter?</string>
-    <string name="ask_input_label">Ask about your history</string>
-    <string name="ask_send">Send</string>
-    <string name="ask_mic">Ask by voice</string>
-    <string name="ask_mic_stop">Stop listening</string>
-    <string name="ask_listening">Listening...</string>
-    <string name="ask_clear">Clear</string>
-    <string name="ask_dismiss">Dismiss</string>
-    <string name="ask_pending">Looking through your history</string>
-    <string name="ask_last_logged">Last logged: %1$s · %2$s</string>
-    <string name="ask_duration">Lasted %1$s</string>
-    <string name="ask_before_that">Before that: %1$s</string>
-    <string name="ask_gap">Gap between the two: %1$s</string>
-    <string name="ask_other_matches">Other matches</string>
-    <string name="ask_other_match">%1$s · %2$s</string>
-    <string name="ask_note_not_exact">Closest match: your question did not match a logged item exactly.</string>
-    <string name="ask_note_partial">Closest match: showing entries that only partly match your question.</string>
-    <string name="ask_not_enough_history">There isn\'t enough history yet to answer that.</string>
-    <string name="ask_not_a_question">That sounds like something you did, not a question.</string>
-    <string name="ask_not_a_question_pointer">To log it, use the Log tab.</string>
-    <string name="ask_ai_unavailable">This phone can\'t read questions on its own yet, so Ask isn\'t available here.</string>
-    <string name="ask_try_again_later">I couldn\'t read that question just now. Try again in a moment.</string>
-    <string name="ask_interval_less_than_hour">less than an hour</string>
-    <plurals name="ask_interval_days">
-        <item quantity="one">%1$d day</item>
-        <item quantity="other">%1$d days</item>
+    <!-- Explore: search box and suggestions. -->
+    <string name="explore_search_placeholder">Ask or search your history</string>
+    <string name="explore_mic">Ask by voice</string>
+    <string name="explore_mic_stop">Stop listening</string>
+    <string name="explore_clear_text">Clear the search box</string>
+    <string name="explore_listening">Listening…</string>
+    <string name="explore_dismiss">Dismiss</string>
+    <string name="explore_pending">Looking through your history</string>
+    <string name="explore_suggestion_subject">Subject</string>
+    <string name="explore_suggestion_action">Action</string>
+    <string name="explore_suggestion_alias">also called %1$s</string>
+    <string name="explore_suggestion_search_words">Search your words for “%1$s”</string>
+    <string name="explore_suggestion_ask">Ask: %1$s</string>
+
+    <!-- Explore: filter row. -->
+    <string name="explore_range_last_7_days">Last 7 days</string>
+    <string name="explore_range_last_30_days">Last 30 days</string>
+    <string name="explore_range_last_12_months">Last 12 months</string>
+    <string name="explore_range_all_time">All time</string>
+    <string name="explore_range_custom">Custom range…</string>
+    <string name="explore_range_phrase_last_7_days">the last 7 days</string>
+    <string name="explore_range_phrase_last_30_days">the last 30 days</string>
+    <string name="explore_range_phrase_last_12_months">the last 12 months</string>
+    <string name="explore_range_phrase_all_time">all your history</string>
+    <string name="explore_range_picker_ok">OK</string>
+    <string name="explore_range_picker_cancel">Cancel</string>
+    <string name="explore_chip_subject">Subject</string>
+    <string name="explore_chip_action">Action</string>
+    <string name="explore_chip_words">Words: %1$s</string>
+    <string name="explore_chip_any">any</string>
+    <string name="explore_chip_date_a11y">Date range, %1$s, double-tap to change</string>
+    <string name="explore_chip_subject_a11y">Subject, %1$s, double-tap to change</string>
+    <string name="explore_chip_action_a11y">Action, %1$s, double-tap to change</string>
+    <string name="explore_chip_words_a11y">Words, %1$s</string>
+    <string name="explore_chip_clear_range">Back to the last 30 days</string>
+    <string name="explore_chip_clear_subject">Clear the subject</string>
+    <string name="explore_chip_clear_action">Clear the action</string>
+    <string name="explore_chip_clear_words">Clear the words</string>
+    <string name="explore_clear_all">Clear</string>
+    <string name="explore_picker_subject_title">Choose a subject</string>
+    <string name="explore_picker_action_title">Choose an action</string>
+    <string name="explore_picker_subject_search">Search subjects</string>
+    <string name="explore_picker_action_search">Search actions</string>
+    <string name="explore_picker_no_matches">Nothing matches that.</string>
+
+    <!-- Explore: answer line. Database facts only; the AI never words an answer. -->
+    <string name="explore_last_logged">Last logged: %1$s · %2$s — %3$s (%4$s)</string>
+    <string name="explore_last_logged_one_name">Last logged: %1$s — %2$s (%3$s)</string>
+    <string name="explore_note_not_exact">Closest match: your question did not match a logged item exactly.</string>
+    <string name="explore_note_partial">Closest match: showing entries that only partly match your question.</string>
+    <string name="explore_not_enough_history">There isn\'t enough history yet to answer that.</string>
+    <string name="explore_not_a_question">That sounds like something you did, not a question.</string>
+    <string name="explore_not_a_question_pointer">To log it, use the Log tab.</string>
+    <string name="explore_ai_unavailable">This phone can\'t read questions on its own yet. You can still search and use the filters.</string>
+    <string name="explore_try_again_later">I couldn\'t read that question just now. Try again in a moment.</string>
+    <plurals name="explore_scope_many">
+        <item quantity="one">%1$d entry in %2$s.</item>
+        <item quantity="other">%1$d entries in %2$s.</item>
     </plurals>
-    <plurals name="ask_interval_hours">
-        <item quantity="one">%1$d hour</item>
-        <item quantity="other">%1$d hours</item>
+    <plurals name="explore_scope_words">
+        <item quantity="one">%1$d entry with “%2$s” in %3$s.</item>
+        <item quantity="other">%1$d entries with “%2$s” in %3$s.</item>
     </plurals>
+    <plurals name="explore_scope_one_tag">
+        <item quantity="one">%1$s: %2$d entry in %3$s.</item>
+        <item quantity="other">%1$s: %2$d entries in %3$s.</item>
+    </plurals>
+    <plurals name="explore_scope_activity">
+        <item quantity="one">%1$s · %2$s: %3$d time in %4$s.</item>
+        <item quantity="other">%1$s · %2$s: %3$d times in %4$s.</item>
+    </plurals>
+
+    <!-- Explore: relative days and "usually every" wording. -->
+    <string name="explore_relative_today">today</string>
+    <string name="explore_relative_yesterday">yesterday</string>
+    <plurals name="explore_relative_days_ago">
+        <item quantity="one">%1$d day ago</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
+    <string name="explore_gap_every_day">every day</string>
+    <string name="explore_gap_every_week">every week</string>
+    <plurals name="explore_gap_hours">
+        <item quantity="one">every hour</item>
+        <item quantity="other">every %1$d hours</item>
+    </plurals>
+    <plurals name="explore_gap_days">
+        <item quantity="one">every day</item>
+        <item quantity="other">every %1$d days</item>
+    </plurals>
+    <plurals name="explore_gap_months">
+        <item quantity="one">every month</item>
+        <item quantity="other">every %1$d months</item>
+    </plurals>
+    <plurals name="explore_gap_years">
+        <item quantity="one">every year</item>
+        <item quantity="other">every %1$d years</item>
+    </plurals>
+
+    <!-- Explore: three numbers. Plain values; never coloured up or down. -->
+    <string name="explore_number_entries">Entries</string>
+    <string name="explore_number_previous">previous: %1$d</string>
+    <string name="explore_number_days">Days with an entry</string>
+    <string name="explore_number_days_value">%1$d of %2$d</string>
+    <string name="explore_number_activities">Different activities</string>
+    <string name="explore_number_actions">Different actions</string>
+    <string name="explore_number_subjects">Different subjects</string>
+    <string name="explore_number_last_time">Last time</string>
+    <string name="explore_number_times">Times in period</string>
+    <string name="explore_number_usually">Usually</string>
+    <string name="explore_none">—</string>
+
+    <!-- Explore: chart. -->
+    <string name="explore_chart_average_day">Average %1$s per day on days you logged something</string>
+    <string name="explore_chart_average_week">Average %1$s per week in weeks you logged something</string>
+    <string name="explore_chart_average_month">Average %1$s per month in months you logged something</string>
+    <string name="explore_chart_show_list">Show as list</string>
+    <string name="explore_chart_show_chart">Show as chart</string>
+    <string name="explore_chart_list_row">%1$s — %2$d</string>
+    <string name="explore_chart_week_of">Week of %1$s</string>
+    <string name="explore_chart_cd_day">Entries per day, %1$s.</string>
+    <string name="explore_chart_cd_week">Entries per week, %1$s.</string>
+    <string name="explore_chart_cd_month">Entries per month, %1$s.</string>
+    <string name="explore_chart_cd_most">Most: %1$d on %2$s.</string>
+    <string name="explore_chart_cd_most_week">Most: %1$d in the week of %2$s.</string>
+    <string name="explore_chart_cd_most_month">Most: %1$d in %2$s.</string>
+    <string name="explore_chart_cd_nothing">No entries.</string>
+    <plurals name="explore_chart_cd_empty_days">
+        <item quantity="one">%1$d day with no entries.</item>
+        <item quantity="other">%1$d days with no entries.</item>
+    </plurals>
+    <plurals name="explore_chart_cd_empty_weeks">
+        <item quantity="one">%1$d week with no entries.</item>
+        <item quantity="other">%1$d weeks with no entries.</item>
+    </plurals>
+    <plurals name="explore_chart_cd_empty_months">
+        <item quantity="one">%1$d month with no entries.</item>
+        <item quantity="other">%1$d months with no entries.</item>
+    </plurals>
+
+    <!-- Explore: views, sorts and rows. -->
+    <string name="explore_view_entries">Entries</string>
+    <string name="explore_view_activities">Activities</string>
+    <string name="explore_view_patterns">Patterns</string>
+    <string name="explore_sort_label">Sort: %1$s</string>
+    <string name="explore_sort_a11y">Sort, %1$s, double-tap to change</string>
+    <string name="explore_sort_newest">Newest</string>
+    <string name="explore_sort_oldest">Oldest</string>
+    <string name="explore_sort_most_logged">Most logged</string>
+    <string name="explore_sort_last_done">Last done</string>
+    <string name="explore_sort_longest_since">Longest since</string>
+    <string name="explore_sort_name">Name</string>
+    <string name="explore_group_by_subject">Group by subject</string>
+    <string name="explore_activity_name">%1$s · %2$s</string>
+    <string name="explore_activity_usually">usually %1$s</string>
+    <string name="explore_activity_open">Show this activity</string>
+    <string name="explore_group_open">Show this subject</string>
+    <string name="explore_group_line">%1$s — %2$s, %3$s</string>
+    <plurals name="explore_entries_count">
+        <item quantity="one">%1$d entry</item>
+        <item quantity="other">%1$d entries</item>
+    </plurals>
+    <plurals name="explore_kinds_count">
+        <item quantity="one">%1$d kind</item>
+        <item quantity="other">%1$d kinds</item>
+    </plurals>
+    <string name="explore_row_a11y">%1$s, %2$s, last %3$s</string>
+    <string name="explore_row_a11y_usually">%1$s, %2$s, last %3$s, usually %4$s</string>
+
+    <!-- Explore: patterns. -->
+    <string name="explore_patterns_weekday_title">By day of the week</string>
+    <string name="explore_patterns_part_title">By time of day</string>
+    <string name="explore_patterns_time_title">Time you mentioned</string>
+    <string name="explore_part_morning">Morning</string>
+    <string name="explore_part_afternoon">Afternoon</string>
+    <string name="explore_part_evening">Evening</string>
+    <string name="explore_part_night">Night</string>
+    <string name="explore_bar_a11y">%1$s: %2$s</string>
+    <plurals name="explore_patterns_part_left_out">
+        <item quantity="one">%1$d entry without a time of day not shown</item>
+        <item quantity="other">%1$d entries without a time of day not shown</item>
+    </plurals>
+    <plurals name="explore_patterns_time_left_out">
+        <item quantity="one">%1$d entry without a mentioned time not shown</item>
+        <item quantity="other">%1$d entries without a mentioned time not shown</item>
+    </plurals>
+    <string name="explore_patterns_time_none">No times were mentioned in this period.</string>
+    <string name="explore_time_row">%1$s, %2$s</string>
+
+    <!-- Explore: empty states (UX_SPEC 13 for nothing logged at all). -->
+    <string name="explore_empty_never">No activities logged yet. Tap the microphone and say what you just did.</string>
+    <string name="explore_empty_filters">Nothing logged for these filters.</string>
+    <string name="explore_clear_filters">Clear filters</string>
 </resources>

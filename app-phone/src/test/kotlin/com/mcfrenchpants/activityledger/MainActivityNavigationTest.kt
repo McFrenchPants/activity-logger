@@ -9,7 +9,7 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.mcfrenchpants.activityledger.ui.ask.ASK_SCREEN_TAG
+import com.mcfrenchpants.activityledger.ui.explore.EXPLORE_SCREEN_TAG
 import com.mcfrenchpants.activityledger.ui.history.HISTORY_SCREEN_TAG
 import com.mcfrenchpants.activityledger.ui.log.LOG_SCREEN_TAG
 import com.mcfrenchpants.activityledger.ui.tags.TAGS_SCREEN_TAG
@@ -33,11 +33,12 @@ class MainActivityNavigationTest {
     private val tagsTab get() = composeRule.onNode(hasText("Tags") and isSelectable())
 
     @Test
-    fun startsOnLogWithAllThreeLabelsVisible() {
+    fun startsOnLogWithAllFourLabelsVisible() {
         composeRule.onNodeWithTag(LOG_SCREEN_TAG).assertIsDisplayed()
         logTab.assertIsDisplayed().assertIsSelected()
         historyTab.assertIsDisplayed().assertIsNotSelected()
         tagsTab.assertIsDisplayed().assertIsNotSelected()
+        composeRule.onNode(hasText("Explore") and isSelectable()).assertIsDisplayed().assertIsNotSelected()
     }
 
     @Test
@@ -71,17 +72,22 @@ class MainActivityNavigationTest {
     }
 
     @Test
-    fun askTabIsTheFourthTabAndOpensAsk() {
-        val askTab = composeRule.onNode(hasText("Ask") and isSelectable())
-        askTab.assertIsDisplayed().assertIsNotSelected()
-        askTab.performClick()
-        composeRule.onNodeWithTag(ASK_SCREEN_TAG).assertIsDisplayed()
-        askTab.assertIsSelected()
+    fun exploreTabIsTheFourthTabAndOpensExplore() {
+        val exploreTab = composeRule.onNode(hasText("Explore") and isSelectable())
+        exploreTab.assertIsDisplayed().assertIsNotSelected()
+        composeRule.onNode(hasText("Ask") and isSelectable()).assertDoesNotExist()
+        exploreTab.performClick()
+        composeRule.onNodeWithTag(EXPLORE_SCREEN_TAG).assertIsDisplayed()
+        exploreTab.assertIsSelected()
         composeRule.onNodeWithTag(LOG_SCREEN_TAG).assertDoesNotExist()
-        // Order: Log, History, Tags, Ask (left to right).
-        val lefts = listOf("Log", "History", "Tags", "Ask").map {
+        // Order: Log, History, Tags, Explore (left to right).
+        val lefts = listOf("Log", "History", "Tags", "Explore").map {
             composeRule.onNode(hasText(it) and isSelectable()).fetchSemanticsNode().boundsInRoot.left
         }
-        assert(lefts == lefts.sorted()) { "tabs are not in the order Log, History, Tags, Ask: $lefts" }
+        assert(lefts == lefts.sorted()) { "tabs are not in the order Log, History, Tags, Explore: $lefts" }
+
+        composeRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(LOG_SCREEN_TAG).assertIsDisplayed()
     }
 }

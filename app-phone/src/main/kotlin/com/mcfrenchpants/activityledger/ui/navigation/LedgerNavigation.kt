@@ -22,7 +22,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.mcfrenchpants.activityledger.R
-import com.mcfrenchpants.activityledger.ui.ask.AskScreen
+import com.mcfrenchpants.activityledger.ui.explore.ExploreScreen
 import com.mcfrenchpants.activityledger.ui.history.HistoryScreen
 import com.mcfrenchpants.activityledger.ui.log.LogScreen
 import com.mcfrenchpants.activityledger.ui.tags.TagsScreen
@@ -41,12 +41,15 @@ data object HistoryRoute
 @Serializable
 data object TagsRoute
 
-/** Type-safe route of the Ask destination (questions about the logged history). */
+/**
+ * Type-safe route of the Explore destination: one screen to ask about, search and count the
+ * logged history (it replaced the Ask tab).
+ */
 @Serializable
-data object AskRoute
+data object ExploreRoute
 
 /**
- * The top-level destinations shown in the navigation bar, in order: Log, History, Tags, Ask
+ * The top-level destinations shown in the navigation bar, in order: Log, History, Tags, Explore
  * (UX_VISUAL_SPEC D1).
  */
 enum class TopLevelDestination(
@@ -58,14 +61,14 @@ enum class TopLevelDestination(
     LOG(LogRoute, LogRoute::class, R.string.nav_log, R.drawable.ic_nav_log),
     HISTORY(HistoryRoute, HistoryRoute::class, R.string.nav_history, R.drawable.ic_nav_history),
     TAGS(TagsRoute, TagsRoute::class, R.string.nav_tags, R.drawable.ic_nav_tags),
-    ASK(AskRoute, AskRoute::class, R.string.nav_ask, R.drawable.ic_nav_ask),
+    EXPLORE(ExploreRoute, ExploreRoute::class, R.string.nav_explore, R.drawable.ic_nav_explore),
 }
 
 /**
  * The app shell: a [Scaffold] with an M3 [NavigationBar] (labels always visible) over a
  * [NavHost]. Each top-level destination keeps its own back stack (saveState/restoreState), and
- * because every tab switch pops back to the start destination, system Back from History or
- * Tags returns to Log.
+ * because every tab switch pops back to the start destination, system Back from History, Tags
+ * or Explore returns to Log (Explore first steps back through its own earlier filters).
  */
 @Composable
 fun LedgerNavigation(navController: NavHostController = rememberNavController()) {
@@ -99,7 +102,7 @@ fun LedgerNavigation(navController: NavHostController = rememberNavController())
             }
             composable<HistoryRoute> { HistoryScreen() }
             composable<TagsRoute> { TagsScreen() }
-            composable<AskRoute> { AskScreen() }
+            composable<ExploreRoute> { ExploreScreen() }
         }
     }
 }

@@ -727,10 +727,10 @@ class ExploreViewModelTest {
         assertFalse(transcriber.isOpen)
 
         val expected = mapOf(
-            SpeechFailure.NOTHING_HEARD to R.string.ask_voice_nothing_heard,
-            SpeechFailure.ENGINE_ERROR to R.string.ask_voice_nothing_heard,
-            SpeechFailure.PERMISSION_MISSING to R.string.ask_mic_permission_denied,
-            SpeechFailure.NO_ON_DEVICE_ENGINE to R.string.ask_voice_unavailable,
+            SpeechFailure.NOTHING_HEARD to R.string.explore_voice_nothing_heard,
+            SpeechFailure.ENGINE_ERROR to R.string.explore_voice_nothing_heard,
+            SpeechFailure.PERMISSION_MISSING to R.string.explore_mic_permission_denied,
+            SpeechFailure.NO_ON_DEVICE_ENGINE to R.string.explore_voice_unavailable,
             SpeechFailure.RECOGNIZER_BUSY to R.string.log_voice_busy,
         )
         for ((failure, text) in expected) {
@@ -743,11 +743,11 @@ class ExploreViewModelTest {
         assertNull(vm.s.message)
 
         vm.onMicrophonePermissionDenied()
-        assertEquals(UserMessage(R.string.ask_mic_permission_denied), vm.s.message)
+        assertEquals(UserMessage(R.string.explore_mic_permission_denied), vm.s.message)
         vm.dismissMessage()
         assertNull(vm.s.message)
         vm.onMicrophonePermissionBlocked()
-        assertEquals(UserMessage(R.string.ask_mic_permission_blocked), vm.s.message)
+        assertEquals(UserMessage(R.string.explore_mic_permission_blocked), vm.s.message)
 
         vm.listen(SpeechEvent.PartialTranscript("x"))
         vm.settle { stopListening() }

@@ -40,7 +40,6 @@ import com.mcfrenchpants.activityledger.R
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
 import com.mcfrenchpants.activityledger.ui.components.EvidenceText
 import com.mcfrenchpants.activityledger.ui.components.HistoryRow
-import com.mcfrenchpants.activityledger.ui.components.TagPicker
 import com.mcfrenchpants.activityledger.ui.log.CheckCard
 import com.mcfrenchpants.activityledger.ui.log.ResultCard
 import com.mcfrenchpants.activityledger.ui.review.UserMessage
@@ -93,18 +92,9 @@ fun HistoryScreen(
         modifier = modifier,
     )
 
+    // The Check sheet is History-only; the tag picker and the Edit sheet are shared with Explore.
     val check = state.check
-    val edit = state.edit
-    val picker = state.picker
-    if (picker != null) {
-        TagPicker(
-            kind = picker.kind,
-            tags = picker.tags,
-            onChoose = viewModel::onPickerChoice,
-            onDismiss = viewModel::closePicker,
-            startWithNewName = picker.startWithNewName,
-        )
-    } else if (check != null) {
+    if (check != null && state.picker == null) {
         CheckSheet(
             card = check,
             message = state.message,
@@ -115,16 +105,8 @@ fun HistoryScreen(
             onSave = viewModel::save,
             onDecideLater = viewModel::decideLater,
         )
-    } else if (edit != null) {
-        EditSheet(
-            edit = edit,
-            message = state.message,
-            enabled = !state.actionInFlight,
-            onChangeSubject = { viewModel.openPicker(TagKind.SUBJECT) },
-            onChangeAction = { viewModel.openPicker(TagKind.ACTION) },
-            onRemove = viewModel::removeFromHistory,
-            onDone = viewModel::closeEdit,
-        )
+    } else {
+        HistoryEntrySheets(viewModel = viewModel, state = state)
     }
 }
 
@@ -288,23 +270,6 @@ internal fun CheckSheetContent(
             onTouched = {},
         )
         SheetMessage(message)
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun EditSheet(
-    edit: EditEntry,
-    message: UserMessage?,
-    enabled: Boolean,
-    onChangeSubject: () -> Unit,
-    onChangeAction: () -> Unit,
-    onRemove: () -> Unit,
-    onDone: () -> Unit,
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDone, sheetState = sheetState) {
-        EditSheetContent(edit, message, enabled, onChangeSubject, onChangeAction, onRemove, onDone)
     }
 }
 

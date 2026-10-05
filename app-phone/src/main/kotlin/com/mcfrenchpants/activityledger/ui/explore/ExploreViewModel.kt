@@ -57,7 +57,7 @@ import java.util.Locale
  *   model never produces a count, a date or answer text.
  * - One question at a time; a clear or a filter change while a question is pending drops its
  *   late answer.
- * - Voice follows the Ask/Log view models: one session at a time identified by a token; the final
+ * - Voice follows the Log view model: one session at a time identified by a token; the final
  *   transcript goes into the box and is submitted with [submit].
  */
 @Suppress("TooManyFunctions")
@@ -124,6 +124,8 @@ class ExploreViewModel(
                 withChipNames(s).copy(
                     message = if (s.message == UserMessage(R.string.history_not_loaded)) null else s.message,
                     suggestions = suggestionsFor(s.input),
+                    subjectTags = catalog.subjects,
+                    actionTags = catalog.actions,
                 )
             }
             recompute()
@@ -338,13 +340,13 @@ class ExploreViewModel(
 
     fun onMicrophonePermissionDenied() {
         _state.update {
-            it.copy(isListening = false, partialTranscript = "", message = UserMessage(R.string.ask_mic_permission_denied))
+            it.copy(isListening = false, partialTranscript = "", message = UserMessage(R.string.explore_mic_permission_denied))
         }
     }
 
     fun onMicrophonePermissionBlocked() {
         _state.update {
-            it.copy(isListening = false, partialTranscript = "", message = UserMessage(R.string.ask_mic_permission_blocked))
+            it.copy(isListening = false, partialTranscript = "", message = UserMessage(R.string.explore_mic_permission_blocked))
         }
     }
 
@@ -561,9 +563,9 @@ class ExploreViewModel(
 
     private fun showSpeechFailure(failure: SpeechFailure) {
         val text = when (failure) {
-            SpeechFailure.NOTHING_HEARD, SpeechFailure.ENGINE_ERROR -> R.string.ask_voice_nothing_heard
-            SpeechFailure.PERMISSION_MISSING -> R.string.ask_mic_permission_denied
-            SpeechFailure.NO_ON_DEVICE_ENGINE -> R.string.ask_voice_unavailable
+            SpeechFailure.NOTHING_HEARD, SpeechFailure.ENGINE_ERROR -> R.string.explore_voice_nothing_heard
+            SpeechFailure.PERMISSION_MISSING -> R.string.explore_mic_permission_denied
+            SpeechFailure.NO_ON_DEVICE_ENGINE -> R.string.explore_voice_unavailable
             SpeechFailure.RECOGNIZER_BUSY -> R.string.log_voice_busy
             SpeechFailure.CANCELLED -> return
         }

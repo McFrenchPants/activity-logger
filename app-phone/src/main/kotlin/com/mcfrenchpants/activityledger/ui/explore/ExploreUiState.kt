@@ -7,6 +7,7 @@ import com.mcfrenchpants.activityledger.core.domain.stats.ExploreFilter
 import com.mcfrenchpants.activityledger.core.domain.stats.ExploreSummary
 import com.mcfrenchpants.activityledger.core.domain.stats.ResolvedRange
 import com.mcfrenchpants.activityledger.core.domain.stats.ScopeKind
+import com.mcfrenchpants.activityledger.core.domain.tagging.KnownTag
 import com.mcfrenchpants.activityledger.ui.review.UserMessage
 import java.time.DayOfWeek
 import java.time.Instant
@@ -124,6 +125,8 @@ enum class ExploreView { ENTRIES, ACTIVITIES, PATTERNS }
  * @property zone The time zone [summary] was computed in (for wording dates).
  * @property now The instant [summary] was computed at (for "2 days ago").
  * @property firstDayOfWeek The first day of week [summary] was computed with.
+ * @property subjectTags Every subject tag of the last loaded catalog (for the Subject chip's picker).
+ * @property actionTags Every action tag of the last loaded catalog (for the Action chip's picker).
  */
 data class ExploreUiState(
     val filter: ExploreFilter = ExploreFilter(),
@@ -148,6 +151,8 @@ data class ExploreUiState(
     val zone: ZoneId? = null,
     val now: Instant? = null,
     val firstDayOfWeek: DayOfWeek? = null,
+    val subjectTags: List<KnownTag> = emptyList(),
+    val actionTags: List<KnownTag> = emptyList(),
 ) {
     /** Today's local date when [summary] was computed, or null before that. */
     val today: LocalDate?
