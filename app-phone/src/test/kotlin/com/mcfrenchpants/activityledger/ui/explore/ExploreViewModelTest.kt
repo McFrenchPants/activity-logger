@@ -596,6 +596,51 @@ class ExploreViewModelTest {
     }
 
     @Test
+    fun `a how-often question with date words and nothing logged in them still gives the all-time gap`() {
+        seed()
+        logThirdMow()
+        extractor.answers("lawn", "mow", dateWindow = "in July")
+        val vm = viewModel()
+
+        vm.settle { ask("How often did I mow the lawn in July?") }
+
+        // The chips keep the question's range (July, with no mowing in it) ...
+        val july = DateRangeSelection.Custom(
+            YearMonth.of(2026, 7).atDay(1),
+            YearMonth.of(2026, 7).atEndOfMonth(),
+            RangeLabel.Month(YearMonth.of(2026, 7)),
+        )
+        assertEquals(ExploreFilter(july, id(TagKind.SUBJECT, "Lawn"), id(TagKind.ACTION, "Mow"), null), vm.s.filter)
+        assertEquals(0, assertNotNull(vm.s.summary).entriesInPeriod)
+        // ... while the gap, the all-time count and the last time are all-time measures.
+        val howOften = assertIs<ExploreAnswer.HowOften>(vm.s.answer)
+        assertNotNull(howOften.typicalGap)
+        assertEquals(3, howOften.entriesAllTime)
+        assertEquals(1, howOften.activityCount)
+        assertEquals(newestMowAt, howOften.lastTime)
+        assertFalse(howOften.datesNotUnderstood)
+    }
+
+    @Test
+    fun `a how-often question with date words that hold entries gives the same gap as without them`() {
+        seed()
+        logThirdMow()
+        val vm = viewModel()
+        extractor.answers("lawn", "mow")
+        vm.settle { ask("How often do I mow the lawn?") }
+        val withoutWindow = assertIs<ExploreAnswer.HowOften>(vm.s.answer)
+
+        extractor.answers("lawn", "mow", dateWindow = "in August")
+        vm.settle { ask("How often did I mow the lawn in August?") }
+
+        assertEquals(YearMonth.of(2026, 8).atDay(1), (vm.s.filter.range as DateRangeSelection.Custom).start)
+        assertEquals(2, assertNotNull(vm.s.summary).entriesInPeriod)
+        val withWindow = assertIs<ExploreAnswer.HowOften>(vm.s.answer)
+        assertNotNull(withoutWindow.typicalGap)
+        assertEquals(withoutWindow, withWindow)
+    }
+
+    @Test
     fun `a how-often question with fewer than three entries has no gap and says how many`() {
         seed()
         extractor.answers("lawn", "mow", kind = QuestionKind.HOW_OFTEN)

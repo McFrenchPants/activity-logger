@@ -1,0 +1,520 @@
+{
+    "formatVersion": 1,
+    "source": "DEVICE",
+    "modelLabel": "gemini-nano (AICore)",
+    "deviceModel": "Pixel 10 Pro",
+    "interpreterVersion": "gemini-nano-question-1",
+    "promptVersion": "q2",
+    "schemaVersion": 2,
+    "questionCorpusSha256": "41c9803ae9e5d90a96abe418f088ccc2d053f2669a6d92c67dd5ea7372bc32f6",
+    "recordedAt": "2026-10-05T19:07:48.485136Z",
+    "notes": "in-app runner; busy retries: 7",
+    "entries": [
+        {
+            "caseId": "lt-furnace-filter",
+            "answer": {
+                "subject": "furnace filter",
+                "action": "change",
+                "dateWindow": "last",
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 4903
+        },
+        {
+            "caseId": "lt-walked-dogs",
+            "answer": {
+                "subject": "dogs",
+                "action": "walked",
+                "dateWindow": "last time",
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3519
+        },
+        {
+            "caseId": "lt-yard-alias",
+            "answer": {
+                "subject": "yard",
+                "action": "mow",
+                "dateWindow": "last",
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3296
+        },
+        {
+            "caseId": "lt-subject-only-grill",
+            "answer": {
+                "subject": "grill",
+                "action": "do anything with",
+                "dateWindow": null,
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3370
+        },
+        {
+            "caseId": "lt-action-only-chlorine",
+            "answer": {
+                "subject": "chlorine",
+                "action": "add",
+                "dateWindow": "last",
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3202
+        },
+        {
+            "caseId": "c-mow-lawn-august",
+            "answer": {
+                "subject": "lawn",
+                "action": "mow",
+                "dateWindow": "in August",
+                "kind": "COUNT"
+            },
+            "failureKind": null,
+            "latencyMs": 3421
+        },
+        {
+            "caseId": "c-chlorine-this-year",
+            "answer": {
+                "subject": "chlorine",
+                "action": "add",
+                "dateWindow": "this year",
+                "kind": "COUNT"
+            },
+            "failureKind": null,
+            "latencyMs": 3201
+        },
+        {
+            "caseId": "c-dogs-last-month",
+            "answer": {
+                "subject": "dogs",
+                "action": "walk",
+                "dateWindow": "last month",
+                "kind": "COUNT"
+            },
+            "failureKind": null,
+            "latencyMs": 3010
+        },
+        {
+            "caseId": "c-oil-in-2025",
+            "answer": {
+                "subject": "oil",
+                "action": "change",
+                "dateWindow": "in 2025",
+                "kind": "COUNT"
+            },
+            "failureKind": null,
+            "latencyMs": 3422
+        },
+        {
+            "caseId": "c-mowed-since-june",
+            "answer": {
+                "subject": "lawn",
+                "action": "mowed",
+                "dateWindow": "since June",
+                "kind": "COUNT"
+            },
+            "failureKind": null,
+            "latencyMs": 3348
+        },
+        {
+            "caseId": "c-dogs-past-30-days",
+            "answer": {
+                "subject": "dogs",
+                "action": "walk",
+                "dateWindow": "in the past 30 days",
+                "kind": "COUNT"
+            },
+            "failureKind": null,
+            "latencyMs": 3378
+        },
+        {
+            "caseId": "c-dogs-yesterday",
+            "answer": {
+                "subject": "dogs",
+                "action": "walk",
+                "dateWindow": "yesterday",
+                "kind": "COUNT"
+            },
+            "failureKind": null,
+            "latencyMs": 3257
+        },
+        {
+            "caseId": "c-car-subject-only-this-year",
+            "answer": {
+                "subject": "anything with the car",
+                "action": "do",
+                "dateWindow": "this year",
+                "kind": "COUNT"
+            },
+            "failureKind": null,
+            "latencyMs": 3519
+        },
+        {
+            "caseId": "c-how-much-chlorine-last-week",
+            "answer": {
+                "subject": "chlorine",
+                "action": "add",
+                "dateWindow": "last week",
+                "kind": "COUNT"
+            },
+            "failureKind": null,
+            "latencyMs": 3456
+        },
+        {
+            "caseId": "ho-change-oil",
+            "answer": {
+                "subject": "oil",
+                "action": "change",
+                "dateWindow": null,
+                "kind": "HOW_OFTEN"
+            },
+            "failureKind": null,
+            "latencyMs": 3210
+        },
+        {
+            "caseId": "ho-walk-dogs",
+            "answer": {
+                "subject": "dogs",
+                "action": "walk",
+                "dateWindow": null,
+                "kind": "HOW_OFTEN"
+            },
+            "failureKind": null,
+            "latencyMs": 3138
+        },
+        {
+            "caseId": "ho-sweep-chimney-two-entries",
+            "answer": {
+                "subject": "chimney",
+                "action": "sweep",
+                "dateWindow": null,
+                "kind": "HOW_OFTEN"
+            },
+            "failureKind": null,
+            "latencyMs": 3360
+        },
+        {
+            "caseId": "ho-mow-lawn-july",
+            "answer": {
+                "subject": "lawn",
+                "action": "mow",
+                "dateWindow": "in July",
+                "kind": "HOW_OFTEN"
+            },
+            "failureKind": null,
+            "latencyMs": 3645
+        },
+        {
+            "caseId": "ho-chlorine-regularly",
+            "answer": {
+                "subject": "hot tub",
+                "action": "add chlorine",
+                "dateWindow": null,
+                "kind": "HOW_OFTEN"
+            },
+            "failureKind": null,
+            "latencyMs": 3454
+        },
+        {
+            "caseId": "li-show-me-car",
+            "answer": {
+                "subject": "car",
+                "action": "did",
+                "dateWindow": null,
+                "kind": "LIST"
+            },
+            "failureKind": null,
+            "latencyMs": 3065
+        },
+        {
+            "caseId": "li-what-to-furnace",
+            "answer": {
+                "subject": "furnace",
+                "action": "do",
+                "dateWindow": null,
+                "kind": "LIST"
+            },
+            "failureKind": null,
+            "latencyMs": 3244
+        },
+        {
+            "caseId": "li-list-fertilized-lawn",
+            "answer": {
+                "subject": "lawn",
+                "action": "fertilized",
+                "dateWindow": null,
+                "kind": "LIST"
+            },
+            "failureKind": null,
+            "latencyMs": 3302
+        },
+        {
+            "caseId": "li-grill-this-year",
+            "answer": {
+                "subject": "grill",
+                "action": "done",
+                "dateWindow": "this year",
+                "kind": "LIST"
+            },
+            "failureKind": null,
+            "latencyMs": 3242
+        },
+        {
+            "caseId": "do-last-week",
+            "answer": {
+                "subject": "I",
+                "action": "do",
+                "dateWindow": "last week",
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3139
+        },
+        {
+            "caseId": "do-yesterday",
+            "answer": {
+                "subject": "I",
+                "action": "do",
+                "dateWindow": "yesterday",
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3263
+        },
+        {
+            "caseId": "do-show-september",
+            "answer": {
+                "subject": "I",
+                "action": "did",
+                "dateWindow": "in September",
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3248
+        },
+        {
+            "caseId": "do-this-month",
+            "answer": {
+                "subject": "I",
+                "action": "get done",
+                "dateWindow": "this month",
+                "kind": "LIST"
+            },
+            "failureKind": null,
+            "latencyMs": 3439
+        },
+        {
+            "caseId": "do-around-the-holidays",
+            "answer": {
+                "subject": "holidays",
+                "action": "do",
+                "dateWindow": "around the holidays",
+                "kind": "LIST"
+            },
+            "failureKind": null,
+            "latencyMs": 3648
+        },
+        {
+            "caseId": "nl-cleaned-gutters",
+            "answer": {
+                "subject": "gutters",
+                "action": "cleaned",
+                "dateWindow": "last time",
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3282
+        },
+        {
+            "caseId": "nl-wash-boat",
+            "answer": {
+                "subject": "boat",
+                "action": "wash",
+                "dateWindow": null,
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 4366
+        },
+        {
+            "caseId": "nl-paint",
+            "answer": {
+                "subject": "paint",
+                "action": "paint",
+                "dateWindow": null,
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3076
+        },
+        {
+            "caseId": "nl-ever-cleaned-pool",
+            "answer": {
+                "subject": "pool",
+                "action": "cleaned",
+                "dateWindow": null,
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 4355
+        },
+        {
+            "caseId": "nl-empty-mow-lawn",
+            "answer": {
+                "subject": "lawn",
+                "action": "mow",
+                "dateWindow": "last",
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3274
+        },
+        {
+            "caseId": "nl-empty-this-week",
+            "answer": {
+                "subject": "I",
+                "action": "do",
+                "dateWindow": "this week",
+                "kind": "LIST"
+            },
+            "failureKind": null,
+            "latencyMs": 3235
+        },
+        {
+            "caseId": "nl-empty-how-often-chlorine",
+            "answer": {
+                "subject": "hot tub",
+                "action": "add chlorine",
+                "dateWindow": null,
+                "kind": "HOW_OFTEN"
+            },
+            "failureKind": null,
+            "latencyMs": 4694
+        },
+        {
+            "caseId": "tr-future-next-week",
+            "answer": {
+                "subject": "dogs",
+                "action": "walk",
+                "dateWindow": "next week",
+                "kind": "COUNT"
+            },
+            "failureKind": null,
+            "latencyMs": 3190
+        },
+        {
+            "caseId": "tr-windows-around-the-holidays",
+            "answer": {
+                "subject": "windows",
+                "action": "clean",
+                "dateWindow": "around the holidays",
+                "kind": "COUNT"
+            },
+            "failureKind": null,
+            "latencyMs": 4642
+        },
+        {
+            "caseId": "tr-did-ever-clean-grill",
+            "answer": {
+                "subject": "grill",
+                "action": "clean",
+                "dateWindow": null,
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3167
+        },
+        {
+            "caseId": "tr-have-ever-cleaned-windows",
+            "answer": {
+                "subject": "windows",
+                "action": "cleaned",
+                "dateWindow": null,
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 2983
+        },
+        {
+            "caseId": "tr-replaced-furnace-filter",
+            "answer": {
+                "subject": "furnace filter",
+                "action": "replace",
+                "dateWindow": null,
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 4525
+        },
+        {
+            "caseId": "tr-truck-alias-oil",
+            "answer": {
+                "subject": "oil",
+                "action": "change",
+                "dateWindow": null,
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3087
+        },
+        {
+            "caseId": "tr-grass-synonym",
+            "answer": {
+                "subject": "grass",
+                "action": "mow",
+                "dateWindow": "last",
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3357
+        },
+        {
+            "caseId": "tr-clean-shared-action",
+            "answer": {
+                "subject": "something",
+                "action": "clean",
+                "dateWindow": null,
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 4444
+        },
+        {
+            "caseId": "tr-no-question-mark-chlorine",
+            "answer": {
+                "subject": "hot tub",
+                "action": "add chlorine",
+                "dateWindow": "last",
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3399
+        },
+        {
+            "caseId": "tr-no-question-mark-yard-count",
+            "answer": {
+                "subject": "yard",
+                "action": "mow",
+                "dateWindow": "this year",
+                "kind": "COUNT"
+            },
+            "failureKind": null,
+            "latencyMs": 4665
+        },
+        {
+            "caseId": "tr-did-mow-yesterday",
+            "answer": {
+                "subject": "lawn",
+                "action": "mow",
+                "dateWindow": "yesterday",
+                "kind": "LAST_TIME"
+            },
+            "failureKind": null,
+            "latencyMs": 3311
+        }
+    ]
+}
