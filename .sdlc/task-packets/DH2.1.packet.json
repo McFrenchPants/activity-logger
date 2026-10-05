@@ -1,0 +1,64 @@
+{
+  "task_id": "DH2.1",
+  "plan_revision": "dh1",
+  "objective": "Add a read-only repository method that returns every accepted, visible entry as core.domain.stats.ExploreEntry (created in DH1.1; read core-domain/.../stats/ExploreEntry or wherever DH1.1 put it for the exact field list), for the Explore screen. No schema change, no migration, no write path touched.\n\nRead first: core-domain/.../repository/TagRepository.kt (loadLookupEntries and its KDoc, LedgerRepository), core-data/.../db/dao/ActivityOccurrenceDao.kt (loadLookupRows + LookupRow: the closest existing query), core-data/.../repository/RoomActivityRepository.kt (loadLookupEntries, loadHistory, the io{} helper), core-data/.../db/dao/RawCaptureDao.kt loadHistory query (to mirror which occurrences History treats as accepted entries), the entities in core-data/.../db/entity/ (activity_occurrences, canonical_activities with nullable subject_id/action_id and status, subjects/actions with status, subject_aliases/action_aliases, raw_captures.raw_text), core-data/src/test/.../repository/RoomLookupEntriesTest.kt (test style and seeding helpers), core-data/src/test/.../TestDatabases.kt and db/Fixtures.kt.\n\n1. core-domain TagRepository: add `suspend fun loadExploreEntries(): List<ExploreEntry>` with KDoc: every occurrence with visibility_status ACTIVE whose canonical activity is ACTIVE (mirror loadLookupRows' canonical-activity rule); subject/action ids and CURRENT display names via LEFT JOIN on the canonical activity's subject_id/action_id, null when the canonical activity has no subject/action (old untagged rows, pre-tag path) -- if a subject/action exists but is not ACTIVE, treat that side as null as well (document it); activityId/activityName from the canonical activity (display_name); occurredAt, timePrecision, durationSeconds from the occurrence; rawText = the occurrence's raw capture raw_text (read only); subjectAliases/actionAliases = alias_text values of that subject's/action's aliases (empty when none or when the side is null). Order newest first by occurred_at, occurrence id descending as tie-break. Read only, never logs.\n2. core-data: DAO query/queries in ActivityOccurrenceDao (one JOIN query for the occurrence rows; aliases loaded with at most one query per alias table -- e.g. load all subject aliases and all action aliases once and group in Kotlin -- never one query per row). Internal row types alongside LookupRow. RoomActivityRepository.loadExploreEntries() mapping rows to ExploreEntry inside io{}.\n3. Update the three core-domain test fakes that implement TagRepository so core-domain tests compile: lookup/LookupServiceTest.kt, services/TaggedCaptureOrchestratorTest.kt, services/TagUserServicesTest.kt (follow each file's existing pattern for loadLookupEntries: error(\"not used\") or emptyList()). Change nothing else in them.\n4. Tests: new core-data/src/test/.../repository/RoomExploreEntriesTest.kt on the real in-memory database (same harness as RoomLookupEntriesTest; synthetic text only): empty database -> empty list; a tagged entry maps every field (ids, current names after a rename, occurredAt, timePrecision incl. DATE_ONLY, duration, rawText, both alias lists); hidden/removed occurrence excluded; capture still waiting/in review (no occurrence) excluded; untagged canonical activity (no subject/action) included with null tag fields and its activity name; non-ACTIVE subject or action -> that side null; ordering newest first with id tie-break; repeated calls give the same result; aliases from several tags do not leak between entries; a raw capture's text is returned unchanged and the database is unchanged after the call (row counts / raw_text equal before and after).\n\nIf you find the app-phone module fails to compile because of the new interface method (any class implementing TagRepository there directly rather than by delegation), report it as scope_change_requested rather than editing app-phone.",
+  "non_goals": [
+    "No schema change, migration, index or entity change.",
+    "No change to any write path, loadLookupEntries or loadHistory behaviour.",
+    "No app-phone or UI change.",
+    "No change to the stats package except reading it."
+  ],
+  "dependencies": [
+    "DH1.1"
+  ],
+  "read_paths": [
+    "core-domain/**",
+    "core-data/**",
+    "core-testing/**",
+    "docs/DATA_MODEL.md",
+    "docs/proposals/explore/DESIGN_SPEC.md",
+    "AGENTS.md",
+    "gradle/**",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/repository/TagRepository.kt",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/LookupServiceTest.kt",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/services/TaggedCaptureOrchestratorTest.kt",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/services/TagUserServicesTest.kt",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/dao/ActivityOccurrenceDao.kt",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/dao/SubjectAliasDao.kt",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/dao/ActionAliasDao.kt",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/repository/RoomActivityRepository.kt",
+    "core-data/src/test/kotlin/com/mcfrenchpants/activityledger/core/data/repository/RoomExploreEntriesTest.kt"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "core-data/schemas/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/entity/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/migration/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/ActivityLedgerDatabase.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/stats/**",
+    "core-ai/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-phone/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "TagRepository.loadExploreEntries(): List<ExploreEntry> exists with KDoc stating the inclusion rules, LEFT JOIN null semantics, ordering, and read-only behaviour.",
+    "RoomActivityRepository implements it with one JOIN query for occurrence rows plus at most one query per alias table; no per-row queries; runs on the io dispatcher.",
+    "Only ACTIVE-visibility occurrences on ACTIVE canonical activities are returned; untagged rows are included with null subject/action; non-ACTIVE tags read as null; aliases are attached to the right entries; rawText is returned unchanged.",
+    "No schema version, entity, migration or schema JSON change; the database is unchanged by the read (tested).",
+    "RoomExploreEntriesTest covers every case in the objective; ./gradlew :core-domain:test :core-data:test pass in full and :app-phone:compileDebugKotlin still compiles."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test :core-data:test",
+    "./gradlew :app-phone:compileDebugKotlin",
+    "git status --porcelain"
+  ]
+}
