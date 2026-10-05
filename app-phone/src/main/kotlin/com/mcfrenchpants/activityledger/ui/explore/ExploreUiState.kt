@@ -7,6 +7,7 @@ import com.mcfrenchpants.activityledger.core.domain.stats.ExploreFilter
 import com.mcfrenchpants.activityledger.core.domain.stats.ExploreSummary
 import com.mcfrenchpants.activityledger.core.domain.stats.ResolvedRange
 import com.mcfrenchpants.activityledger.core.domain.stats.ScopeKind
+import com.mcfrenchpants.activityledger.core.domain.stats.TypicalGap
 import com.mcfrenchpants.activityledger.core.domain.tagging.KnownTag
 import com.mcfrenchpants.activityledger.ui.review.UserMessage
 import java.time.DayOfWeek
@@ -60,6 +61,8 @@ sealed interface ExploreAnswer {
      * @property subjectName Current name of the subject chip, if set.
      * @property actionName Current name of the action chip, if set.
      * @property words The words chip, if set.
+     * @property datesNotUnderstood Set after a question about a stretch of time whose date words
+     *   could not be understood, so the range fell back to all time (a note says so).
      */
     data class Scope(
         val scopeKind: ScopeKind,
@@ -69,6 +72,7 @@ sealed interface ExploreAnswer {
         val subjectName: String?,
         val actionName: String?,
         val words: String?,
+        val datesNotUnderstood: Boolean = false,
     ) : ExploreAnswer
 
     /**
@@ -78,12 +82,61 @@ sealed interface ExploreAnswer {
      * @property actionName The entry's current action name.
      * @property lastTime When that entry happened.
      * @property closestMatch Set when the entry is only the closest match; null for an exact one.
+     * @property datesNotUnderstood The question's date words could not be understood (all time).
      */
     data class LastTime(
         val subjectName: String?,
         val actionName: String?,
         val lastTime: Instant,
         val closestMatch: ClosestMatch?,
+        val datesNotUnderstood: Boolean = false,
+    ) : ExploreAnswer
+
+    /**
+     * A "how many times ..." question (or any question with understood date words), counted by
+     * [com.mcfrenchpants.activityledger.core.domain.stats.ExploreCalculator] for the new filters.
+     *
+     * @property subjectName Name of the subject the count is narrowed to, if any.
+     * @property actionName Name of the action the count is narrowed to, if any.
+     * @property count Entries in [range].
+     * @property range The date chip's selection the count covers.
+     * @property lastTime Newest matching entry over all time; null when there is none.
+     * @property closestMatch Set when the tags are only the closest match.
+     * @property datesNotUnderstood The question's date words could not be understood (all time).
+     */
+    data class Count(
+        val subjectName: String?,
+        val actionName: String?,
+        val count: Int,
+        val range: DateRangeSelection,
+        val lastTime: Instant?,
+        val closestMatch: ClosestMatch?,
+        val datesNotUnderstood: Boolean = false,
+    ) : ExploreAnswer
+
+    /**
+     * A "how often ..." question, answered with the calculator's typical gap.
+     *
+     * @property subjectName Name of the subject, if any.
+     * @property actionName Name of the action, if any.
+     * @property typicalGap Median gap over all time of the one activity in scope; null when it has
+     *   too few entries or when several activities are in scope.
+     * @property entriesAllTime Matching entries over all time.
+     * @property lastTime Newest matching entry over all time; null when there is none.
+     * @property closestMatch Set when the tags are only the closest match.
+     * @property datesNotUnderstood The question's date words could not be understood (all time).
+     * @property activityCount Activities in scope: 1 when the gap (or "too few") is about one
+     *   activity; more when the scope spans several and the user should pick one (no gap then).
+     */
+    data class HowOften(
+        val subjectName: String?,
+        val actionName: String?,
+        val typicalGap: TypicalGap?,
+        val entriesAllTime: Int,
+        val lastTime: Instant?,
+        val closestMatch: ClosestMatch?,
+        val datesNotUnderstood: Boolean = false,
+        val activityCount: Int = 1,
     ) : ExploreAnswer
 
     /** The question was understood but nothing logged matches it. */

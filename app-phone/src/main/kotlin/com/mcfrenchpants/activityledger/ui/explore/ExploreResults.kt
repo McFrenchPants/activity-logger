@@ -194,7 +194,34 @@ private fun AnswerLine(answer: ExploreAnswer, zone: ZoneId, now: Instant, locale
             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
     ) {
         when (answer) {
-            is ExploreAnswer.Scope -> Text(scopeText(answer, locale), style = MaterialTheme.typography.bodyLarge)
+            is ExploreAnswer.Scope -> {
+                Text(scopeText(answer, locale), style = MaterialTheme.typography.bodyLarge)
+                if (answer.datesNotUnderstood) QuietText(stringResource(R.string.explore_note_dates_not_understood))
+            }
+            is ExploreAnswer.Count -> {
+                val names = namesText(answer.subjectName, answer.actionName)
+                val phrase = rangePhrase(answer.range, locale)
+                val first = if (answer.count > 0) {
+                    pluralStringResource(R.plurals.explore_answer_count, answer.count, names, answer.count, phrase)
+                } else {
+                    stringResource(R.string.explore_answer_count_none, names, phrase)
+                }
+                Text(withLastSentence(first, answer.lastTime, zone, now, locale), style = MaterialTheme.typography.titleMedium)
+                AnswerNotes(answer.closestMatch, answer.datesNotUnderstood)
+            }
+            is ExploreAnswer.HowOften -> {
+                val names = namesText(answer.subjectName, answer.actionName)
+                val gap = answer.typicalGap
+                val first = if (answer.activityCount > 1) {
+                    pluralStringResource(R.plurals.explore_answer_how_often_several, answer.activityCount, names, answer.activityCount)
+                } else if (gap != null) {
+                    stringResource(R.string.explore_answer_how_often, names, gapText(gap))
+                } else {
+                    pluralStringResource(R.plurals.explore_answer_how_often_too_few, answer.entriesAllTime, names, answer.entriesAllTime)
+                }
+                Text(withLastSentence(first, answer.lastTime, zone, now, locale), style = MaterialTheme.typography.titleMedium)
+                AnswerNotes(answer.closestMatch, answer.datesNotUnderstood)
+            }
             is ExploreAnswer.LastTime -> {
                 val today = now.atZone(zone).toLocalDate()
                 val date = ExploreDates.longDate(answer.lastTime.atZone(zone).toLocalDate(), today, locale)
@@ -206,11 +233,7 @@ private fun AnswerLine(answer: ExploreAnswer, zone: ZoneId, now: Instant, locale
                     else -> stringResource(R.string.explore_last_logged_one_name, subject ?: action.orEmpty(), date, ago)
                 }
                 Text(text, style = MaterialTheme.typography.titleMedium)
-                when (answer.closestMatch) {
-                    ClosestMatch.NOT_EXACT -> QuietText(stringResource(R.string.explore_note_not_exact))
-                    ClosestMatch.PARTIAL -> QuietText(stringResource(R.string.explore_note_partial))
-                    null -> Unit
-                }
+                AnswerNotes(answer.closestMatch, answer.datesNotUnderstood)
             }
             ExploreAnswer.NotEnoughHistory -> Text(stringResource(R.string.explore_not_enough_history), style = MaterialTheme.typography.bodyLarge)
             ExploreAnswer.NotAQuestion -> {
@@ -221,6 +244,30 @@ private fun AnswerLine(answer: ExploreAnswer, zone: ZoneId, now: Instant, locale
             ExploreAnswer.TryAgainLater -> Text(stringResource(R.string.explore_try_again_later), style = MaterialTheme.typography.bodyLarge)
         }
     }
+}
+
+/** The notes under a question's answer: the closest-match note, then the dates note. */
+@Composable
+private fun AnswerNotes(closestMatch: ClosestMatch?, datesNotUnderstood: Boolean) {
+    when (closestMatch) {
+        ClosestMatch.NOT_EXACT -> QuietText(stringResource(R.string.explore_note_not_exact))
+        ClosestMatch.PARTIAL -> QuietText(stringResource(R.string.explore_note_partial))
+        null -> Unit
+    }
+    if (datesNotUnderstood) QuietText(stringResource(R.string.explore_note_dates_not_understood))
+}
+
+/** "Lawn · Mow", or the one name that is set. */
+private fun namesText(subject: String?, action: String?): String =
+    listOfNotNull(subject, action).joinToString(" · ")
+
+/** [first] followed by " Last: September 14 (yesterday)." when [lastTime] is known. */
+@Composable
+private fun withLastSentence(first: String, lastTime: Instant?, zone: ZoneId, now: Instant, locale: Locale): String {
+    if (lastTime == null) return first
+    val date = ExploreDates.longDate(lastTime.atZone(zone).toLocalDate(), now.atZone(zone).toLocalDate(), locale)
+    val last = stringResource(R.string.explore_answer_last, date, relativeDayText(lastTime, now, zone))
+    return "$first $last"
 }
 
 /** "47 entries in the last 30 days." / "Hot tub: 12 entries in August 2026." / "Lawn · Mow: 4 times in 2026." */

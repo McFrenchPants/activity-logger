@@ -2,16 +2,28 @@ package com.mcfrenchpants.activityledger.core.domain.lookup
 
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterFailureKind
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterProvenance
+import com.mcfrenchpants.activityledger.core.domain.naming.NameNormalizer
 import com.mcfrenchpants.activityledger.core.domain.repository.TagRepository
+import com.mcfrenchpants.activityledger.core.domain.stats.DateRangePreset
+import com.mcfrenchpants.activityledger.core.domain.stats.DateRangeSelection
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagResolution
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagResolver
+import com.mcfrenchpants.activityledger.core.domain.temporal.TemporalRange
+import com.mcfrenchpants.activityledger.core.domain.temporal.TemporalRangeResolver
+import java.time.DayOfWeek
+import java.time.LocalDate
 
 /*
  * Question answering (ADR-051). The model is asked ONLY to pull the user's own words out of a
  * question -- what it is about (subject), what was done (action), the words that say when (date
  * window) and what kind of question it is. It is never shown the user's tags, logged entries or
  * the date (ADR-011, ADR-038). Matching, date resolution and ranking are program logic.
+ *
+ * A question now resolves to filter values (ADR-051): tags, a date range and a question kind,
+ * carried by [QuestionScope]. The kind comes from fixed text rules first ([QuestionKindDetector]);
+ * the model's date words count only when they occur in the question and are turned into dates
+ * only by [TemporalRangeResolver]. The model still never produces a date, a count or an answer.
  */
 
 /**
@@ -95,32 +107,53 @@ sealed interface LookupOutcome {
      *
      * @property target What the question was about, resolved to tags.
      * @property result The ranked matches; never empty.
+     * @property scope The question's kind and date range.
      */
-    data class Answer(val target: LookupTarget, val result: LookupResult) : LookupOutcome {
+    data class Answer(val target: LookupTarget, val result: LookupResult, val scope: QuestionScope) : LookupOutcome {
         init {
             require(!result.isEmpty) { "An answer needs at least one match" }
         }
     }
+
+    /**
+     * A question about a stretch of time rather than about something in particular ("what did I
+     * do last week?"): it names no subject and no action, and either gives date words that were
+     * understood or is a [QuestionKind.LIST] question. Only returned when at least one entry is logged.
+     *
+     * @property scope The question's kind and date range.
+     */
+    data class Browse(val scope: QuestionScope) : LookupOutcome
 }
 
 /**
  * Turns a typed or spoken question into an answer from the logged history. Read only: it never
- * writes anything, never saves the question and never logs.
+ * writes anything, never saves the question and never logs. Apart from the repository reads it
+ * is pure: today and the first day of the week are passed in, never read from a clock.
  *
  * Order: blank or not a question -> [LookupOutcome.NotAQuestion] (no extractor or repository
- * call); extract the words (failures map to Unavailable / Busy / Failed); resolve subject and
- * action words with [TagResolver] against the catalog (a named subject that matches no tag ->
- * NotEnoughHistory, never another subject's entries); build the target with
- * [LookupTarget.fromResolutions] (none -> NotEnoughHistory); load entries (none -> NotEnoughHistory);
- * rank with [HistoryLookup.rank] (nothing -> NotEnoughHistory); otherwise [LookupOutcome.Answer].
+ * call); extract the words (failures map to Unavailable / Busy / Failed); work out the
+ * [QuestionScope] -- the kind ([QuestionKindDetector] first, then the model's kind, else UNKNOWN)
+ * and the range (the model's date words only if they occur in the question, resolved by
+ * [TemporalRangeResolver]; no words -> all time / NONE, not understood -> all time /
+ * NOT_UNDERSTOOD, a window after today -> NotEnoughHistory); resolve subject and action words with
+ * [TagResolver] against the catalog (a named subject that matches no tag -> NotEnoughHistory, never
+ * another subject's entries); build the target with [LookupTarget.fromResolutions] (none ->
+ * [LookupOutcome.Browse] when no subject and no action were named and the date words were used or
+ * the kind is LIST and at least one entry is logged, otherwise NotEnoughHistory); load entries
+ * (none -> NotEnoughHistory); rank with [HistoryLookup.rank] (nothing -> NotEnoughHistory);
+ * otherwise [LookupOutcome.Answer].
  */
 class LookupService(
     private val repository: TagRepository,
     private val extractor: QuestionExtractor,
+    private val rangeResolver: TemporalRangeResolver = TemporalRangeResolver(),
 ) {
 
-    /** Answers [questionText]. See the class description for the order of steps. */
-    suspend fun ask(questionText: String): LookupOutcome {
+    /**
+     * Answers [questionText] as of [today] (the user's local date), with weeks starting on
+     * [firstDayOfWeek]. See the class description for the order of steps.
+     */
+    suspend fun ask(questionText: String, today: LocalDate, firstDayOfWeek: DayOfWeek): LookupOutcome {
         if (questionText.isBlank() || !QuestionDetector.isQuestion(questionText)) return LookupOutcome.NotAQuestion
 
         val candidate = when (val extraction = extractor.extract(questionText)) {
@@ -132,19 +165,62 @@ class LookupService(
             }
         }
 
+        val scope = scopeOf(questionText, candidate, today, firstDayOfWeek)
+            ?: return LookupOutcome.NotEnoughHistory
+
         val catalog = repository.loadTagCatalog()
         val subject = TagResolver.resolve(candidate.subject, TagKind.SUBJECT, catalog)
         val action = TagResolver.resolve(candidate.action, TagKind.ACTION, catalog)
         // A subject that was named but matches nothing logged means there is no history for what the
         // user asked about; answering with other subjects' entries of the same action would mislead.
         if (subject is TagResolution.New) return LookupOutcome.NotEnoughHistory
-        val target = LookupTarget.fromResolutions(subject, action) ?: return LookupOutcome.NotEnoughHistory
+        val target = LookupTarget.fromResolutions(subject, action)
+            ?: return browseOrNothing(candidate, scope)
 
         val entries = repository.loadLookupEntries()
         if (entries.isEmpty()) return LookupOutcome.NotEnoughHistory
 
         val result = HistoryLookup.rank(entries, target)
         if (result.isEmpty) return LookupOutcome.NotEnoughHistory
-        return LookupOutcome.Answer(target, result)
+        return LookupOutcome.Answer(target, result, scope)
     }
+
+    /**
+     * No target: a question that names nothing in particular but gives used date words or asks
+     * for a list browses that range when anything is logged; anything else is NotEnoughHistory.
+     */
+    private suspend fun browseOrNothing(candidate: QuestionCandidate, scope: QuestionScope): LookupOutcome {
+        val namesNothing = candidate.subject == null && candidate.action == null
+        val browses = scope.dateWords == DateWords.USED || scope.kind == QuestionKind.LIST
+        if (!namesNothing || !browses) return LookupOutcome.NotEnoughHistory
+        if (repository.loadLookupEntries().isEmpty()) return LookupOutcome.NotEnoughHistory
+        return LookupOutcome.Browse(scope)
+    }
+
+    /** The question's kind and range; null when its date words name a window after today. */
+    private fun scopeOf(
+        questionText: String,
+        candidate: QuestionCandidate,
+        today: LocalDate,
+        firstDayOfWeek: DayOfWeek,
+    ): QuestionScope? {
+        val kind = QuestionKindDetector.detect(questionText)
+            ?: candidate.kind.takeIf { it != QuestionKind.UNKNOWN }
+            ?: QuestionKind.UNKNOWN
+        // Untrusted: the model's date words count only when the user actually said them.
+        val words = candidate.dateWindow?.takeIf { window ->
+            val said = normalizeForMatch(window)
+            said.isNotEmpty() && normalizeForMatch(questionText).contains(said)
+        }
+        val allTime = DateRangeSelection.Preset(DateRangePreset.ALL_TIME)
+        return when (val range = rangeResolver.resolve(words, today, firstDayOfWeek)) {
+            is TemporalRange.Resolved -> QuestionScope(kind, range.selection, DateWords.USED)
+            TemporalRange.NoWindow -> QuestionScope(kind, allTime, DateWords.NONE)
+            TemporalRange.Unrecognised -> QuestionScope(kind, allTime, DateWords.NOT_UNDERSTOOD)
+            TemporalRange.Future -> null
+        }
+    }
+
+    /** Lowercase, whitespace collapsed, edge punctuation trimmed, curly apostrophes made plain. */
+    private fun normalizeForMatch(text: String): String = NameNormalizer.normalize(text.replace('’', '\''))
 }

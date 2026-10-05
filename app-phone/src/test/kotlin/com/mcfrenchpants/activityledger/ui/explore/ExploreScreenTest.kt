@@ -8,6 +8,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -17,6 +18,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -443,6 +445,109 @@ class ExploreScreenTest {
         state = loaded(answer = ExploreAnswer.LastTime("Lawn", "Mow", now, ClosestMatch.PARTIAL))
         composeRule.onNodeWithText("Last logged: Lawn · Mow — September 15 (today)").assertIsDisplayed()
         composeRule.onNodeWithText("Closest match: showing entries that only partly match your question.").assertIsDisplayed()
+    }
+
+    private val yesterdayMow: Instant = ZonedDateTime.of(2026, 9, 14, 11, 0, 0, 0, zone).toInstant()
+    private val augustRange = YearMonth.of(2026, 8).let {
+        DateRangeSelection.Custom(it.atDay(1), it.atEndOfMonth(), RangeLabel.Month(it))
+    }
+
+    @Test
+    fun `a count answer states the count in the range and the last time`() {
+        show(loaded(answer = ExploreAnswer.Count("Lawn", "Mow", 4, augustRange, yesterdayMow, closestMatch = null)))
+        composeRule.onNodeWithTag(EXPLORE_ANSWER_TAG)
+            .assert(hasText("Lawn · Mow: 4 times in August 2026. Last: September 14 (yesterday)."))
+        composeRule.onNodeWithText("Closest match:", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Couldn't tell which dates", substring = true).assertDoesNotExist()
+
+        state = loaded(answer = ExploreAnswer.Count("Lawn", null, 1, DateRangeSelection.Preset(DateRangePreset.ALL_TIME), null, null))
+        composeRule.onNodeWithText("Lawn: 1 time in all your history.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a count of zero says none and still gives the last time`() {
+        show(loaded(answer = ExploreAnswer.Count("Lawn", "Mow", 0, augustRange, yesterdayMow, closestMatch = null)))
+        composeRule.onNodeWithText("Lawn · Mow: none in August 2026. Last: September 14 (yesterday).").assertIsDisplayed()
+
+        state = loaded(answer = ExploreAnswer.Count(null, "Mow", 0, augustRange, null, closestMatch = null))
+        composeRule.onNodeWithText("Mow: none in August 2026.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a how-often answer gives the usual gap or says there are too few entries`() {
+        val gap = TypicalGap.of(Duration.ofDays(3))
+        show(loaded(answer = ExploreAnswer.HowOften("Lawn", "Mow", gap, 9, yesterdayMow, closestMatch = null)))
+        composeRule.onNodeWithText("Lawn · Mow: usually every 3 days. Last: September 14 (yesterday).").assertIsDisplayed()
+
+        state = loaded(answer = ExploreAnswer.HowOften("Lawn", "Mow", TypicalGap.of(Duration.ofDays(7)), 9, yesterdayMow, null))
+        composeRule.onNodeWithText("Lawn · Mow: usually every week. Last: September 14 (yesterday).").assertIsDisplayed()
+
+        state = loaded(answer = ExploreAnswer.HowOften("Lawn", "Mow", null, 2, yesterdayMow, closestMatch = null))
+        composeRule.onNodeWithText(
+            "Lawn · Mow: not enough entries yet to say how often (2 so far). Last: September 14 (yesterday).",
+        ).assertIsDisplayed()
+
+        state = loaded(answer = ExploreAnswer.HowOften("Lawn", null, null, 1, yesterdayMow, closestMatch = null))
+        composeRule.onNodeWithText(
+            "Lawn: not enough entries yet to say how often (1 so far). Last: September 14 (yesterday).",
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a how-often answer over several activities asks to pick one`() {
+        show(loaded(answer = ExploreAnswer.HowOften("Lawn", null, null, 7, yesterdayMow, null, activityCount = 3)))
+        composeRule.onNodeWithText(
+            "Lawn: logged for 3 different activities. Pick one below to see how often. Last: September 14 (yesterday).",
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText("usually", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("not enough entries", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the dates-not-understood note follows the closest-match note`() {
+        val note = "Couldn't tell which dates you meant, so this covers all your history."
+        val allTime = DateRangeSelection.Preset(DateRangePreset.ALL_TIME)
+        show(
+            loaded(
+                answer = ExploreAnswer.Count("Lawn", "Mow", 2, allTime, yesterdayMow, ClosestMatch.NOT_EXACT, datesNotUnderstood = true),
+            ),
+        )
+        composeRule.onNodeWithTag(EXPLORE_ANSWER_TAG).assert(
+            SemanticsMatcher("closest-match note, then the dates note") { node ->
+                val texts = node.config.getOrElse(androidx.compose.ui.semantics.SemanticsProperties.Text) { emptyList() }
+                    .map { it.text }
+                val closest = texts.indexOf("Closest match: your question did not match a logged item exactly.")
+                closest >= 0 && texts.indexOf(note) == closest + 1
+            },
+        )
+
+        state = loaded(answer = ExploreAnswer.HowOften("Lawn", "Mow", null, 2, yesterdayMow, null, datesNotUnderstood = true))
+        composeRule.onNodeWithText(note).assertIsDisplayed()
+
+        state = loaded(answer = ExploreAnswer.LastTime("Lawn", "Mow", yesterdayMow, null, datesNotUnderstood = true))
+        composeRule.onNodeWithText(note).assertIsDisplayed()
+
+        state = loaded(answer = ExploreAnswer.LastTime("Lawn", "Mow", yesterdayMow, null))
+        composeRule.onNodeWithText(note).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a scope line with unclear dates shows the note once under it`() {
+        val note = "Couldn't tell which dates you meant, so this covers all your history."
+        val filter = ExploreFilter(range = DateRangeSelection.Preset(DateRangePreset.ALL_TIME))
+        val s = summary(inPeriod = 47)
+        show(loaded(s = s, filter = filter, answer = scope(s, filter).copy(datesNotUnderstood = true)))
+        composeRule.onAllNodesWithText("47 entries in all your history.").assertCountEquals(1)
+        composeRule.onAllNodesWithText(note).assertCountEquals(1)
+        composeRule.onNodeWithTag(EXPLORE_ANSWER_TAG).assert(
+            SemanticsMatcher.expectValue(
+                androidx.compose.ui.semantics.SemanticsProperties.LiveRegion,
+                androidx.compose.ui.semantics.LiveRegionMode.Polite,
+            ),
+        )
+
+        state = loaded(s = s, filter = filter)
+        composeRule.onNodeWithText(note).assertDoesNotExist()
     }
 
     @Test

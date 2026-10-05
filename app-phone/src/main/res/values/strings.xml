@@ -244,6 +244,28 @@
     <string name="explore_last_logged_one_name">Last logged: %1$s — %2$s (%3$s)</string>
     <string name="explore_note_not_exact">Closest match: your question did not match a logged item exactly.</string>
     <string name="explore_note_partial">Closest match: showing entries that only partly match your question.</string>
+    <string name="explore_note_dates_not_understood">Couldn\'t tell which dates you meant, so this covers all your history.</string>
+    <!-- %1$s = names ("Lawn · Mow" or one name), %2$d = count, %3$s = range phrase ("August 2026"). -->
+    <plurals name="explore_answer_count">
+        <item quantity="one">%1$s: %2$d time in %3$s.</item>
+        <item quantity="other">%1$s: %2$d times in %3$s.</item>
+    </plurals>
+    <!-- %1$s = names, %2$s = range phrase. -->
+    <string name="explore_answer_count_none">%1$s: none in %2$s.</string>
+    <!-- %1$s = long date ("September 14"), %2$s = how long ago ("yesterday"). -->
+    <string name="explore_answer_last">Last: %1$s (%2$s).</string>
+    <!-- %1$s = names, %2$s = the usual gap, already worded ("every 7 days", "every week"). -->
+    <string name="explore_answer_how_often">%1$s: usually %2$s.</string>
+    <!-- %1$s = names, %2$d = entries so far. -->
+    <plurals name="explore_answer_how_often_too_few">
+        <item quantity="one">%1$s: not enough entries yet to say how often (%2$d so far).</item>
+        <item quantity="other">%1$s: not enough entries yet to say how often (%2$d so far).</item>
+    </plurals>
+    <!-- %1$s = names, %2$d = number of different activities in scope (always more than one). -->
+    <plurals name="explore_answer_how_often_several">
+        <item quantity="one">%1$s: logged for %2$d different activity. Pick one below to see how often.</item>
+        <item quantity="other">%1$s: logged for %2$d different activities. Pick one below to see how often.</item>
+    </plurals>
     <string name="explore_not_enough_history">There isn\'t enough history yet to answer that.</string>
     <string name="explore_not_a_question">That sounds like something you did, not a question.</string>
     <string name="explore_not_a_question_pointer">To log it, use the Log tab.</string>

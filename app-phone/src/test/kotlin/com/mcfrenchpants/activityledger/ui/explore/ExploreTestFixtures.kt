@@ -5,6 +5,7 @@ import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterPr
 import com.mcfrenchpants.activityledger.core.domain.lookup.QuestionCandidate
 import com.mcfrenchpants.activityledger.core.domain.lookup.QuestionExtractionResult
 import com.mcfrenchpants.activityledger.core.domain.lookup.QuestionExtractor
+import com.mcfrenchpants.activityledger.core.domain.lookup.QuestionKind
 import com.mcfrenchpants.activityledger.core.domain.model.CaptureSource
 import com.mcfrenchpants.activityledger.core.domain.model.ProcessingState
 import com.mcfrenchpants.activityledger.core.domain.repository.CorrectionOutcome
@@ -42,8 +43,13 @@ internal class ExploreQuestionExtractor : QuestionExtractor {
     /** Every question that reached the extractor, in order. */
     val received = mutableListOf<String>()
 
-    fun answers(subject: String?, action: String?) {
-        result = QuestionExtractionResult.Success(QuestionCandidate(subject, action))
+    fun answers(
+        subject: String?,
+        action: String?,
+        dateWindow: String? = null,
+        kind: QuestionKind = QuestionKind.UNKNOWN,
+    ) {
+        result = QuestionExtractionResult.Success(QuestionCandidate(subject, action, dateWindow, kind))
     }
 
     fun fails(kind: InterpreterFailureKind) {

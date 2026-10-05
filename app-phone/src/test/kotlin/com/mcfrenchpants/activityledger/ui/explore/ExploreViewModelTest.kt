@@ -10,12 +10,14 @@ import com.mcfrenchpants.activityledger.R
 import com.mcfrenchpants.activityledger.core.data.createInMemoryActivityRepository
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterFailureKind
 import com.mcfrenchpants.activityledger.core.domain.lookup.LookupService
+import com.mcfrenchpants.activityledger.core.domain.lookup.QuestionKind
 import com.mcfrenchpants.activityledger.core.domain.stats.ActivityRow
 import com.mcfrenchpants.activityledger.core.domain.stats.ActivitySort
 import com.mcfrenchpants.activityledger.core.domain.stats.DateRangePreset
 import com.mcfrenchpants.activityledger.core.domain.stats.DateRangeSelection
 import com.mcfrenchpants.activityledger.core.domain.stats.EntrySort
 import com.mcfrenchpants.activityledger.core.domain.stats.ExploreFilter
+import com.mcfrenchpants.activityledger.core.domain.stats.RangeLabel
 import com.mcfrenchpants.activityledger.core.domain.stats.ScopeKind
 import com.mcfrenchpants.activityledger.core.domain.stats.SubjectGroup
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
@@ -39,6 +41,7 @@ import org.junit.runner.RunWith
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.test.assertEquals
@@ -498,6 +501,290 @@ class ExploreViewModelTest {
         assertEquals(DateRangeSelection.Preset(DateRangePreset.LAST_7_DAYS), scope.range)
         assertNull(vm.s.askedQuestion)
         assertTrue(vm.s.canGoBack, "a manual chip change does not drop earlier back steps")
+    }
+
+    // ---- Questions with a kind and date words (DH4.3) --------------------------------------
+
+    private val august = YearMonth.of(2026, 8)
+    private val augustRange = DateRangeSelection.Custom(august.atDay(1), august.atEndOfMonth(), RangeLabel.Month(august))
+    private val allTimeRange = DateRangeSelection.Preset(DateRangePreset.ALL_TIME)
+
+    /** One more Lawn/Mow entry on Aug 21, so Lawn · Mow has three entries over all time. */
+    private fun logThirdMow() {
+        clock.currentInstant = ZonedDateTime.of(2026, 8, 21, 10, 0, 0, 0, zone).toInstant()
+        logExploreEntry(ledger, clock, zone, "Lawn", "Mow")
+        clock.currentInstant = now
+    }
+
+    @Test
+    fun `a count question with date words sets the month, the tags and a counted answer`() {
+        seed()
+        extractor.answers("lawn", "mow", dateWindow = "in August", kind = QuestionKind.LIST)
+        val vm = viewModel()
+        val text = "How many times did I mow the lawn in August?"
+
+        vm.settle { ask(text) }
+
+        val s = vm.s
+        val lawn = id(TagKind.SUBJECT, "Lawn")
+        val mow = id(TagKind.ACTION, "Mow")
+        assertEquals(ExploreFilter(augustRange, lawn, mow, null), s.filter)
+        assertEquals(ExploreView.ENTRIES, s.view)
+        assertEquals(text, s.askedQuestion)
+        assertTrue(s.canGoBack)
+        val summary = assertNotNull(s.summary)
+        assertEquals(1, summary.entriesInPeriod)
+        // The count and last time are the calculator's, for the new filter.
+        assertEquals(
+            ExploreAnswer.Count("Lawn", "Mow", summary.entriesInPeriod, augustRange, summary.lastTime, closestMatch = null),
+            s.answer,
+        )
+        assertEquals(newestMowAt, summary.lastTime)
+        assertFalse(s.isLoading)
+
+        assertTrue(vm.back())
+        scheduler.runCurrent()
+        assertEquals(ExploreFilter(), vm.s.filter)
+        assertIs<ExploreAnswer.Scope>(vm.s.answer)
+    }
+
+    @Test
+    fun `a last-time question with date words is answered with a count`() {
+        seed()
+        extractor.answers("lawn", "mow", dateWindow = "in May", kind = QuestionKind.LAST_TIME)
+        val vm = viewModel()
+
+        vm.settle { ask("Did I mow the lawn in May?") }
+
+        val may = YearMonth.of(2026, 5)
+        val mayRange = DateRangeSelection.Custom(may.atDay(1), may.atEndOfMonth(), RangeLabel.Month(may))
+        assertEquals(mayRange, vm.s.filter.range)
+        val count = assertIs<ExploreAnswer.Count>(vm.s.answer)
+        assertEquals(0, count.count)
+        assertEquals(mayRange, count.range)
+        assertEquals(newestMowAt, count.lastTime)
+    }
+
+    @Test
+    fun `a last-time question without date words keeps the last-time answer and all time`() {
+        seed()
+        extractor.answers("lawn", "mow", kind = QuestionKind.LAST_TIME)
+        val vm = viewModel()
+
+        vm.settle { ask("Did I mow the lawn?") }
+
+        assertEquals(allTime(id(TagKind.SUBJECT, "Lawn"), id(TagKind.ACTION, "Mow")), vm.s.filter)
+        assertEquals(ExploreAnswer.LastTime("Lawn", "Mow", newestMowAt, closestMatch = null), vm.s.answer)
+    }
+
+    @Test
+    fun `a how-often question with three entries shows the typical gap`() {
+        seed()
+        logThirdMow()
+        extractor.answers("lawn", "mow")
+        val vm = viewModel()
+
+        vm.settle { ask("How often do I mow the lawn?") }
+
+        val summary = assertNotNull(vm.s.summary)
+        val gap = assertNotNull(summary.typicalGap)
+        assertEquals(allTime(id(TagKind.SUBJECT, "Lawn"), id(TagKind.ACTION, "Mow")), vm.s.filter)
+        assertEquals(
+            ExploreAnswer.HowOften("Lawn", "Mow", gap, entriesAllTime = 3, lastTime = newestMowAt, closestMatch = null),
+            vm.s.answer,
+        )
+    }
+
+    @Test
+    fun `a how-often question with fewer than three entries has no gap and says how many`() {
+        seed()
+        extractor.answers("lawn", "mow", kind = QuestionKind.HOW_OFTEN)
+        val vm = viewModel()
+
+        vm.settle { ask("Lawn mowing, regularly?") }
+
+        val howOften = assertIs<ExploreAnswer.HowOften>(vm.s.answer)
+        assertNull(howOften.typicalGap)
+        assertEquals(2, howOften.entriesAllTime)
+        assertEquals(newestMowAt, howOften.lastTime)
+    }
+
+    @Test
+    fun `an action-only how-often question over one activity uses that activity's gap`() {
+        seed()
+        logThirdMow()
+        extractor.answers(null, "mow")
+        val vm = viewModel()
+
+        vm.settle { ask("How often do I mow?") }
+
+        assertEquals(allTime(null, id(TagKind.ACTION, "Mow")), vm.s.filter)
+        val summary = assertNotNull(vm.s.summary)
+        assertEquals(ScopeKind.ONE_ACTION, summary.scopeKind)
+        val row = summary.activities.single()
+        val howOften = assertIs<ExploreAnswer.HowOften>(vm.s.answer)
+        assertEquals(assertNotNull(row.typicalGap), howOften.typicalGap)
+        assertEquals(3, howOften.entriesAllTime)
+        assertEquals(1, howOften.activityCount)
+        assertNull(howOften.subjectName)
+        assertEquals("Mow", howOften.actionName)
+        assertEquals(ExploreView.ENTRIES, vm.s.view)
+    }
+
+    @Test
+    fun `an action-only how-often question over one activity with two entries says too few`() {
+        seed()
+        extractor.answers(null, "mow")
+        val vm = viewModel()
+
+        vm.settle { ask("How often do I mow?") }
+
+        val howOften = assertIs<ExploreAnswer.HowOften>(vm.s.answer)
+        assertNull(howOften.typicalGap)
+        assertEquals(2, howOften.entriesAllTime)
+        assertEquals(1, howOften.activityCount)
+    }
+
+    @Test
+    fun `a how-often question over several activities asks to pick one in the activities view`() {
+        seed()
+        clock.currentInstant = ZonedDateTime.of(2026, 9, 10, 10, 0, 0, 0, zone).toInstant()
+        logExploreEntry(ledger, clock, zone, "Lawn", "Rake")
+        clock.currentInstant = now
+        extractor.answers("lawn", null)
+        val vm = viewModel()
+
+        vm.settle { ask("How often do I work on the lawn?") }
+
+        assertEquals(allTime(id(TagKind.SUBJECT, "Lawn"), null), vm.s.filter)
+        val howOften = assertIs<ExploreAnswer.HowOften>(vm.s.answer)
+        assertEquals(2, howOften.activityCount)
+        assertNull(howOften.typicalGap)
+        assertEquals("Lawn", howOften.subjectName)
+        assertNull(howOften.actionName)
+        assertEquals(newestMowAt, howOften.lastTime)
+        assertEquals(ExploreView.ACTIVITIES, vm.s.view)
+    }
+
+    @Test
+    fun `date words nobody understands fall back to all time with a note`() {
+        seed()
+        extractor.answers("lawn", "mow", dateWindow = "back in the day")
+        val vm = viewModel()
+
+        vm.settle { ask("How many times did I mow the lawn back in the day?") }
+
+        assertEquals(allTimeRange, vm.s.filter.range)
+        val count = assertIs<ExploreAnswer.Count>(vm.s.answer)
+        assertTrue(count.datesNotUnderstood)
+        assertEquals(2, count.count)
+        assertEquals(allTimeRange, count.range)
+    }
+
+    @Test
+    fun `date words that are not in the question are ignored`() {
+        seed()
+        extractor.answers("lawn", "mow", dateWindow = "in August")
+        val vm = viewModel()
+
+        vm.settle { ask("How many times did I mow the lawn?") }
+
+        assertEquals(allTimeRange, vm.s.filter.range)
+        val count = assertIs<ExploreAnswer.Count>(vm.s.answer)
+        assertFalse(count.datesNotUnderstood)
+        assertEquals(2, count.count)
+    }
+
+    @Test
+    fun `future date words are not enough history and leave the filters alone`() {
+        seed()
+        extractor.answers("lawn", "mow", dateWindow = "next week")
+        val vm = viewModel()
+        val before = vm.s.filter
+
+        vm.settle { ask("How many times will I mow the lawn next week?") }
+
+        assertEquals(ExploreAnswer.NotEnoughHistory, vm.s.answer)
+        assertEquals(before, vm.s.filter)
+        assertFalse(vm.s.canGoBack)
+    }
+
+    @Test
+    fun `a question about a stretch of time sets only the range and back restores`() {
+        seed()
+        extractor.answers(null, null, dateWindow = "in August")
+        val vm = viewModel()
+        vm.settle { setSubject(id(TagKind.SUBJECT, "Lawn")) }
+        val before = vm.s.filter
+
+        vm.settle { ask("What did I do in August?") }
+
+        assertEquals(ExploreFilter(range = augustRange), vm.s.filter)
+        assertEquals(ExploreView.ENTRIES, vm.s.view)
+        val scope = assertIs<ExploreAnswer.Scope>(vm.s.answer)
+        assertEquals(1, scope.entriesInPeriod)
+        assertFalse(scope.datesNotUnderstood)
+        assertTrue(vm.s.canGoBack)
+
+        assertTrue(vm.back())
+        scheduler.runCurrent()
+        assertEquals(before, vm.s.filter)
+    }
+
+    @Test
+    fun `a list question with unclear dates browses all time with the note on the scope line`() {
+        seed()
+        extractor.answers(null, null, dateWindow = "way back")
+        val vm = viewModel()
+
+        vm.settle { ask("What did I do way back?") }
+
+        assertEquals(ExploreFilter(range = allTimeRange), vm.s.filter)
+        val scope = assertIs<ExploreAnswer.Scope>(vm.s.answer)
+        assertTrue(scope.datesNotUnderstood)
+        assertEquals(4, scope.entriesInPeriod)
+
+        // The note belongs to the question: a manual change drops it.
+        vm.settle { setRange(DateRangeSelection.Preset(DateRangePreset.LAST_7_DAYS)) }
+        assertFalse(assertIs<ExploreAnswer.Scope>(vm.s.answer).datesNotUnderstood)
+    }
+
+    @Test
+    fun `a manual chip change after a count answer switches to scope`() {
+        seed()
+        extractor.answers("lawn", "mow", dateWindow = "in August")
+        val vm = viewModel()
+        vm.settle { ask("How many times did I mow the lawn in August?") }
+        assertIs<ExploreAnswer.Count>(vm.s.answer)
+
+        vm.settle { setRange(DateRangeSelection.Preset(DateRangePreset.LAST_30_DAYS)) }
+
+        val scope = assertIs<ExploreAnswer.Scope>(vm.s.answer)
+        assertEquals(1, scope.entriesInPeriod)
+        assertNull(vm.s.askedQuestion)
+    }
+
+    @Test
+    fun `a filter change before the count is computed drops the pending answer`() {
+        seed()
+        extractor.answers("lawn", "mow", dateWindow = "in August")
+        val compute = ManualDispatcher()
+        val vm = viewModel(compute = compute)
+        compute.runAt(0)
+        scheduler.runCurrent()
+
+        vm.settle { ask("How many times did I mow the lawn in August?") }
+        assertNull(vm.s.answer, "no count before the summary of the new filter arrives")
+        assertTrue(vm.s.isLoading)
+
+        vm.settle { setWords("tub") }
+        while (compute.queue.isNotEmpty()) {
+            compute.runAt(0)
+            scheduler.runCurrent()
+        }
+
+        assertEquals(ExploreFilter(range = augustRange, subjectId = id(TagKind.SUBJECT, "Lawn"), actionId = id(TagKind.ACTION, "Mow"), words = "tub"), vm.s.filter)
+        assertIs<ExploreAnswer.Scope>(vm.s.answer)
     }
 
     // ---- Views and sorts -------------------------------------------------------------------

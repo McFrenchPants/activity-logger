@@ -3,10 +3,12 @@ package com.mcfrenchpants.activityledger.ui.explore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mcfrenchpants.activityledger.R
+import com.mcfrenchpants.activityledger.core.domain.lookup.DateWords
 import com.mcfrenchpants.activityledger.core.domain.lookup.LookupOutcome
 import com.mcfrenchpants.activityledger.core.domain.lookup.LookupService
 import com.mcfrenchpants.activityledger.core.domain.lookup.LookupTier
 import com.mcfrenchpants.activityledger.core.domain.lookup.QuestionDetector
+import com.mcfrenchpants.activityledger.core.domain.lookup.QuestionKind
 import com.mcfrenchpants.activityledger.core.domain.repository.TagRepository
 import com.mcfrenchpants.activityledger.core.domain.stats.ActivityRow
 import com.mcfrenchpants.activityledger.core.domain.stats.ActivitySort
@@ -17,6 +19,7 @@ import com.mcfrenchpants.activityledger.core.domain.stats.ExploreCalculator
 import com.mcfrenchpants.activityledger.core.domain.stats.ExploreEntry
 import com.mcfrenchpants.activityledger.core.domain.stats.ExploreFilter
 import com.mcfrenchpants.activityledger.core.domain.stats.ExploreSummary
+import com.mcfrenchpants.activityledger.core.domain.stats.ScopeKind
 import com.mcfrenchpants.activityledger.core.domain.stats.SubjectGroup
 import com.mcfrenchpants.activityledger.core.domain.tagging.KnownTag
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagCatalog
@@ -52,9 +55,11 @@ import java.util.Locale
  *   logged (AGENTS.md #11). Messages carry string resource ids only.
  * - Counting is [ExploreCalculator]'s job, run on [computeDispatcher]; a result computed for an
  *   earlier request never overwrites a newer one.
- * - A question only sets filter chips from the tag ids of [LookupOutcome.Answer] (range All time,
- *   plan P2) and shows the best entry's date; failure outcomes leave the filters unchanged. The
- *   model never produces a count, a date or answer text.
+ * - A question only sets filter chips from [LookupOutcome.Answer] (tag ids of the target, the
+ *   range its date words resolved to, All time when none, plan P2) or [LookupOutcome.Browse]
+ *   (range only). The answer line is a last-time fact from the best entry, or a count / typical
+ *   gap taken from the [ExploreCalculator] summary of the new filters; failure outcomes leave the
+ *   filters unchanged. The model never produces a count, a date or answer text.
  * - One question at a time; a clear or a filter change while a question is pending drops its
  *   late answer.
  * - Voice follows the Log view model: one session at a time identified by a token; the final
@@ -84,6 +89,12 @@ class ExploreViewModel(
 
     /** The answer of the last question, while it is showing; null means the answer line is Scope. */
     private var questionAnswer: ExploreAnswer? = null
+
+    /** A Count / HowOften answer waiting for the summary of its filter; built in [recompute]. */
+    private var pendingQuestion: PendingQuestion? = null
+
+    /** The Scope line carries the "dates not understood" note (a browse question's words failed). */
+    private var scopeDatesNotUnderstood = false
 
     /** Increments with every computation request; only the newest one may publish. */
     private var computeSeq = 0L
@@ -173,6 +184,8 @@ class ExploreViewModel(
         cancelAsk()
         backStack.clear()
         questionAnswer = null
+        pendingQuestion = null
+        scopeDatesNotUnderstood = false
         val filter = ExploreFilter()
         _state.update {
             withChipNames(
@@ -297,7 +310,8 @@ class ExploreViewModel(
         }
         askJob = viewModelScope.launch {
             val outcome = try {
-                lookup.ask(question)
+                val zone = zoneProvider()
+                lookup.ask(question, clock.instant().atZone(zone).toLocalDate(), firstDayOfWeekProvider())
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (_: Exception) {
@@ -359,54 +373,160 @@ class ExploreViewModel(
 
     private fun onAnswer(outcome: LookupOutcome?) {
         when (outcome) {
-            is LookupOutcome.Answer -> {
-                val current = _state.value.filter
-                backStack.addLast(current)
-                val filter = ExploreFilter(
-                    range = DateRangeSelection.Preset(DateRangePreset.ALL_TIME),
-                    subjectId = outcome.target.subject?.id,
-                    actionId = outcome.target.action?.id,
-                    words = null,
-                )
-                val top = checkNotNull(outcome.result.top)
-                val closest = when {
-                    !top.exact -> ClosestMatch.NOT_EXACT
-                    top.tier == LookupTier.SUBJECT_ONLY || top.tier == LookupTier.ACTION_ONLY -> ClosestMatch.PARTIAL
-                    else -> null
-                }
-                val answer = ExploreAnswer.LastTime(
-                    subjectName = top.entry.subjectName,
-                    actionName = top.entry.actionName,
-                    lastTime = top.entry.occurredAt,
-                    closestMatch = closest,
-                )
-                questionAnswer = answer
-                _state.update {
-                    withChipNames(
-                        it.copy(
-                            filter = filter,
-                            answer = answer,
-                            view = ExploreView.ENTRIES,
-                            isAsking = false,
-                            canGoBack = backStack.isNotEmpty(),
-                        ),
-                    )
-                }
-                recompute()
-            }
+            is LookupOutcome.Answer -> onQuestionAnswer(outcome)
+            is LookupOutcome.Browse -> onBrowse(outcome)
             else -> {
                 val answer = when (outcome) {
                     LookupOutcome.NotEnoughHistory -> ExploreAnswer.NotEnoughHistory
                     LookupOutcome.NotAQuestion -> ExploreAnswer.NotAQuestion
                     LookupOutcome.Unavailable -> ExploreAnswer.AiUnavailable
                     LookupOutcome.Busy, LookupOutcome.Failed, null -> ExploreAnswer.TryAgainLater
-                    is LookupOutcome.Answer -> error("handled above")
+                    is LookupOutcome.Answer, is LookupOutcome.Browse -> error("handled above")
                 }
                 questionAnswer = answer
+                pendingQuestion = null
+                scopeDatesNotUnderstood = false
                 _state.update { it.copy(answer = answer, isAsking = false) }
             }
         }
     }
+
+    /**
+     * Sets the chips from the question (range from its date words, tags from the target) and picks
+     * the answer by kind: HOW_OFTEN -> [ExploreAnswer.HowOften]; COUNT, or understood date words on
+     * any other kind -> [ExploreAnswer.Count]; otherwise [ExploreAnswer.LastTime] from the best entry.
+     * Count and HowOften are filled in [recompute] from the summary computed for the new filter.
+     */
+    private fun onQuestionAnswer(outcome: LookupOutcome.Answer) {
+        backStack.addLast(_state.value.filter)
+        val scope = outcome.scope
+        val filter = ExploreFilter(
+            range = scope.range,
+            subjectId = outcome.target.subject?.id,
+            actionId = outcome.target.action?.id,
+            words = null,
+        )
+        val top = checkNotNull(outcome.result.top)
+        val closest = when {
+            !top.exact -> ClosestMatch.NOT_EXACT
+            top.tier == LookupTier.SUBJECT_ONLY || top.tier == LookupTier.ACTION_ONLY -> ClosestMatch.PARTIAL
+            else -> null
+        }
+        val datesNotUnderstood = scope.dateWords == DateWords.NOT_UNDERSTOOD
+        val answerKind = when {
+            scope.kind == QuestionKind.HOW_OFTEN -> PendingKind.HOW_OFTEN
+            scope.kind == QuestionKind.COUNT || scope.dateWords == DateWords.USED -> PendingKind.COUNT
+            else -> null
+        }
+        scopeDatesNotUnderstood = false
+        if (answerKind == null) {
+            pendingQuestion = null
+            questionAnswer = ExploreAnswer.LastTime(
+                subjectName = top.entry.subjectName,
+                actionName = top.entry.actionName,
+                lastTime = top.entry.occurredAt,
+                closestMatch = closest,
+                datesNotUnderstood = datesNotUnderstood,
+            )
+        } else {
+            // Name only the sides the count is narrowed to, as the chips show them.
+            val subjectName = outcome.target.subject?.let { catalog.tag(TagKind.SUBJECT, it.id)?.displayName ?: top.entry.subjectName }
+            val actionName = outcome.target.action?.let { catalog.tag(TagKind.ACTION, it.id)?.displayName ?: top.entry.actionName }
+            pendingQuestion = PendingQuestion(answerKind, subjectName, actionName, closest, datesNotUnderstood)
+            questionAnswer = null
+        }
+        _state.update {
+            withChipNames(
+                it.copy(
+                    filter = filter,
+                    answer = questionAnswer,
+                    view = ExploreView.ENTRIES,
+                    isAsking = false,
+                    canGoBack = backStack.isNotEmpty(),
+                ),
+            )
+        }
+        recompute()
+    }
+
+    /** A question about a stretch of time: sets only the range; the answer line is the scope. */
+    private fun onBrowse(outcome: LookupOutcome.Browse) {
+        backStack.addLast(_state.value.filter)
+        questionAnswer = null
+        pendingQuestion = null
+        scopeDatesNotUnderstood = outcome.scope.dateWords == DateWords.NOT_UNDERSTOOD
+        val filter = ExploreFilter(range = outcome.scope.range)
+        _state.update {
+            withChipNames(
+                it.copy(
+                    filter = filter,
+                    answer = null,
+                    view = ExploreView.ENTRIES,
+                    isAsking = false,
+                    canGoBack = backStack.isNotEmpty(),
+                ),
+            )
+        }
+        recompute()
+    }
+
+    /** Builds a Count / HowOften answer from the summary computed for the question's filter. */
+    private fun answerFor(pending: PendingQuestion, summary: ExploreSummary, filter: ExploreFilter): ExploreAnswer =
+        when (pending.kind) {
+            PendingKind.COUNT -> ExploreAnswer.Count(
+                subjectName = pending.subjectName,
+                actionName = pending.actionName,
+                count = summary.entriesInPeriod,
+                range = filter.range,
+                lastTime = summary.lastTime,
+                closestMatch = pending.closestMatch,
+                datesNotUnderstood = pending.datesNotUnderstood,
+            )
+            PendingKind.HOW_OFTEN -> howOften(pending, summary, filter)
+        }
+
+    /**
+     * The "how often" answer from the summary (the calculator only gives a typical gap for one
+     * activity):
+     * 1. Scope ONE_ACTIVITY: the summary's gap and the in-scope all-time count.
+     * 2. Any other scope with exactly one activity row: that row's gap and all-time count.
+     * 3. Several activity rows: no gap; [ExploreAnswer.HowOften.activityCount] says how many, so
+     *    the user picks one from the Activities view.
+     * Activity rows only cover activities with entries in the period. A how-often question without
+     * date words has the all-time range, so the rows are complete; with date words the rows (and
+     * [entriesAllTime]'s fallback) only see activities logged in that range.
+     */
+    private fun howOften(pending: PendingQuestion, summary: ExploreSummary, filter: ExploreFilter): ExploreAnswer.HowOften {
+        val rows = summary.activities
+        val single = rows.singleOrNull()
+        val (gap, entries, activityCount) = when {
+            summary.scopeKind == ScopeKind.ONE_ACTIVITY -> Triple(summary.typicalGap, entriesAllTime(summary, filter), 1)
+            single != null -> Triple(single.typicalGap, single.entriesAllTime, 1)
+            rows.size > 1 -> Triple(null, entriesAllTime(summary, filter), rows.size)
+            else -> Triple(null, entriesAllTime(summary, filter), 1)
+        }
+        return ExploreAnswer.HowOften(
+            subjectName = pending.subjectName,
+            actionName = pending.actionName,
+            typicalGap = gap,
+            entriesAllTime = entries,
+            lastTime = summary.lastTime,
+            closestMatch = pending.closestMatch,
+            datesNotUnderstood = pending.datesNotUnderstood,
+            activityCount = activityCount,
+        )
+    }
+
+    /**
+     * Matching entries over all time, from the summary: with an all-time range that is the period
+     * count; otherwise the all-time counts of the activities seen in the period.
+     */
+    private fun entriesAllTime(summary: ExploreSummary, filter: ExploreFilter): Int =
+        if (filter.range == DateRangeSelection.Preset(DateRangePreset.ALL_TIME)) {
+            summary.entriesInPeriod
+        } else {
+            summary.activities.sumOf { it.entriesAllTime }
+        }
 
     /**
      * Applies a filter the user chose (chip, suggestion, drill-down, back): drops a pending
@@ -417,6 +537,8 @@ class ExploreViewModel(
         cancelAsk()
         if (pushCurrent) backStack.addLast(_state.value.filter)
         questionAnswer = null
+        pendingQuestion = null
+        scopeDatesNotUnderstood = false
         _state.update {
             withChipNames(
                 it.copy(
@@ -463,8 +585,17 @@ class ExploreViewModel(
             }
             // A newer request superseded this one: its result must not overwrite the newer one.
             if (seq != computeSeq) return@launch
+            // A how-often answer over several activities shows the Activities view to pick one from.
+            var pickView: ExploreView? = null
+            pendingQuestion?.let { pending ->
+                val built = answerFor(pending, summary, request.filter)
+                if (built is ExploreAnswer.HowOften && built.activityCount > 1) pickView = ExploreView.ACTIVITIES
+                questionAnswer = built
+                pendingQuestion = null
+            }
             _state.update { s ->
                 s.copy(
+                    view = pickView ?: s.view,
                     summary = summary,
                     isLoading = false,
                     zone = zone,
@@ -484,6 +615,7 @@ class ExploreViewModel(
         subjectName = s.subjectChipName,
         actionName = s.actionChipName,
         words = s.filter.words,
+        datesNotUnderstood = scopeDatesNotUnderstood,
     )
 
     private fun withChipNames(s: ExploreUiState): ExploreUiState = s.copy(
@@ -537,6 +669,17 @@ class ExploreViewModel(
     }
 
     private class TagMatch(val tag: KnownTag, val rank: Int, val kindOrder: Int, val alias: String?)
+
+    private enum class PendingKind { COUNT, HOW_OFTEN }
+
+    /** What a Count / HowOften answer needs besides the summary. Memory only; no question text. */
+    private class PendingQuestion(
+        val kind: PendingKind,
+        val subjectName: String?,
+        val actionName: String?,
+        val closestMatch: ClosestMatch?,
+        val datesNotUnderstood: Boolean,
+    )
 
     private fun cancelAsk() {
         askToken = null
