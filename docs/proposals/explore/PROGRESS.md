@@ -14,7 +14,7 @@ Registered in `.sdlc/state.json` as DH1.
 | DH2.1 | `loadExploreEntries()` repository read, DAO, Room, fakes | done | Verifier pass attempt 1; 3 queries in one read transaction; reuses existing alias DAOs |
 | DH3.1 | Explore view model + state (phone, no UI) in new ui/explore | done | Verifier pass attempt 1; 26 tests; ExploreEntry gained captureId; ui/ask still present until DH3.2 |
 | DH3.2 | Explore screen UI + tab rename | done | Orchestrator rerun (all module tests, assembleDebug); 331 app-phone tests; ui/ask deleted; not yet seen on a device |
-| DH3.3 | Device check on Moto G 2025; merge stage 3 | todo | after DH3.2 |
+| DH3.3 | Device check (Pixel 10 Pro or Moto G 2025); merge stage 3 | blocked | Debug build installed on the Pixel 2026-10-04; phone locked (fingerprint), needs owner to unlock or attach the Moto G |
 | DH4.1 | Temporal ranges ("in August", "this year") | todo | after DH3.3 |
 | DH4.2 | Question reader q2 (core-ai) + domain seam | todo | after DH4.1; verifier |
 | DH4.3 | Lookup -> Explore question result (count / how often) | todo | after DH4.2; verifier |
@@ -22,6 +22,9 @@ Registered in `.sdlc/state.json` as DH1.
 | DH5.1 | Device pass incl. voice; docs/ADRs; owner report | todo | needs owner to speak |
 
 ## Session log
+
+### 2026-10-04 - Stopped before DH3.3 (device check)
+Run total: DH1.1, DH2.1, DH3.1, DH3.2 done. New debug build installed on the Pixel 10 Pro over Wi-Fi ADB (install -r, data kept), but the phone is locked, so nothing was looked at; screen put back to sleep. Moto G not attached. Stage 3 stays on feature/explore (not merged) until the device check passes. Device-check list: default overview, chip row scrolling, date-range dialog, tag picker sheet, chart look + list toggle, three views, drill-down + Back, tapping an entry opens the edit sheet (and counts refresh after), empty states, large font, dark mode, and a typed question on the Pixel ("When did I last change the furnace filter?").
 
 ### 2026-10-04 - DH3.2 done
 ExploreScreen (search box + suggestions + mic, filter chips with date presets/custom picker/read-only tag picker sheet, answer line, three numbers, Canvas chart + list alternative, Entries/Activities/Patterns), HistoryEntrySheets extracted from HistoryScreen (Explore opens the same edit sheet via its own HistoryViewModel and reloads after it closes), nav tab Explore + ic_nav_explore, ui/ask deleted. ExploreUiState gained subjectTags/actionTags for the pickers. Orchestrator reworded explore_ai_unavailable (old copy said "Ask"). Known: a tap on a row before the History list loads does nothing (second tap works). Next: DH3.3 on the Pixel 10 Pro (connected now).
