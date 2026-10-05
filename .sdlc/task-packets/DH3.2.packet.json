@@ -1,0 +1,72 @@
+{
+  "task_id": "DH3.2",
+  "plan_revision": "dh1",
+  "objective": "Build the Explore screen (Compose UI) on the ExploreViewModel from DH3.1, replace the Ask tab with it, and delete the old ui/ask package. Design: docs/proposals/explore/DESIGN_SPEC.md sections 'Screen design' 1-6, 'Empty states', 'Wireframes', and the accessibility bullet under 'Architecture'; visual reference docs/proposals/explore/mockup.html (open it as text; it shows the default overview and the after-a-question state). Follow the app's existing Material 3 theme, shapes and colours (no new colours; never colour-only meaning; no green/red good-bad colouring; no streaks/scores).\n\nRead first: app-phone ui/explore/* (ExploreUiState, ExploreViewModel, factory, tests from DH3.1), ui/ask/AskScreen.kt and AskScreenTest.kt (mic button, permission launcher, input bar with imePadding, UserMessage display -- carry these patterns over), ui/history/HistoryScreen.kt + HistoryViewModel.kt (EditSheet, TagPicker, openEdit(captureId), closeEdit, LifecycleStartEffect onStart pattern), ui/components/HistoryRow.kt (HistoryRowModel, HistoryRow composable), ui/components/DurationFormatter.kt, ui/time/OccurrenceTimeFormatter.kt, ui/navigation/LedgerNavigation.kt, MainActivityNavigationTest.kt, res/values/strings.xml, res/drawable/ic_nav_*.xml, core-domain stats types (ExploreTypes.kt, DateRange.kt, TypicalGap.kt).\n\n1. ui/explore/ExploreScreen.kt: stateful ExploreScreen() (view model via ExploreViewModelFactory; LifecycleStartEffect -> viewModel.onStart(); RECORD_AUDIO permission flow exactly like AskScreen; BackHandler(enabled = state.canGoBack) { viewModel.back() }) and a stateless ExploreContent(state, callbacks...) for tests. Layout top to bottom in one scrollable column (LazyColumn):\n   a. Search box: OutlinedTextField, placeholder 'Ask or search your history', IME action Search -> submit(), trailing mic button (listening state + partial transcript like AskScreen) and a clear-text (x) button when non-empty; after a question the box shows askedQuestion. Suggestion list under the box while input is non-blank: Subject / Action rows (name, kind label 'Subject'/'Action', 'also called <alias>' when matched by alias), 'Search your words for \"<text>\"', 'Ask: <text>'.\n   b. Filter row (horizontally scrollable): Date chip (label from the selection: Last 7 days / Last 30 days / Last 12 months / All time / custom 'MMM d - MMM d, yyyy' style range; RangeLabel.Month -> 'August 2026', RangeLabel.Year -> '2026'; menu with the four presets + 'Custom range...' opening Material 3 DateRangePicker in a dialog); Subject chip and Action chip (searchable single-choice picker over the catalog -- reuse ui/tags or ui/review TagPicker if it fits read-only choosing, else a simple dialog with a search field and list); Words chip only when words set. Set chips show the value and an x (clear that chip). A 'Clear' text button when the filter is not default or a question answer is shown -> clearAll(). Chips announce e.g. 'Date range, Last 30 days, double-tap to change'.\n   c. Answer line (polite live region): LastTime -> 'Last logged: <subject> · <action> — <date> (<N days ago>)' using the existing time/relative formatting helpers where they exist, plus the closest-match note (reuse ask_note_* strings/AskAnswerFormatting logic moved into explore); NotEnoughHistory -> UX_SPEC 13 sentence verbatim (reuse the ask_ string); NotAQuestion -> statement copy + 'To log it, use the Log tab.'; AiUnavailable / TryAgainLater -> existing Ask copy; Scope -> '<N> entries in the last 30 days.' / '<Subject>: <N> entries in <range label>.' / '<subject · action>: <N> times in <range label>.' (plural-aware via plurals resources).\n   d. Three numbers (cards in a Row; stack vertically when font scale >= 1.5 or width is narrow) per the spec's table by summary.scopeKind: MANY -> Entries (+ 'previous: N' when previousPeriodEntries != null), Days with an entry ('18 of 30'), Different activities; ONE_SUBJECT -> Entries, Different actions, Last time; ONE_ACTION -> Entries, Different subjects, Last time; ONE_ACTIVITY -> Times in period, Last time ('37 days ago', 'today', 'yesterday'), Usually every (TypicalGap wording: 'every day', 'every week', 'every N hours/days/months/years'; '—' when null). Never coloured up/down.\n   e. Chart: Compose Canvas bar chart of summary.chart buckets (theme primary colour bars, baseline, first/last bucket date labels), height ~120dp; one sentence under it: 'Average X per day on days you logged something' (per week / per month wording for those bucket sizes; omitted when average is null); a 'Show as list' / 'Show as chart' toggle (setChartAsList) rendering the buckets as text rows ('Sep 21 — 6'); the chart's contentDescription summarises it: 'Entries per day, last 30 days. Most: 6 on September 21. 12 days with no entries.'\n   f. Three-way segmented switch Entries · Activities · Patterns (SingleChoiceSegmentedButtonRow, 48dp) with a Sort menu on the right for Entries (Newest/Oldest) and Activities (Most logged/Last done/Longest since/Name) and a 'Group by subject' toggle for Activities.\n   g. Entries view: summary.entries grouped under date headers, each rendered with the existing HistoryRow (build HistoryRowModel from ExploreEntry: captureId, activityName, time via OccurrenceTimeFormatter, rawText, subject/action names, duration, occurrenceId). Tagged rows are clickable and open the SAME History edit sheet: the Explore screen obtains its own HistoryViewModel via HistoryViewModelFactory, calls its onStart() in the same LifecycleStartEffect, and on tap calls historyViewModel.openEdit(captureId); render the edit sheet + tag picker from the history view model's state. To avoid duplication, extract HistoryScreen's picker/edit-sheet rendering into an internal composable in ui/history (e.g. HistoryEntrySheets(viewModel)) used by both screens; the Check sheet stays History-only. When the edit sheet closes, call exploreViewModel.onStart() so counts refresh. Untagged rows are not clickable.\n   h. Activities view: rows (name 'subject · action' or activityName; count; last time relative; 'usually every …' line when typicalGap != null) -> tap openActivity(row); with groupBySubject, subject group rows ('Hot tub — 12 entries, 3 kinds') -> openSubjectGroup.\n   i. Patterns view: weekday bars (7, starting at the first day of week), part-of-day bars (Morning/Afternoon/Evening/Night), each with a list alternative or text values beside bars and the left-out sentence ('4 entries without a time of day not shown'); 'Time you mentioned' list (activity, total duration via DurationFormatter, 'N entries') with its left-out sentence.\n   j. Empty states: summary.totalEntriesEver == 0 -> UX_SPEC 13 History empty copy ('No activities logged yet. Tap the microphone and say what you just did.'); entriesInPeriod == 0 -> 'Nothing logged for these filters.' + 'Clear filters' button.\n   k. One-off UserMessage shown like AskScreen.\n2. Navigation: rename AskRoute -> ExploreRoute, TopLevelDestination.ASK -> EXPLORE, string nav_ask -> nav_explore = \"Explore\", composable<ExploreRoute> { ExploreScreen() }; new icon res/drawable/ic_nav_explore.xml (outline magnifier/insights glyph in the same hand-drawn outline style as ic_nav_tags.xml) and delete ic_nav_ask.xml; update KDoc. Update MainActivityNavigationTest for the Explore tab.\n3. Delete app-phone ui/ask/** and its tests; move anything still needed (closest-match note logic, interval words) into ui/explore with its tests. Remove strings that become unused; note ExploreViewModel (DH3.1) references R.string.ask_* message strings, log_voice_busy and history_not_loaded -- keep them, or rename ask_* to explore_* and update ExploreViewModel/its tests for that rename only (your call; no dangling resources -- the build's lint/unused-resource checks must not fail).\n4. All copy in strings.xml (explore_ prefix; plurals where counts appear). Every interactive element has a content description and a >=48dp touch target; no fixed heights on text containers; 200% font scale reflows (numbers stack).\n5. Tests (Robolectric Compose, under app-phone/src/test/.../ui/explore/): suggestion list renders each kind and choosing calls the right callback; Search IME -> submit; chips show labels for each preset, month and year labels, custom range; chip x clears; Clear visible only when non-default; each answer variant's copy; three numbers per scope kind incl. previous and '—' gap; chart list alternative and content description; switch changes view; each sort menu; group by subject; Activities row tap -> openActivity; Entries tagged row tap opens the History edit sheet (integration with a real HistoryViewModel over the Robolectric Room ledger) and untagged row not clickable; Patterns sections incl. left-out sentences; both empty states; mic toggles; Back with canGoBack calls back(); navigation test: four tabs Log, History, Tags, Explore and the Explore tab opens the Explore screen. Pure unit tests for any new formatting helpers (range labels, gap words, chart sentence, relative days).\n\nNo change to ExploreViewModel behaviour unless compilation or a genuine bug forces it (report it). No change to the Log or Tags screens; History changes are limited to extracting the sheet composable with identical behaviour (existing History tests must pass unchanged).",
+  "non_goals": [
+    "No date-window/counting questions or prompt change (stage 4).",
+    "No calendar heatmap, saved searches, export, widgets, multi-select tags.",
+    "No overdue/'longer than usual' labels, streaks, scores, goals, reminders.",
+    "No domain, data-layer, core-ai or watch change.",
+    "No device run (DH3.3)."
+  ],
+  "dependencies": [
+    "DH3.1"
+  ],
+  "read_paths": [
+    "app-phone/**",
+    "core-domain/src/main/**",
+    "core-speech/src/main/**",
+    "core-testing/**",
+    "docs/proposals/explore/DESIGN_SPEC.md",
+    "docs/proposals/explore/mockup.html",
+    "docs/UX_SPEC.md",
+    "docs/UX_VISUAL_SPEC.md",
+    "AGENTS.md",
+    "gradle/**",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/explore/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/explore/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/ask/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/ask/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/navigation/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history/HistoryScreen.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history/HistoryEntrySheets.kt",
+    "app-phone/src/main/res/values/strings.xml",
+    "app-phone/src/main/res/values/plurals.xml",
+    "app-phone/src/main/res/drawable/ic_nav_ask.xml",
+    "app-phone/src/main/res/drawable/ic_nav_explore.xml",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/MainActivityNavigationTest.kt"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "core-domain/**",
+    "core-data/**",
+    "core-ai/**",
+    "core-testing/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-wear/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/log/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/tags/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history/HistoryViewModel.kt"
+  ],
+  "acceptance_criteria": [
+    "The fourth tab is 'Explore' (ExploreRoute, TopLevelDestination.EXPLORE, nav_explore, ic_nav_explore.xml) and opens ExploreScreen; ui/ask and ic_nav_ask.xml are gone with no dangling references or unused-resource failures.",
+    "ExploreScreen shows the search box with suggestions and mic, the filter row (date presets + custom range picker, subject/action pickers, words chip, per-chip clear, Clear), the answer line, the three numbers per scope kind, the Canvas chart with sentence, list alternative and content description, and the Entries/Activities/Patterns switch with sorts and group-by-subject, per the design spec.",
+    "Entries rows reuse HistoryRow; tagged rows open the existing History edit sheet through a shared extracted composable, and Explore reloads when it closes; History behaviour and tests unchanged.",
+    "Empty states use the specified copy; all copy in resources with plurals; content descriptions, 48dp targets, live region for the answer line, reflow at large font scale; no colour-only meaning, no new colours.",
+    "Tests cover every item in the objective's test list; ./gradlew :app-phone:testDebugUnitTest passes in full; :app-phone:assembleDebug, :app-phone:lintDebug (or the project's configured lint task, if any) and :app-phone:compileDebugAndroidTestKotlin pass; no forbidden path changed."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:testDebugUnitTest",
+    "./gradlew :app-phone:assembleDebug :app-phone:compileDebugAndroidTestKotlin",
+    "git status --porcelain"
+  ]
+}
