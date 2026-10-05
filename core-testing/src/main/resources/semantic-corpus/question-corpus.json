@@ -1,0 +1,2034 @@
+{
+  "schemaVersion": 1,
+  "description": "Question corpus (DH4.4): synthetic questions about a synthetic household, scored by replaying a model's extracted words through the real LookupService. Expected values are the correct product behaviour, never what a model happens to answer. No real captures or owner data.",
+  "catalogs": {
+    "empty": {
+      "description": "A brand-new install: no tags and nothing logged.",
+      "subjects": [],
+      "actions": [],
+      "entries": []
+    },
+    "household-q": {
+      "description": "A synthetic household, entries from June 2025 to 4 October 2026.",
+      "subjects": [
+        {
+          "id": "subj-lawn",
+          "displayName": "Lawn",
+          "aliases": [
+            "yard"
+          ]
+        },
+        {
+          "id": "subj-car",
+          "displayName": "Car",
+          "aliases": [
+            "truck"
+          ]
+        },
+        {
+          "id": "subj-furnace",
+          "displayName": "Furnace",
+          "aliases": []
+        },
+        {
+          "id": "subj-hot-tub",
+          "displayName": "Hot tub",
+          "aliases": [
+            "spa"
+          ]
+        },
+        {
+          "id": "subj-dogs",
+          "displayName": "Dogs",
+          "aliases": []
+        },
+        {
+          "id": "subj-grill",
+          "displayName": "Grill",
+          "aliases": [
+            "barbecue"
+          ]
+        },
+        {
+          "id": "subj-windows",
+          "displayName": "Windows",
+          "aliases": []
+        },
+        {
+          "id": "subj-chimney",
+          "displayName": "Chimney",
+          "aliases": []
+        }
+      ],
+      "actions": [
+        {
+          "id": "act-mow",
+          "displayName": "Mow",
+          "aliases": []
+        },
+        {
+          "id": "act-change-oil",
+          "displayName": "Change oil",
+          "aliases": [
+            "oil change"
+          ]
+        },
+        {
+          "id": "act-change-filter",
+          "displayName": "Change filter",
+          "aliases": []
+        },
+        {
+          "id": "act-add-chlorine",
+          "displayName": "Add chlorine",
+          "aliases": []
+        },
+        {
+          "id": "act-walk",
+          "displayName": "Walk",
+          "aliases": []
+        },
+        {
+          "id": "act-clean",
+          "displayName": "Clean",
+          "aliases": []
+        },
+        {
+          "id": "act-sweep",
+          "displayName": "Sweep",
+          "aliases": []
+        },
+        {
+          "id": "act-fertilize",
+          "displayName": "Fertilize",
+          "aliases": [
+            "fertilise"
+          ]
+        }
+      ],
+      "entries": [
+        {
+          "id": "q-entry-001",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-06-03T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-002",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-06-05T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-003",
+          "subjectId": "subj-car",
+          "actionId": "act-change-oil",
+          "occurredAt": "2025-06-10T17:00:00-04:00"
+        },
+        {
+          "id": "q-entry-004",
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "occurredAt": "2025-06-14T11:00:00-04:00"
+        },
+        {
+          "id": "q-entry-005",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-06-15T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-006",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-06-17T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-007",
+          "subjectId": "subj-windows",
+          "actionId": "act-clean",
+          "occurredAt": "2025-06-21T14:00:00-04:00"
+        },
+        {
+          "id": "q-entry-008",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-06-25T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-009",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-07-01T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-010",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-07-05T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-011",
+          "subjectId": "subj-grill",
+          "actionId": "act-clean",
+          "occurredAt": "2025-07-05T16:00:00-04:00"
+        },
+        {
+          "id": "q-entry-012",
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "occurredAt": "2025-07-12T11:00:00-04:00"
+        },
+        {
+          "id": "q-entry-013",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-07-15T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-014",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-07-15T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-015",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-07-25T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-016",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-07-29T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-017",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-08-04T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-018",
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "occurredAt": "2025-08-09T11:00:00-04:00"
+        },
+        {
+          "id": "q-entry-019",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-08-12T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-020",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-08-14T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-021",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-08-24T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-022",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-08-26T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-023",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-09-03T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-024",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-09-09T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-025",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-09-13T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-026",
+          "subjectId": "subj-lawn",
+          "actionId": "act-fertilize",
+          "occurredAt": "2025-09-20T15:00:00-04:00"
+        },
+        {
+          "id": "q-entry-027",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-09-23T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-028",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-09-23T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-029",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-10-03T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-030",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-10-07T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-031",
+          "subjectId": "subj-car",
+          "actionId": "act-change-oil",
+          "occurredAt": "2025-10-08T17:00:00-04:00"
+        },
+        {
+          "id": "q-entry-032",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-10-13T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-033",
+          "subjectId": "subj-chimney",
+          "actionId": "act-sweep",
+          "occurredAt": "2025-10-18T13:00:00-04:00"
+        },
+        {
+          "id": "q-entry-034",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-10-21T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-035",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-10-23T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-036",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-11-02T07:00:00-05:00"
+        },
+        {
+          "id": "q-entry-037",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-11-04T19:00:00-05:00"
+        },
+        {
+          "id": "q-entry-038",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-11-12T07:00:00-05:00"
+        },
+        {
+          "id": "q-entry-039",
+          "subjectId": "subj-furnace",
+          "actionId": "act-change-filter",
+          "occurredAt": "2025-11-15T09:00:00-05:00"
+        },
+        {
+          "id": "q-entry-040",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-11-18T19:00:00-05:00"
+        },
+        {
+          "id": "q-entry-041",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-11-22T07:00:00-05:00"
+        },
+        {
+          "id": "q-entry-042",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-12-02T07:00:00-05:00"
+        },
+        {
+          "id": "q-entry-043",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-12-02T19:00:00-05:00"
+        },
+        {
+          "id": "q-entry-044",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-12-12T07:00:00-05:00"
+        },
+        {
+          "id": "q-entry-045",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-12-16T19:00:00-05:00"
+        },
+        {
+          "id": "q-entry-046",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2025-12-22T07:00:00-05:00"
+        },
+        {
+          "id": "q-entry-047",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2025-12-30T19:00:00-05:00"
+        },
+        {
+          "id": "q-entry-048",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-01-13T19:00:00-05:00"
+        },
+        {
+          "id": "q-entry-049",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-01-27T19:00:00-05:00"
+        },
+        {
+          "id": "q-entry-050",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-02-10T19:00:00-05:00"
+        },
+        {
+          "id": "q-entry-051",
+          "subjectId": "subj-car",
+          "actionId": "act-change-oil",
+          "occurredAt": "2026-02-11T17:00:00-05:00"
+        },
+        {
+          "id": "q-entry-052",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-02-24T19:00:00-05:00"
+        },
+        {
+          "id": "q-entry-053",
+          "subjectId": "subj-furnace",
+          "actionId": "act-change-filter",
+          "occurredAt": "2026-03-01T09:00:00-05:00"
+        },
+        {
+          "id": "q-entry-054",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-03-10T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-055",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-03-24T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-056",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-04-07T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-057",
+          "subjectId": "subj-windows",
+          "actionId": "act-clean",
+          "occurredAt": "2026-04-18T14:00:00-04:00"
+        },
+        {
+          "id": "q-entry-058",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-04-21T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-059",
+          "subjectId": "subj-lawn",
+          "actionId": "act-fertilize",
+          "occurredAt": "2026-05-02T15:00:00-04:00"
+        },
+        {
+          "id": "q-entry-060",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-05-05T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-061",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-05-19T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-062",
+          "subjectId": "subj-grill",
+          "actionId": "act-clean",
+          "occurredAt": "2026-05-24T16:00:00-04:00"
+        },
+        {
+          "id": "q-entry-063",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-06-02T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-064",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-06-02T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-065",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-06-05T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-066",
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "occurredAt": "2026-06-06T11:00:00-04:00"
+        },
+        {
+          "id": "q-entry-067",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-06-08T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-068",
+          "subjectId": "subj-car",
+          "actionId": "act-change-oil",
+          "occurredAt": "2026-06-09T17:00:00-04:00"
+        },
+        {
+          "id": "q-entry-069",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-06-11T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-070",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-06-14T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-071",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-06-16T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-072",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-06-17T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-073",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-06-20T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-074",
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "occurredAt": "2026-06-20T11:00:00-04:00"
+        },
+        {
+          "id": "q-entry-075",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-06-23T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-076",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-06-26T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-077",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-06-29T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-078",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-06-30T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-079",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-07-02T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-080",
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "occurredAt": "2026-07-04T11:00:00-04:00"
+        },
+        {
+          "id": "q-entry-081",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-07-05T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-082",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-07-08T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-083",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-07-11T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-084",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-07-14T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-085",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-07-14T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-086",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-07-17T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-087",
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "occurredAt": "2026-07-18T11:00:00-04:00"
+        },
+        {
+          "id": "q-entry-088",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-07-20T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-089",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-07-23T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-090",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-07-26T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-091",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-07-28T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-092",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-07-29T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-093",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-08-01T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-094",
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "occurredAt": "2026-08-01T11:00:00-04:00"
+        },
+        {
+          "id": "q-entry-095",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-08-04T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-096",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-08-07T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-097",
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "occurredAt": "2026-08-09T11:00:00-04:00"
+        },
+        {
+          "id": "q-entry-098",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-08-10T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-099",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-08-11T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-100",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-08-13T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-101",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-08-16T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-102",
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "occurredAt": "2026-08-16T11:00:00-04:00"
+        },
+        {
+          "id": "q-entry-103",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-08-19T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-104",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-08-22T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-105",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-08-25T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-106",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-08-25T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-107",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-08-28T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-108",
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "occurredAt": "2026-08-29T11:00:00-04:00"
+        },
+        {
+          "id": "q-entry-109",
+          "subjectId": "subj-grill",
+          "actionId": "act-clean",
+          "occurredAt": "2026-08-30T16:00:00-04:00"
+        },
+        {
+          "id": "q-entry-110",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-08-31T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-111",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-09-03T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-112",
+          "subjectId": "subj-lawn",
+          "actionId": "act-fertilize",
+          "occurredAt": "2026-09-05T15:00:00-04:00"
+        },
+        {
+          "id": "q-entry-113",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-09-06T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-114",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-09-08T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-115",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-09-09T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-116",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-09-12T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-117",
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "occurredAt": "2026-09-12T11:00:00-04:00"
+        },
+        {
+          "id": "q-entry-118",
+          "subjectId": "subj-furnace",
+          "actionId": "act-change-filter",
+          "occurredAt": "2026-09-14T09:00:00-04:00"
+        },
+        {
+          "id": "q-entry-119",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-09-15T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-120",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-09-18T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-121",
+          "subjectId": "subj-chimney",
+          "actionId": "act-sweep",
+          "occurredAt": "2026-09-19T13:00:00-04:00"
+        },
+        {
+          "id": "q-entry-122",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-09-21T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-123",
+          "subjectId": "subj-hot-tub",
+          "actionId": "act-add-chlorine",
+          "occurredAt": "2026-09-22T19:00:00-04:00"
+        },
+        {
+          "id": "q-entry-124",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-09-24T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-125",
+          "subjectId": "subj-lawn",
+          "actionId": "act-mow",
+          "occurredAt": "2026-09-26T11:00:00-04:00"
+        },
+        {
+          "id": "q-entry-126",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-09-27T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-127",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-09-30T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-128",
+          "subjectId": "subj-car",
+          "actionId": "act-change-oil",
+          "occurredAt": "2026-09-30T17:00:00-04:00"
+        },
+        {
+          "id": "q-entry-129",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-10-03T07:00:00-04:00"
+        },
+        {
+          "id": "q-entry-130",
+          "subjectId": "subj-dogs",
+          "actionId": "act-walk",
+          "occurredAt": "2026-10-04T18:00:00-04:00"
+        }
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "lt-furnace-filter",
+      "group": "LAST_TIME",
+      "catalog": "household-q",
+      "question": "When did I last change the furnace filter?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-furnace"
+        ],
+        "actionIds": [
+          "act-change-filter"
+        ],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      }
+    },
+    {
+      "id": "lt-walked-dogs",
+      "group": "LAST_TIME",
+      "catalog": "household-q",
+      "question": "When was the last time I walked the dogs?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-dogs"
+        ],
+        "actionIds": [
+          "act-walk"
+        ],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      }
+    },
+    {
+      "id": "lt-yard-alias",
+      "group": "LAST_TIME",
+      "catalog": "household-q",
+      "question": "When did I last mow the yard?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-lawn"
+        ],
+        "actionIds": [
+          "act-mow"
+        ],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "\"yard\" is an alias of the Lawn subject."
+    },
+    {
+      "id": "lt-subject-only-grill",
+      "group": "LAST_TIME",
+      "catalog": "household-q",
+      "question": "When did I last do anything with the grill?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-grill"
+        ],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "Names only a subject: the action must stay unset."
+    },
+    {
+      "id": "lt-action-only-chlorine",
+      "group": "LAST_TIME",
+      "catalog": "household-q",
+      "question": "When did I last add chlorine?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [],
+        "actionIds": [
+          "act-add-chlorine"
+        ],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "Names only an action: the subject must stay unset."
+    },
+    {
+      "id": "c-mow-lawn-august",
+      "group": "COUNT",
+      "catalog": "household-q",
+      "question": "How many times did I mow the lawn in August?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-lawn"
+        ],
+        "actionIds": [
+          "act-mow"
+        ],
+        "mustNotMatch": [],
+        "kind": "COUNT",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-08-01",
+          "to": "2026-08-31"
+        },
+        "dateWords": "USED"
+      },
+      "note": "Exactly four Lawn/Mow entries are in August 2026."
+    },
+    {
+      "id": "c-chlorine-this-year",
+      "group": "COUNT",
+      "catalog": "household-q",
+      "question": "How many times did I add chlorine to the hot tub this year?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-hot-tub"
+        ],
+        "actionIds": [
+          "act-add-chlorine"
+        ],
+        "mustNotMatch": [],
+        "kind": "COUNT",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-01-01",
+          "to": "2026-10-05"
+        },
+        "dateWords": "USED"
+      }
+    },
+    {
+      "id": "c-dogs-last-month",
+      "group": "COUNT",
+      "catalog": "household-q",
+      "question": "How many times did I walk the dogs last month?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-dogs"
+        ],
+        "actionIds": [
+          "act-walk"
+        ],
+        "mustNotMatch": [],
+        "kind": "COUNT",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-09-01",
+          "to": "2026-09-30"
+        },
+        "dateWords": "USED"
+      },
+      "note": "\"last month\" is the previous calendar month."
+    },
+    {
+      "id": "c-oil-in-2025",
+      "group": "COUNT",
+      "catalog": "household-q",
+      "question": "How many times did I change the oil in 2025?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [],
+        "actionIds": [
+          "act-change-oil"
+        ],
+        "mustNotMatch": [],
+        "kind": "COUNT",
+        "allowedKinds": [],
+        "range": {
+          "from": "2025-01-01",
+          "to": "2025-12-31"
+        },
+        "dateWords": "USED"
+      },
+      "note": "Names no subject: the action alone selects the car's oil changes."
+    },
+    {
+      "id": "c-mowed-since-june",
+      "group": "COUNT",
+      "catalog": "household-q",
+      "question": "How many times have I mowed the lawn since June?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-lawn"
+        ],
+        "actionIds": [
+          "act-mow"
+        ],
+        "mustNotMatch": [],
+        "kind": "COUNT",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-06-01",
+          "to": "2026-10-05"
+        },
+        "dateWords": "USED"
+      }
+    },
+    {
+      "id": "c-dogs-past-30-days",
+      "group": "COUNT",
+      "catalog": "household-q",
+      "question": "How many times did I walk the dogs in the past 30 days?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-dogs"
+        ],
+        "actionIds": [
+          "act-walk"
+        ],
+        "mustNotMatch": [],
+        "kind": "COUNT",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-09-06",
+          "to": "2026-10-05"
+        },
+        "dateWords": "USED"
+      }
+    },
+    {
+      "id": "c-dogs-yesterday",
+      "group": "COUNT",
+      "catalog": "household-q",
+      "question": "How many times did I walk the dogs yesterday?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-dogs"
+        ],
+        "actionIds": [
+          "act-walk"
+        ],
+        "mustNotMatch": [],
+        "kind": "COUNT",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-10-04",
+          "to": "2026-10-04"
+        },
+        "dateWords": "USED"
+      }
+    },
+    {
+      "id": "c-car-subject-only-this-year",
+      "group": "COUNT",
+      "catalog": "household-q",
+      "question": "How many times did I do anything with the car this year?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-car"
+        ],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "COUNT",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-01-01",
+          "to": "2026-10-05"
+        },
+        "dateWords": "USED"
+      },
+      "note": "Names only a subject: the action must stay unset."
+    },
+    {
+      "id": "c-how-much-chlorine-last-week",
+      "group": "COUNT",
+      "catalog": "household-q",
+      "question": "How much chlorine did I add to the hot tub last week?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-hot-tub"
+        ],
+        "actionIds": [
+          "act-add-chlorine"
+        ],
+        "mustNotMatch": [],
+        "kind": "COUNT",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-09-27",
+          "to": "2026-10-03"
+        },
+        "dateWords": "USED"
+      },
+      "note": "\"how much\" is a count question; \"last week\" is the previous calendar week (weeks start on Sunday)."
+    },
+    {
+      "id": "ho-change-oil",
+      "group": "HOW_OFTEN",
+      "catalog": "household-q",
+      "question": "How often do I change the oil?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [],
+        "actionIds": [
+          "act-change-oil"
+        ],
+        "mustNotMatch": [],
+        "kind": "HOW_OFTEN",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "Names no subject: the action alone selects the car's oil changes (about every four months)."
+    },
+    {
+      "id": "ho-walk-dogs",
+      "group": "HOW_OFTEN",
+      "catalog": "household-q",
+      "question": "How often do I walk the dogs?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-dogs"
+        ],
+        "actionIds": [
+          "act-walk"
+        ],
+        "mustNotMatch": [],
+        "kind": "HOW_OFTEN",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      }
+    },
+    {
+      "id": "ho-sweep-chimney-two-entries",
+      "group": "HOW_OFTEN",
+      "catalog": "household-q",
+      "question": "How often do I sweep the chimney?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-chimney"
+        ],
+        "actionIds": [
+          "act-sweep"
+        ],
+        "mustNotMatch": [],
+        "kind": "HOW_OFTEN",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "Only two entries all time: Explore says there are not enough entries yet to say how often."
+    },
+    {
+      "id": "ho-mow-lawn-july",
+      "group": "HOW_OFTEN",
+      "catalog": "household-q",
+      "question": "How often did I mow the lawn in July?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-lawn"
+        ],
+        "actionIds": [
+          "act-mow"
+        ],
+        "mustNotMatch": [],
+        "kind": "HOW_OFTEN",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-07-01",
+          "to": "2026-07-31"
+        },
+        "dateWords": "USED"
+      },
+      "note": "Date words on a how-often question set the range chip; the gap itself is an all-time measure."
+    },
+    {
+      "id": "ho-chlorine-regularly",
+      "group": "HOW_OFTEN",
+      "catalog": "household-q",
+      "question": "How regularly do I add chlorine to the hot tub?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-hot-tub"
+        ],
+        "actionIds": [
+          "act-add-chlorine"
+        ],
+        "mustNotMatch": [],
+        "kind": "HOW_OFTEN",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      }
+    },
+    {
+      "id": "li-show-me-car",
+      "group": "LIST",
+      "catalog": "household-q",
+      "question": "Show me everything I did to the car",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-car"
+        ],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "LIST",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "No question mark; \"show\" makes it a question."
+    },
+    {
+      "id": "li-what-to-furnace",
+      "group": "LIST",
+      "catalog": "household-q",
+      "question": "What did I do to the furnace?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-furnace"
+        ],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "LIST",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      }
+    },
+    {
+      "id": "li-list-fertilized-lawn",
+      "group": "LIST",
+      "catalog": "household-q",
+      "question": "List the times I fertilized the lawn",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-lawn"
+        ],
+        "actionIds": [
+          "act-fertilize"
+        ],
+        "mustNotMatch": [],
+        "kind": "LIST",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "No question mark; \"list\" makes it a question."
+    },
+    {
+      "id": "li-grill-this-year",
+      "group": "LIST",
+      "catalog": "household-q",
+      "question": "What have I done with the grill this year?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-grill"
+        ],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "LIST",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-01-01",
+          "to": "2026-10-05"
+        },
+        "dateWords": "USED"
+      }
+    },
+    {
+      "id": "do-last-week",
+      "group": "DATE_ONLY",
+      "catalog": "household-q",
+      "question": "What did I do last week?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "BROWSE",
+        "subjectIds": [],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "LIST",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-09-27",
+          "to": "2026-10-03"
+        },
+        "dateWords": "USED"
+      },
+      "note": "Previous calendar week, Sunday to Saturday (the case's weeks start on Sunday)."
+    },
+    {
+      "id": "do-yesterday",
+      "group": "DATE_ONLY",
+      "catalog": "household-q",
+      "question": "What did I do yesterday?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "BROWSE",
+        "subjectIds": [],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "LIST",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-10-04",
+          "to": "2026-10-04"
+        },
+        "dateWords": "USED"
+      }
+    },
+    {
+      "id": "do-show-september",
+      "group": "DATE_ONLY",
+      "catalog": "household-q",
+      "question": "Show me what I did in September",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "BROWSE",
+        "subjectIds": [],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "LIST",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-09-01",
+          "to": "2026-09-30"
+        },
+        "dateWords": "USED"
+      }
+    },
+    {
+      "id": "do-this-month",
+      "group": "DATE_ONLY",
+      "catalog": "household-q",
+      "question": "What did I get done this month?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "BROWSE",
+        "subjectIds": [],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "LIST",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-10-01",
+          "to": "2026-10-05"
+        },
+        "dateWords": "USED"
+      }
+    },
+    {
+      "id": "do-around-the-holidays",
+      "group": "DATE_ONLY",
+      "catalog": "household-q",
+      "question": "What did I do around the holidays?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "BROWSE",
+        "subjectIds": [],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "LIST",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NOT_UNDERSTOOD"
+      },
+      "note": "No rule understands the date words: a list question browses all time with the note."
+    },
+    {
+      "id": "nl-cleaned-gutters",
+      "group": "NOT_LOGGED",
+      "catalog": "household-q",
+      "question": "When was the last time I cleaned the gutters?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "NOT_ENOUGH_HISTORY",
+        "subjectIds": [],
+        "actionIds": [],
+        "mustNotMatch": [
+          "subj-grill",
+          "subj-windows",
+          "act-clean"
+        ],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "Gutters were never logged; answering with the grill or the windows (also cleaned) would be wrong."
+    },
+    {
+      "id": "nl-wash-boat",
+      "group": "NOT_LOGGED",
+      "catalog": "household-q",
+      "question": "When did I last wash the boat?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "NOT_ENOUGH_HISTORY",
+        "subjectIds": [],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      }
+    },
+    {
+      "id": "nl-paint",
+      "group": "NOT_LOGGED",
+      "catalog": "household-q",
+      "question": "When did I last paint?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "NOT_ENOUGH_HISTORY",
+        "subjectIds": [],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      }
+    },
+    {
+      "id": "nl-ever-cleaned-pool",
+      "group": "NOT_LOGGED",
+      "catalog": "household-q",
+      "question": "Have I ever cleaned the pool?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "NOT_ENOUGH_HISTORY",
+        "subjectIds": [],
+        "actionIds": [],
+        "mustNotMatch": [
+          "subj-grill",
+          "subj-windows",
+          "act-clean"
+        ],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      }
+    },
+    {
+      "id": "nl-empty-mow-lawn",
+      "group": "NOT_LOGGED",
+      "catalog": "empty",
+      "question": "When did I last mow the lawn?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "NOT_ENOUGH_HISTORY",
+        "subjectIds": [],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "Nothing is logged at all."
+    },
+    {
+      "id": "nl-empty-this-week",
+      "group": "NOT_LOGGED",
+      "catalog": "empty",
+      "question": "What did I do this week?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "NOT_ENOUGH_HISTORY",
+        "subjectIds": [],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "LIST",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-10-04",
+          "to": "2026-10-05"
+        },
+        "dateWords": "USED"
+      },
+      "note": "Nothing is logged at all, so there is nothing to browse."
+    },
+    {
+      "id": "nl-empty-how-often-chlorine",
+      "group": "NOT_LOGGED",
+      "catalog": "empty",
+      "question": "How often do I add chlorine to the hot tub?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "NOT_ENOUGH_HISTORY",
+        "subjectIds": [],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "HOW_OFTEN",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "Nothing is logged at all."
+    },
+    {
+      "id": "tr-future-next-week",
+      "group": "TRICKY",
+      "catalog": "household-q",
+      "question": "How many times will I walk the dogs next week?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "NOT_ENOUGH_HISTORY",
+        "subjectIds": [],
+        "actionIds": [],
+        "mustNotMatch": [],
+        "kind": "COUNT",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "USED"
+      },
+      "note": "A window after today is never answered."
+    },
+    {
+      "id": "tr-windows-around-the-holidays",
+      "group": "TRICKY",
+      "catalog": "household-q",
+      "question": "How many times did I clean the windows around the holidays?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-windows"
+        ],
+        "actionIds": [
+          "act-clean"
+        ],
+        "mustNotMatch": [],
+        "kind": "COUNT",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NOT_UNDERSTOOD"
+      },
+      "note": "No rule understands the date words: all time, with the dates-not-understood note."
+    },
+    {
+      "id": "tr-did-ever-clean-grill",
+      "group": "TRICKY",
+      "catalog": "household-q",
+      "question": "Did I ever clean the grill?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-grill"
+        ],
+        "actionIds": [
+          "act-clean"
+        ],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      }
+    },
+    {
+      "id": "tr-have-ever-cleaned-windows",
+      "group": "TRICKY",
+      "catalog": "household-q",
+      "question": "Have I ever cleaned the windows?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-windows"
+        ],
+        "actionIds": [
+          "act-clean"
+        ],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      }
+    },
+    {
+      "id": "tr-replaced-furnace-filter",
+      "group": "TRICKY",
+      "catalog": "household-q",
+      "question": "Have I ever replaced the furnace filter?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-furnace"
+        ],
+        "actionIds": [
+          "act-change-filter"
+        ],
+        "mustNotMatch": [
+          "act-change-oil"
+        ],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "\"replace filter\" is not a tag; its closest match is Change filter (answered as the closest match)."
+    },
+    {
+      "id": "tr-truck-alias-oil",
+      "group": "TRICKY",
+      "catalog": "household-q",
+      "question": "Did I ever change the oil in the truck?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-car"
+        ],
+        "actionIds": [
+          "act-change-oil"
+        ],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "\"truck\" is an alias of the Car subject."
+    },
+    {
+      "id": "tr-grass-synonym",
+      "group": "TRICKY",
+      "catalog": "household-q",
+      "question": "When did I last mow the grass?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-lawn"
+        ],
+        "actionIds": [
+          "act-mow"
+        ],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "\"grass\" is not a tag; Lawn is its closest match (answered as the closest match)."
+    },
+    {
+      "id": "tr-clean-shared-action",
+      "group": "TRICKY",
+      "catalog": "household-q",
+      "question": "When did I last clean something?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [],
+        "actionIds": [
+          "act-clean"
+        ],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "Clean is logged on two subjects (grill and windows); no subject is named, so none may be set."
+    },
+    {
+      "id": "tr-no-question-mark-chlorine",
+      "group": "TRICKY",
+      "catalog": "household-q",
+      "question": "when did i last add chlorine to the hot tub",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-hot-tub"
+        ],
+        "actionIds": [
+          "act-add-chlorine"
+        ],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [],
+        "range": {
+          "preset": "ALL_TIME"
+        },
+        "dateWords": "NONE"
+      },
+      "note": "No question mark, all lower case."
+    },
+    {
+      "id": "tr-no-question-mark-yard-count",
+      "group": "TRICKY",
+      "catalog": "household-q",
+      "question": "how many times did I mow the yard this year",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-lawn"
+        ],
+        "actionIds": [
+          "act-mow"
+        ],
+        "mustNotMatch": [],
+        "kind": "COUNT",
+        "allowedKinds": [],
+        "range": {
+          "from": "2026-01-01",
+          "to": "2026-10-05"
+        },
+        "dateWords": "USED"
+      },
+      "note": "No question mark; \"yard\" is an alias."
+    },
+    {
+      "id": "tr-did-mow-yesterday",
+      "group": "TRICKY",
+      "catalog": "household-q",
+      "question": "Did I mow the lawn yesterday?",
+      "today": "2026-10-05",
+      "zoneId": "America/Detroit",
+      "firstDayOfWeek": "SUNDAY",
+      "expected": {
+        "outcome": "ANSWER",
+        "subjectIds": [
+          "subj-lawn"
+        ],
+        "actionIds": [
+          "act-mow"
+        ],
+        "mustNotMatch": [],
+        "kind": "LAST_TIME",
+        "allowedKinds": [
+          "COUNT",
+          "UNKNOWN"
+        ],
+        "range": {
+          "from": "2026-10-04",
+          "to": "2026-10-04"
+        },
+        "dateWords": "USED"
+      },
+      "note": "No text rule decides the kind; with understood date words Explore answers with a count for any kind but how-often."
+    }
+  ]
+}

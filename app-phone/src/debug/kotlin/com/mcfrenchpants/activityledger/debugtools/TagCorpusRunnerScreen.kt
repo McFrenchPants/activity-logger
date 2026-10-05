@@ -22,9 +22,19 @@ import com.mcfrenchpants.activityledger.R
 import com.mcfrenchpants.activityledger.core.ai.ModelReadiness
 
 /*
- * DEBUG BUILD ONLY. The "AI test set" screen. Shows numbers and fixed wording only: never a corpus
- * sentence, a prompt or anything the model returned (AGENTS.md #11).
+ * DEBUG BUILD ONLY. The "AI test set" screen, with two sets: the logging set (tag corpus) and the
+ * question set (question corpus). Shows numbers and fixed wording only: never a corpus sentence or
+ * question, a prompt or anything the model returned (AGENTS.md #11).
  */
+
+/** Which test set a run records. */
+enum class CorpusSet {
+    /** The tag corpus (logging sentences): `tag-corpus/tag-device-recording.json`. */
+    LOGGING,
+
+    /** The question corpus: `question-corpus/question-device-recording.json`. */
+    QUESTIONS,
+}
 
 /** Numbers-only summary of a finished run. */
 data class RunSummary(
@@ -36,7 +46,7 @@ data class RunSummary(
     val medianLatencyMs: Long,
 )
 
-/** Where the runner screen is. */
+/** Where the runner screen is. Running, Stopped, Finished and Failed are about [RunnerUiState.activeSet]. */
 sealed interface RunnerPhase {
     /** Asking the on-device model whether it is ready (never downloads). */
     data object Checking : RunnerPhase
@@ -60,25 +70,45 @@ sealed interface RunnerPhase {
     data object Failed : RunnerPhase
 }
 
-/** Everything the screen shows. [hasSavedFile]: a previous result file exists and can be shared. */
+/**
+ * Everything the screen shows.
+ *
+ * @property hasSavedFile A logging-set result file exists and can be shared.
+ * @property hasSavedQuestionFile A question-set result file exists and can be shared.
+ * @property activeSet The set the current or last run is about (only one run at a time).
+ */
 data class RunnerUiState(
     val phase: RunnerPhase,
     val hasSavedFile: Boolean,
+    val hasSavedQuestionFile: Boolean = false,
+    val activeSet: CorpusSet = CorpusSet.LOGGING,
 ) {
-    /** Run is possible only when the model was found ready and nothing is running. */
+    /** Either Run is possible only when the model was found ready and nothing is running. */
     val runEnabled: Boolean
         get() = when (phase) {
             RunnerPhase.Ready, RunnerPhase.Stopped, RunnerPhase.Failed, is RunnerPhase.Finished -> true
             RunnerPhase.Checking, is RunnerPhase.NotReady, is RunnerPhase.Running -> false
         }
 
-    /** Share is offered whenever a result file exists and no run is overwriting it. */
+    /** Share (logging set) is offered whenever its result file exists and no run is going. */
     val shareEnabled: Boolean
         get() = hasSavedFile && phase !is RunnerPhase.Running
+
+    /** Share (question set) is offered whenever its result file exists and no run is going. */
+    val questionShareEnabled: Boolean
+        get() = hasSavedQuestionFile && phase !is RunnerPhase.Running
+
+    /** True when a result file of [set] exists. */
+    fun hasSavedFileOf(set: CorpusSet): Boolean = when (set) {
+        CorpusSet.LOGGING -> hasSavedFile
+        CorpusSet.QUESTIONS -> hasSavedQuestionFile
+    }
 }
 
 internal const val TAG_RUN_BUTTON = "TagCorpusRunner:Run"
+internal const val TAG_RUN_QUESTIONS_BUTTON = "TagCorpusRunner:RunQuestions"
 internal const val TAG_SHARE_BUTTON = "TagCorpusRunner:Share"
+internal const val TAG_SHARE_QUESTIONS_BUTTON = "TagCorpusRunner:ShareQuestions"
 internal const val TAG_CLOSE_BUTTON = "TagCorpusRunner:Close"
 internal const val TAG_STATUS = "TagCorpusRunner:Status"
 
@@ -88,6 +118,8 @@ fun TagCorpusRunnerScreen(
     onRun: () -> Unit,
     onShare: () -> Unit,
     onClose: () -> Unit,
+    onRunQuestions: () -> Unit = {},
+    onShareQuestions: () -> Unit = {},
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -106,22 +138,41 @@ fun TagCorpusRunnerScreen(
                 text = stringResource(R.string.debugtools_runner_intro),
                 style = MaterialTheme.typography.bodyMedium,
             )
+            if (state.phase.isAboutARun()) {
+                Text(
+                    text = stringResource(setName(state.activeSet)),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
             Text(
-                text = statusText(state.phase),
+                text = statusText(state.phase, state.activeSet),
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.testTag(TAG_STATUS),
             )
             if (state.phase is RunnerPhase.Running) {
                 Text(
-                    text = stringResource(R.string.debugtools_runner_keep_open),
+                    text = stringResource(
+                        when (state.activeSet) {
+                            CorpusSet.LOGGING -> R.string.debugtools_runner_keep_open
+                            CorpusSet.QUESTIONS -> R.string.debugtools_runner_keep_open_questions
+                        },
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
-            if (state.hasSavedFile && state.phase !is RunnerPhase.Finished && state.phase !is RunnerPhase.Running) {
-                Text(
-                    text = stringResource(R.string.debugtools_runner_previous_file),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+            CorpusSet.entries.forEach { set ->
+                val justFinished = state.phase is RunnerPhase.Finished && state.activeSet == set
+                if (state.hasSavedFileOf(set) && !justFinished && state.phase !is RunnerPhase.Running) {
+                    Text(
+                        text = stringResource(
+                            when (set) {
+                                CorpusSet.LOGGING -> R.string.debugtools_runner_previous_file
+                                CorpusSet.QUESTIONS -> R.string.debugtools_runner_previous_question_file
+                            },
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
             }
             Button(
                 onClick = onRun,
@@ -131,11 +182,25 @@ fun TagCorpusRunnerScreen(
                 Text(stringResource(R.string.debugtools_runner_run))
             }
             Button(
+                onClick = onRunQuestions,
+                enabled = state.runEnabled,
+                modifier = Modifier.fillMaxWidth().testTag(TAG_RUN_QUESTIONS_BUTTON),
+            ) {
+                Text(stringResource(R.string.debugtools_runner_run_questions))
+            }
+            Button(
                 onClick = onShare,
                 enabled = state.shareEnabled,
                 modifier = Modifier.fillMaxWidth().testTag(TAG_SHARE_BUTTON),
             ) {
                 Text(stringResource(R.string.debugtools_runner_share))
+            }
+            Button(
+                onClick = onShareQuestions,
+                enabled = state.questionShareEnabled,
+                modifier = Modifier.fillMaxWidth().testTag(TAG_SHARE_QUESTIONS_BUTTON),
+            ) {
+                Text(stringResource(R.string.debugtools_runner_share_questions))
             }
             OutlinedButton(
                 onClick = onClose,
@@ -147,8 +212,17 @@ fun TagCorpusRunnerScreen(
     }
 }
 
+/** True for the phases that describe a run of [RunnerUiState.activeSet]. */
+private fun RunnerPhase.isAboutARun(): Boolean =
+    this is RunnerPhase.Running || this is RunnerPhase.Finished || this == RunnerPhase.Stopped || this == RunnerPhase.Failed
+
+private fun setName(set: CorpusSet): Int = when (set) {
+    CorpusSet.LOGGING -> R.string.debugtools_runner_set_logging
+    CorpusSet.QUESTIONS -> R.string.debugtools_runner_set_questions
+}
+
 @Composable
-private fun statusText(phase: RunnerPhase): String = when (phase) {
+private fun statusText(phase: RunnerPhase, set: CorpusSet): String = when (phase) {
     RunnerPhase.Checking -> stringResource(R.string.debugtools_runner_checking)
     is RunnerPhase.NotReady -> stringResource(notReadyText(phase.readiness))
     RunnerPhase.Ready -> stringResource(R.string.debugtools_runner_ready)
@@ -159,7 +233,10 @@ private fun statusText(phase: RunnerPhase): String = when (phase) {
         val s = phase.summary
         val totalSeconds = s.elapsedMs / 1000
         stringResource(
-            R.string.debugtools_runner_finished,
+            when (set) {
+                CorpusSet.LOGGING -> R.string.debugtools_runner_finished
+                CorpusSet.QUESTIONS -> R.string.debugtools_runner_finished_questions
+            },
             s.answered,
             s.total,
             s.failed,

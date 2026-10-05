@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     DEBUG BUILD ONLY (merged into the main manifest for debug builds; the release build never sees
-    this file). Adds the owner's "AI test set" runner (TG1.4a): a second launcher entry that records
-    the tag corpus through the on-device model without a PC, and the FileProvider it shares the
-    result file through. No permission is added; INTERNET stays removed by the main manifest.
+    this file). Adds the owner's "AI test set" runner (TG1.4a, question set DH4.4): a second launcher
+    entry that records the tag corpus (logging set) or the question corpus (question set) through the
+    on-device model without a PC, and the FileProvider it shares the result files through. No
+    permission is added; INTERNET stays removed by the main manifest.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -28,7 +29,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Shares only <filesDir>/tag-corpus/ (res/xml/debugtools_file_paths.xml), read-only, by grant. -->
+        <!-- Shares only <filesDir>/tag-corpus/ and <filesDir>/question-corpus/ (res/xml/debugtools_file_paths.xml), read-only, by grant. -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.debugtools.fileprovider"

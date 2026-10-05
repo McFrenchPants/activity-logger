@@ -1,5 +1,6 @@
 package com.mcfrenchpants.activityledger.core.ai
 
+import com.mcfrenchpants.activityledger.core.testing.corpus.QuestionCorpus
 import com.mcfrenchpants.activityledger.core.testing.corpus.SemanticCorpus
 import com.mcfrenchpants.activityledger.core.testing.corpus.TagCorpus
 import kotlin.test.Test
@@ -85,10 +86,12 @@ class QuestionPromptTest {
     }
 
     @Test
-    fun `no corpus sentence appears in the prompt or system instruction`() {
+    fun `no corpus sentence or corpus question appears in the prompt or system instruction`() {
         val sentences = TagCorpus.load().cases.map { it.id to it.rawText } +
-            SemanticCorpus.load().cases.map { it.id to it.rawText }
+            SemanticCorpus.load().cases.map { it.id to it.rawText } +
+            QuestionCorpus.load().cases.map { it.id to it.question }
         assertTrue(sentences.size > 100)
+        assertTrue(sentences.count { (id, _) -> QuestionCorpus.load().case(id) != null } >= 40)
         val texts = mapOf(
             "prompt" to buildQuestionPrompt(question).lowercase(),
             "system instruction" to QUESTION_SYSTEM_INSTRUCTION.lowercase(),

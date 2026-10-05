@@ -24,6 +24,13 @@ import java.time.LocalDate
  * carried by [QuestionScope]. The kind comes from fixed text rules first ([QuestionKindDetector]);
  * the model's date words count only when they occur in the question and are turned into dates
  * only by [TemporalRangeResolver]. The model still never produces a date, a count or an answer.
+ *
+ * Before any of that, the model's words are cleaned up by fixed rules ([QuestionWords], DH4.5):
+ * last-time phrasing ("last", "ever") is not a date; placeholder subjects ("I", "something"),
+ * subjects made only of the date words and generic actions ("do", "get done") are dropped unless
+ * they are exactly a tag; an untagged subject re-joins its action ("add" + "chlorine") and a
+ * two-part subject re-splits ("furnace filter" + "change" -> "furnace" + "change filter") only
+ * when the result is an existing tag. The rules only drop or recombine the user's own words.
  */
 
 /**
@@ -131,14 +138,18 @@ sealed interface LookupOutcome {
  * is pure: today and the first day of the week are passed in, never read from a clock.
  *
  * Order: blank or not a question -> [LookupOutcome.NotAQuestion] (no extractor or repository
- * call); extract the words (failures map to Unavailable / Busy / Failed); work out the
- * [QuestionScope] -- the kind ([QuestionKindDetector] first, then the model's kind, else UNKNOWN)
- * and the range (the model's date words only if they occur in the question, resolved by
- * [TemporalRangeResolver]; no words -> all time / NONE, not understood -> all time /
- * NOT_UNDERSTOOD, a window after today -> NotEnoughHistory); resolve subject and action words with
- * [TagResolver] against the catalog (a named subject that matches no tag -> NotEnoughHistory, never
+ * call); extract the words (failures map to Unavailable / Busy / Failed); drop last-time-only
+ * date words ([QuestionWords] rule 1); work out the [QuestionScope] -- the kind
+ * ([QuestionKindDetector] first, then the model's kind, else UNKNOWN) and the range (the
+ * remaining date words only if they occur in the question, resolved by [TemporalRangeResolver];
+ * no words -> all time / NONE, not understood -> all time / NOT_UNDERSTOOD, a window after today
+ * -> NotEnoughHistory); load the catalog and clean the subject and action words
+ * ([QuestionWords.clean] rules 2-6: placeholder subject, subject made of date words, generic
+ * action, re-join, re-split -- these never affect the scope, so running them after it is the same
+ * as running them before); resolve the cleaned subject and action words with [TagResolver]
+ * against the catalog (a named subject that matches no tag -> NotEnoughHistory, never
  * another subject's entries); build the target with [LookupTarget.fromResolutions] (none ->
- * [LookupOutcome.Browse] when no subject and no action were named and the date words were used or
+ * [LookupOutcome.Browse] when no subject and no action remain after the clean-up and the date words were used or
  * the kind is LIST and at least one entry is logged, otherwise NotEnoughHistory); load entries
  * (none -> NotEnoughHistory); rank with [HistoryLookup.rank] (nothing -> NotEnoughHistory);
  * otherwise [LookupOutcome.Answer].
@@ -156,7 +167,7 @@ class LookupService(
     suspend fun ask(questionText: String, today: LocalDate, firstDayOfWeek: DayOfWeek): LookupOutcome {
         if (questionText.isBlank() || !QuestionDetector.isQuestion(questionText)) return LookupOutcome.NotAQuestion
 
-        val candidate = when (val extraction = extractor.extract(questionText)) {
+        val extracted = when (val extraction = extractor.extract(questionText)) {
             is QuestionExtractionResult.Success -> extraction.candidate
             is QuestionExtractionResult.Failure -> return when (extraction.kind) {
                 InterpreterFailureKind.UNAVAILABLE -> LookupOutcome.Unavailable
@@ -165,10 +176,14 @@ class LookupService(
             }
         }
 
-        val scope = scopeOf(questionText, candidate, today, firstDayOfWeek)
+        // Rule 1 of the clean-up needs no catalog, so a window after today still touches no tags.
+        val dated = QuestionWords.withoutLastTimeDateWords(extracted)
+        val scope = scopeOf(questionText, dated, today, firstDayOfWeek)
             ?: return LookupOutcome.NotEnoughHistory
 
         val catalog = repository.loadTagCatalog()
+        // Rules 2-6 only change the subject and action, which the scope never reads.
+        val candidate = QuestionWords.clean(questionText, dated, catalog)
         val subject = TagResolver.resolve(candidate.subject, TagKind.SUBJECT, catalog)
         val action = TagResolver.resolve(candidate.action, TagKind.ACTION, catalog)
         // A subject that was named but matches nothing logged means there is no history for what the

@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    DEBUG BUILD ONLY. The only files the runner's FileProvider can share: <filesDir>/tag-corpus/,
-    which holds just the tag corpus result file. Nothing else in the app is reachable through it.
+    DEBUG BUILD ONLY. The only files the runner's FileProvider can share: <filesDir>/tag-corpus/
+    (just the logging set result file) and <filesDir>/question-corpus/ (just the question set
+    result file). Nothing else in the app is reachable through it.
 -->
 <paths>
     <files-path name="tag_corpus" path="tag-corpus/" />
+    <files-path name="question_corpus" path="question-corpus/" />
 </paths>

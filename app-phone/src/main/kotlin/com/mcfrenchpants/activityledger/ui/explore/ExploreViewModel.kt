@@ -57,9 +57,9 @@ import java.util.Locale
  *   earlier request never overwrites a newer one.
  * - A question only sets filter chips from [LookupOutcome.Answer] (tag ids of the target, the
  *   range its date words resolved to, All time when none, plan P2) or [LookupOutcome.Browse]
- *   (range only). The answer line is a last-time fact from the best entry, or a count / typical
- *   gap taken from the [ExploreCalculator] summary of the new filters; failure outcomes leave the
- *   filters unchanged. The model never produces a count, a date or answer text.
+ *   (range only). The answer line is a last-time fact from the best entry, a count taken from the
+ *   [ExploreCalculator] summary of the new filters, or a typical gap taken from an all-time summary
+ *   of the same tags; failure outcomes leave the filters unchanged. The model never produces a count, a date or answer text.
  * - One question at a time; a clear or a filter change while a question is pending drops its
  *   late answer.
  * - Voice follows the Log view model: one session at a time identified by a token; the final
@@ -470,8 +470,17 @@ class ExploreViewModel(
         recompute()
     }
 
-    /** Builds a Count / HowOften answer from the summary computed for the question's filter. */
-    private fun answerFor(pending: PendingQuestion, summary: ExploreSummary, filter: ExploreFilter): ExploreAnswer =
+    /**
+     * Builds a Count / HowOften answer: a count from [summary] (the question's filter), a how-often
+     * answer from [allTimeSummary] (the same tags over all time; [summary] itself when the
+     * question's range already is all time).
+     */
+    private fun answerFor(
+        pending: PendingQuestion,
+        summary: ExploreSummary,
+        allTimeSummary: ExploreSummary,
+        filter: ExploreFilter,
+    ): ExploreAnswer =
         when (pending.kind) {
             PendingKind.COUNT -> ExploreAnswer.Count(
                 subjectName = pending.subjectName,
@@ -482,51 +491,41 @@ class ExploreViewModel(
                 closestMatch = pending.closestMatch,
                 datesNotUnderstood = pending.datesNotUnderstood,
             )
-            PendingKind.HOW_OFTEN -> howOften(pending, summary, filter)
+            PendingKind.HOW_OFTEN -> howOften(pending, allTimeSummary)
         }
 
     /**
-     * The "how often" answer from the summary (the calculator only gives a typical gap for one
-     * activity):
-     * 1. Scope ONE_ACTIVITY: the summary's gap and the in-scope all-time count.
+     * The "how often" answer from [allTime], a summary of the question's tags over ALL TIME (the
+     * calculator only gives a typical gap for one activity):
+     * 1. Scope ONE_ACTIVITY: the summary's gap and its all-time count.
      * 2. Any other scope with exactly one activity row: that row's gap and all-time count.
      * 3. Several activity rows: no gap; [ExploreAnswer.HowOften.activityCount] says how many, so
      *    the user picks one from the Activities view.
-     * Activity rows only cover activities with entries in the period. A how-often question without
-     * date words has the all-time range, so the rows are complete; with date words the rows (and
-     * [entriesAllTime]'s fallback) only see activities logged in that range.
+     * The typical gap is an all-time measure, so date words in the question never narrow it: the
+     * gap, the all-time count, the activity count and the last time all come from [allTime], even
+     * when nothing was logged in the question's range. The chips and the rest of the screen keep
+     * the question's range.
      */
-    private fun howOften(pending: PendingQuestion, summary: ExploreSummary, filter: ExploreFilter): ExploreAnswer.HowOften {
-        val rows = summary.activities
+    private fun howOften(pending: PendingQuestion, allTime: ExploreSummary): ExploreAnswer.HowOften {
+        val rows = allTime.activities
         val single = rows.singleOrNull()
         val (gap, entries, activityCount) = when {
-            summary.scopeKind == ScopeKind.ONE_ACTIVITY -> Triple(summary.typicalGap, entriesAllTime(summary, filter), 1)
+            allTime.scopeKind == ScopeKind.ONE_ACTIVITY -> Triple(allTime.typicalGap, allTime.entriesInPeriod, 1)
             single != null -> Triple(single.typicalGap, single.entriesAllTime, 1)
-            rows.size > 1 -> Triple(null, entriesAllTime(summary, filter), rows.size)
-            else -> Triple(null, entriesAllTime(summary, filter), 1)
+            rows.size > 1 -> Triple(null, allTime.entriesInPeriod, rows.size)
+            else -> Triple(null, allTime.entriesInPeriod, 1)
         }
         return ExploreAnswer.HowOften(
             subjectName = pending.subjectName,
             actionName = pending.actionName,
             typicalGap = gap,
             entriesAllTime = entries,
-            lastTime = summary.lastTime,
+            lastTime = allTime.lastTime,
             closestMatch = pending.closestMatch,
             datesNotUnderstood = pending.datesNotUnderstood,
             activityCount = activityCount,
         )
     }
-
-    /**
-     * Matching entries over all time, from the summary: with an all-time range that is the period
-     * count; otherwise the all-time counts of the activities seen in the period.
-     */
-    private fun entriesAllTime(summary: ExploreSummary, filter: ExploreFilter): Int =
-        if (filter.range == DateRangeSelection.Preset(DateRangePreset.ALL_TIME)) {
-            summary.entriesInPeriod
-        } else {
-            summary.activities.sumOf { it.entriesAllTime }
-        }
 
     /**
      * Applies a filter the user chose (chip, suggestion, drill-down, back): drops a pending
@@ -557,23 +556,31 @@ class ExploreViewModel(
         val all = entries ?: return
         val seq = ++computeSeq
         val request = _state.value
+        // A how-often answer measures the gap over all time (the counting rules' typical gap is an
+        // all-time measure), so it needs a second summary of the same tags with the All time range
+        // when the question narrowed the dates; the chips and the screen keep the question's range.
+        val howOftenFilter = pendingQuestion
+            ?.takeIf { it.kind == PendingKind.HOW_OFTEN && request.filter.range != ALL_TIME }
+            ?.let { request.filter.copy(range = ALL_TIME) }
         _state.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             val zone = zoneProvider()
             val firstDay = firstDayOfWeekProvider()
             val now = clock.instant()
-            val summary = try {
+            fun summaryOf(filter: ExploreFilter) = ExploreCalculator.calculate(
+                entries = all,
+                filter = filter,
+                zone = zone,
+                now = now,
+                firstDayOfWeek = firstDay,
+                activitySort = request.activitySort,
+                entrySort = request.entrySort,
+                groupBySubject = request.groupBySubject,
+            )
+            val (summary, allTimeSummary) = try {
                 withContext(computeDispatcher) {
-                    ExploreCalculator.calculate(
-                        entries = all,
-                        filter = request.filter,
-                        zone = zone,
-                        now = now,
-                        firstDayOfWeek = firstDay,
-                        activitySort = request.activitySort,
-                        entrySort = request.entrySort,
-                        groupBySubject = request.groupBySubject,
-                    )
+                    val shown = summaryOf(request.filter)
+                    shown to (howOftenFilter?.let(::summaryOf) ?: shown)
                 }
             } catch (cancellation: CancellationException) {
                 throw cancellation
@@ -588,7 +595,7 @@ class ExploreViewModel(
             // A how-often answer over several activities shows the Activities view to pick one from.
             var pickView: ExploreView? = null
             pendingQuestion?.let { pending ->
-                val built = answerFor(pending, summary, request.filter)
+                val built = answerFor(pending, summary, allTimeSummary, request.filter)
                 if (built is ExploreAnswer.HowOften && built.activityCount > 1) pickView = ExploreView.ACTIVITIES
                 questionAnswer = built
                 pendingQuestion = null
@@ -730,5 +737,6 @@ class ExploreViewModel(
 
     private companion object {
         const val MAX_TAG_SUGGESTIONS = 5
+        val ALL_TIME: DateRangeSelection = DateRangeSelection.Preset(DateRangePreset.ALL_TIME)
     }
 }

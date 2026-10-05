@@ -1,27 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    DEBUG BUILD ONLY: strings for the "AI test set" runner (debugtools.TagCorpusRunnerActivity).
-    Fixed wording and numbers only; nothing here ever includes a test sentence or model output.
+    DEBUG BUILD ONLY: strings for the "AI test set" runner (debugtools.TagCorpusRunnerActivity), with
+    its two sets: the logging set (tag corpus) and the question set (question corpus). Fixed wording
+    and numbers only; nothing here ever includes a test sentence, a test question or model output.
 -->
 <resources>
     <string name="debugtools_runner_label">AI test set</string>
     <string name="debugtools_runner_title">AI test set</string>
-    <string name="debugtools_runner_intro">Runs the 72 test sentences through this phone\'s on-device AI and saves the answers to a file you can share. Test build only.</string>
+    <string name="debugtools_runner_intro">Runs a test set through this phone\'s on-device AI and saves the answers to a file you can share: the logging set (72 test sentences) or the question set (46 test questions). Test build only.</string>
     <string name="debugtools_runner_checking">Checking the on-device AI…</string>
-    <string name="debugtools_runner_ready">The on-device AI is ready. Tap Run to start.</string>
+    <string name="debugtools_runner_ready">The on-device AI is ready. Tap a Run button to start.</string>
     <string name="debugtools_runner_not_installed">The on-device AI model is not installed on this phone. This screen never downloads it, so it cannot run.</string>
     <string name="debugtools_runner_downloading">The on-device AI model is still downloading. Close this screen and try again later.</string>
     <string name="debugtools_runner_unsupported">This phone cannot run the on-device AI model.</string>
     <string name="debugtools_runner_no_structured_output">This phone\'s on-device AI cannot give the structured answers the test needs.</string>
     <string name="debugtools_runner_check_failed">Could not check the on-device AI. Close this screen and open it again to retry.</string>
+    <string name="debugtools_runner_set_logging">Logging set</string>
+    <string name="debugtools_runner_set_questions">Question set</string>
     <string name="debugtools_runner_progress">%1$d of %2$d</string>
     <string name="debugtools_runner_keep_open">Keep this screen open and the phone unlocked. Takes about 8-10 minutes.</string>
+    <string name="debugtools_runner_keep_open_questions">Keep this screen open and the phone unlocked. Takes about 4-5 minutes.</string>
     <string name="debugtools_runner_stopped">The run stopped because the screen was left or the phone locked. The AI only answers while this screen is in front. Tap Run to start again from the beginning.</string>
     <string name="debugtools_runner_failed">The run did not finish, so no new file was saved. Tap Run to try again.</string>
     <string name="debugtools_runner_finished">Done. Answered %1$d of %2$d. Failed: %3$d. Busy retries: %4$d. Time: %5$d min %6$d s (median %7$.1f s per sentence). Tap Share and pick Save to Drive.</string>
-    <string name="debugtools_runner_previous_file">A result file from an earlier run is saved. You can share it again.</string>
-    <string name="debugtools_runner_run">Run</string>
-    <string name="debugtools_runner_share">Share result file</string>
+    <string name="debugtools_runner_finished_questions">Done. Answered %1$d of %2$d. Failed: %3$d. Busy retries: %4$d. Time: %5$d min %6$d s (median %7$.1f s per question). Tap Share question set file and pick Save to Drive.</string>
+    <string name="debugtools_runner_previous_file">A logging set result file from an earlier run is saved. You can share it again.</string>
+    <string name="debugtools_runner_previous_question_file">A question set result file from an earlier run is saved. You can share it again.</string>
+    <string name="debugtools_runner_run">Run logging set</string>
+    <string name="debugtools_runner_run_questions">Run question set</string>
+    <string name="debugtools_runner_share">Share logging set file</string>
+    <string name="debugtools_runner_share_questions">Share question set file</string>
     <string name="debugtools_runner_share_chooser">Share the AI test result</string>
     <string name="debugtools_runner_close">Close</string>
 </resources>
