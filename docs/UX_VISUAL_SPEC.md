@@ -45,6 +45,7 @@ See ADR-019.
   - **Ask**
 - Each top-level destination keeps its own back stack. System Back from
   History or Ask returns to Log.
+- *Update 2026-10-05:* the bar has four tabs: **Log · History · Tags · Explore**. Explore replaced Ask (ADR-053, §4.8); the Ask thread in D6 was not built.
 - *Built so far (UI1, 2026-09-19):* Log and History only. Ask is left out of
   the bar until it exists (build-guide Step 9) rather than shown disabled; the
   Settings icon is also not built yet.
@@ -229,6 +230,8 @@ short (4 s) and long (10 s) durations.
 
 ### D6 — Ask History interaction shape
 
+*Superseded 2026-10-05 by Explore (§4.8, ADR-053): there is no conversation thread; a question sets the filters and one answer line states the fact.*
+
 - A **scrollable session thread**: question bubble → answer card.
 - Answer cards state the database fact first (UX_SPEC §9 copy pattern), may
   show the previous occurrence and interval, and end with a tappable **source
@@ -331,7 +334,7 @@ moment.
 
 Canonical name; *Last logged* and *Logged n times*; "Words that mean this"
 (alias phrases in evidence style); occurrences newest first; rename action in
-top bar. No averages, streaks, or scores.
+top bar. No averages, streaks, or scores. (Explore, §4.8, does show averages and "usually every N days"; streaks and scores stay excluded everywhere.)
 
 ### 4.6 Watch
 
@@ -348,6 +351,16 @@ top bar. No averages, streaks, or scores.
 - Row: name (titleMedium), "Used with N actions/subjects", optional "Also called: a, b, c +N more" (three names at most), then two text buttons, Rename and "Merge into...", each 48 dp and labelled with the tag's name for screen readers. The three text lines are read as one item.
 - Rename is a dialog with a text field and Save / Cancel; a name already used offers "Merge them instead". Merge is a search sheet over the other tags of the same kind (no new-name row), then a confirmation dialog that names both tags, says the original words are kept and that it cannot be undone yet.
 - Messages and confirmations are polite live regions; copy uses everyday words only.
+
+### 4.8 Explore (ADR-053)
+
+- Fourth tab. Top to bottom: one search box ("Ask or search your history", mic inside), a sideways-scrolling filter row (date: Last 7 days · Last 30 days (default) · Last 12 months · All time · Custom range; Subject; Action; Words when a word search is active; each set chip has an ✕; Clear when anything differs from the default), an answer line, three numbers, one bar chart with a "Show as list" alternative, and a switch: Entries · Activities · Patterns.
+- Typing shows suggestions: matching subjects and actions (set that chip, no AI), "Search your words for '…'" and "Ask: …". Enter asks when the text looks like a question, otherwise searches words.
+- A question sets the chips (e.g. "August 2026", "Lawn", "mow") and the answer line states the database fact: count ("Lawn · Mow: 4 times in August 2026. Last: August 28 (38 days ago)."), how often ("…: usually every 7 days."), last time, plus closest-match and "couldn't tell which dates" notes when they apply. Without a question the line is a scope summary.
+- The three numbers adapt to the scope (many activities / one subject / one action / one activity, see the design spec). "Previous" period is plain text, never coloured up or down.
+- Activities rows show count in period, last time and "usually every N days" (3+ entries). Tapping a row drills down; Back restores the previous filters.
+- The screen updates by itself while open when entries are saved, edited or removed.
+- Answer and scope lines are polite live regions; chart has a content description; chips and switches are 48 dp.
 
 ## 5. Accessibility (UX_SPEC §12)
 

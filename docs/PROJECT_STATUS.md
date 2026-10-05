@@ -20,6 +20,8 @@ The semantic regression corpus (Step 5, work item SR1) is built and merged to `m
 
 Two small fixes from the corpus follow-ups (work item FX1, backlog item 14) are merged to `main` (2026-09-19): a refusal from the on-device model because it is busy is now retryable and the phone pipeline retries it twice (2 s, 4 s) before giving up (`BusyRetryInterpreter`, ADR-030 amended; the phone now uses the same retry through `BusyRetryExtractor`, ADR-050), and `TemporalResolver` resolves weekday + part-of-day phrases such as "Saturday morning" (ADR-028). The corpus has no known resolver gaps left and the regression baseline is 36 of 48 cases; the committed device recording predates that corpus edit, so it is flagged as recorded against a different corpus until the next Pixel 10 Pro recording.
 
+**Update 2026-10-05: Explore is built (work item DH1, backlog item 19, ADR-053).** The Ask tab is now **Explore**: one box for a typed or spoken question or search words, a filter row (date range, subject, action, words), an answer line, three numbers, a chart and Entries / Activities / Patterns views, including "usually every N days". Questions such as "how many times did I mow in August?", "how often do I change the oil?" and "what did I do last week?" set the filters; all numbers come from program logic. A 46-question test set recorded on the Pixel 10 Pro is replayed on every build (46 of 46 correct after deterministic clean-up of the AI's words; `docs/SEMANTIC_CORPUS.md` §13). Explore and History now refresh themselves when entries are saved. Owner checked on the Pixel: live refresh and a spoken question. Not built yet: Settings and model download, activity detail.
+
 ## Completed
 
 - Product scope defined.
