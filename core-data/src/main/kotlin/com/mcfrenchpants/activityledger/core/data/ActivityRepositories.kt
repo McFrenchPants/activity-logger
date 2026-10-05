@@ -8,6 +8,8 @@ import com.mcfrenchpants.activityledger.core.data.id.UuidV7IdFactory
 import com.mcfrenchpants.activityledger.core.data.repository.RoomActivityRepository
 import com.mcfrenchpants.activityledger.core.domain.repository.LedgerRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import java.time.Clock
 
 /**
@@ -47,3 +49,19 @@ public fun createInMemoryActivityRepository(
     clock = clock,
     dispatcher = Dispatchers.Unconfined,
 )
+
+/**
+ * Tells a screen that the ledger changed, so it can reload what it shows.
+ *
+ * For a repository made by [createActivityRepository] or [createInMemoryActivityRepository], the
+ * flow emits once each time a committed write touches any table the Explore or History screens
+ * read (captures, interpretations, occurrences, activities, subjects, actions and their aliases),
+ * as reported by the database's own change tracking. It does NOT emit when collection starts,
+ * and several writes close together may arrive as one emission -- a collector should reload, not
+ * count. For any other [LedgerRepository] (a test fake, say) the flow is empty.
+ *
+ * Read-only observation: collecting it writes nothing. Each emission is a bare [Unit] -- it never
+ * carries data, ids or the user's words. Collect it only while a screen is showing.
+ */
+public fun ledgerChanges(repository: LedgerRepository): Flow<Unit> =
+    (repository as? RoomActivityRepository)?.changes() ?: emptyFlow()

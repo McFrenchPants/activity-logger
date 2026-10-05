@@ -81,7 +81,7 @@ fun HistoryScreen(
 
     LifecycleStartEffect(viewModel) {
         viewModel.onStart()
-        onStopOrDispose { }
+        onStopOrDispose { viewModel.onStop() }
     }
 
     HistoryContent(

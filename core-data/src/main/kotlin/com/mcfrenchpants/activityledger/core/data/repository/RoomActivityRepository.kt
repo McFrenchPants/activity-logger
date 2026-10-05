@@ -51,6 +51,8 @@ import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagNormalizer
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.time.Clock
 import java.time.Instant
@@ -352,6 +354,19 @@ internal class RoomActivityRepository(
         io { writer.hideOccurrence(occurrenceId, clock.millis()) }
     }
 
+    // --- change observation ---------------------------------------------------
+
+    /**
+     * Emits [Unit] each time Room's invalidation tracker reports a committed change to any table
+     * in [OBSERVED_TABLES], with no emission on collection. Read-only: it only listens. Several
+     * writes close together may be reported as one emission. Carries no data at all -- never row
+     * contents, ids or user text.
+     */
+    internal fun changes(): Flow<Unit> =
+        database.invalidationTracker
+            .createFlow(*OBSERVED_TABLES, emitInitialState = false)
+            .map { }
+
     // --- helpers -------------------------------------------------------------
 
     private suspend fun <T> io(block: () -> T): T = withContext(dispatcher) { block() }
@@ -469,4 +484,23 @@ internal class RoomActivityRepository(
         subjectId = subjectId,
         actionId = actionId,
     )
+
+    private companion object {
+        /**
+         * Every table the Explore and History screens read: loadExploreEntries, loadTagCatalog,
+         * loadHistory and loadExtractedWordsForCapture. (corrections and activity_aliases are not
+         * read by any of them; every correction write also changes activity_occurrences or
+         * canonical_activities, which are observed.)
+         */
+        val OBSERVED_TABLES = arrayOf(
+            "activity_occurrences",
+            "raw_captures",
+            "interpretations",
+            "canonical_activities",
+            "subjects",
+            "actions",
+            "subject_aliases",
+            "action_aliases",
+        )
+    }
 }

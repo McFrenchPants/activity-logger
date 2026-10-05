@@ -1,0 +1,65 @@
+{
+  "task_id": "DH4.6",
+  "plan_revision": "dh1",
+  "objective": "Owner report (2026-10-05): after logging a few entries on the Log tab and switching to Explore, the new entries did not appear. Cause (orchestrator, from the phone DB): every capture is saved about 5 s after it is typed (the on-device model reads it in the background), and Explore/History only reload when the screen starts (Explore: LifecycleStartEffect -> ExploreViewModel.onStart; History: HistoryScreen LifecycleStartEffect -> HistoryViewModel.onStart). An entry that finishes saving after the switch, or arrives from the watch while the screen is open, is never picked up. Product decision (orchestrator): no refresh button; Explore and History update by themselves while they are on screen whenever the ledger changes.\n\nDesign (developer decision; this replaces plan decision P1 'no Flow' for these two screens):\n1. core-data: a public function in ActivityRepositories.kt, `public fun ledgerChanges(repository: LedgerRepository): Flow<Unit>`, returning, when `repository` is a RoomActivityRepository, a flow that emits once each time Room's InvalidationTracker reports a change to any of the tables Explore or History read (at least activity_occurrences, raw_captures, interpretations, canonical_activities, subjects, actions, subject_aliases, action_aliases, corrections -- check the DAO queries behind loadHistory / loadExploreEntries / loadTagCatalog and list exactly those), WITHOUT an initial emission (use `database.invalidationTracker.createFlow(..., emitInitialState = false)` or the Room 2.8 equivalent) mapped to Unit; for any other LedgerRepository it returns emptyFlow(). Expose what you need from RoomActivityRepository internally (e.g. an internal `changes()` member); do NOT add anything to core-domain (it has no coroutines dependency) and do not change the LedgerRepository interface. KDoc: read-only observation, carries no data, never user text.\n2. app-phone pipeline/CapturePipeline: a `val ledgerChanges: Flow<Unit>` built once in create() from `ledgerChanges(repository)`; constructor default emptyFlow() so existing tests compile unchanged.\n3. ExploreViewModel and HistoryViewModel gain a constructor parameter `changes: Flow<Unit> = emptyFlow()` (factories pass `pipeline.ledgerChanges`) and an `onStop()`. onStart() starts (if not already running) one collector job in viewModelScope that, for each change, waits for changes to settle (debounce about 300 ms -- a capture writes several tables in one go) and then reloads quietly: the same load as onStart but WITHOUT setting isLoading and without clearing anything -- filters, question answer (Count/HowOften facts are rebuilt from the new summary as recompute already does), drill-down/back stack, sorts, view choice, input text, suggestions, an open edit/check sheet and its draft, and any message other than the 'not loaded' one stay as they are. onStop() cancels the collector. The existing load-sequence / stale-result guards must cover the quiet reload too (a quiet reload racing a manual filter change or a question must not overwrite newer state). A failed quiet reload keeps what is shown (same as onStart's failure path; showing the existing 'not loaded' message is acceptable).\n4. ExploreScreen: the LifecycleStartEffect calls viewModel.onStop() and historyViewModel.onStop() in onStopOrDispose (besides stopListening). HistoryScreen: onStopOrDispose calls viewModel.onStop(). Explore's embedded History view model (edit sheet) may watch too or not -- your call, but the existing 'recount once the edit sheet closes' behaviour must keep working.\n5. Tests:\n   - core-data (Robolectric/in-memory Room, follow the existing core-data test setup, e.g. TestDatabases.kt / createInMemoryActivityRepository): ledgerChanges emits after an accepted tagged capture write and after a hide/correction; does not emit initially; a non-Room repository gives an empty flow.\n   - app-phone ExploreViewModelTest / HistoryViewModelTest: with a MutableSharedFlow as `changes` and a fake repository whose data changes, an emission while started reloads the summary/list (new entry counted) after the debounce; filters, question answer, drill-down and input survive; no emission handling after onStop(); a burst of emissions causes one reload; a quiet reload never sets isLoading; a quiet reload that finishes after a newer filter change does not overwrite it.\n   - Existing tests keep passing unchanged except where a constructor call needs no change thanks to the defaults.\n\nRules: read-only observation (nothing written, no schema change, no migration); no user content in logs (AGENTS.md #11); Explore never writes; the watch app is untouched.\n",
+  "non_goals": [
+    "No refresh button or pull-to-refresh.",
+    "No change to the Log or Tags screens, the watch app, core-domain or the database schema.",
+    "No change to how captures are processed or saved.",
+    "No docs edits (orchestrator)."
+  ],
+  "dependencies": [
+    "DH4.5"
+  ],
+  "read_paths": [
+    "core-domain/**",
+    "core-data/**",
+    "core-testing/**",
+    "app-phone/**",
+    "docs/proposals/explore/DESIGN_SPEC.md",
+    "AGENTS.md",
+    "gradle/**",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/ActivityRepositories.kt",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/repository/RoomActivityRepository.kt",
+    "core-data/src/test/kotlin/com/mcfrenchpants/activityledger/core/data/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline/CapturePipeline.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/explore/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history/HistoryViewModel.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history/HistoryViewModelFactory.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history/HistoryScreen.kt",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/explore/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/history/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/pipeline/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "core-domain/**",
+    "core-ai/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-wear/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/ledger/**",
+    "core-data/schemas/**"
+  ],
+  "acceptance_criteria": [
+    "core-data ledgerChanges(repository) emits (no initial emission) after writes to the tables Explore/History read, via Room's InvalidationTracker; emptyFlow for other repositories; no core-domain or schema change.",
+    "CapturePipeline exposes ledgerChanges; Explore and History view models take it (default emptyFlow) and, only while started, quietly reload after a ~300 ms debounce, keeping filters, question answer, drill-down, input, open sheets and sorts; onStop stops watching.",
+    "Quiet reloads never set isLoading and are covered by the existing stale-result guards.",
+    "ExploreScreen and HistoryScreen call onStop when the screen stops; the edit-sheet recount still works.",
+    "Tests listed in the objective exist and pass; existing tests pass.",
+    "./gradlew :core-data:testDebugUnitTest :app-phone:testDebugUnitTest :app-phone:assembleDebug pass (use the core-data test task name the project actually has).",
+    "No file outside write_paths is changed."
+  ],
+  "verification_commands": [
+    "./gradlew :core-data:testDebugUnitTest :app-phone:testDebugUnitTest :app-phone:assembleDebug",
+    "git status --porcelain"
+  ]
+}

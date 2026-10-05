@@ -19,6 +19,7 @@ class HistoryViewModelFactory(private val application: ActivityLedgerApplication
             resolution = application.taggedResolutionService,
             correction = application.taggedCorrectionService,
             clock = pipeline.clock,
+            changes = pipeline.ledgerChanges,
         ) as T
     }
 }

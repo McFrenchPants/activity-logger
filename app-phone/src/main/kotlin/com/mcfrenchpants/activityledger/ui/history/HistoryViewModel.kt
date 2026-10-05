@@ -23,9 +23,14 @@ import com.mcfrenchpants.activityledger.ui.review.CheckDraft
 import com.mcfrenchpants.activityledger.ui.review.UserMessage
 import com.mcfrenchpants.activityledger.ui.review.tagRefusalMessage
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -47,6 +52,9 @@ import java.util.Locale
  *   is hiding an occurrence. Raw captures are never changed.
  * - Writes are guarded like Log's: a storage failure shows a plain-words message (never the
  *   user's words) and a second action while one is in flight is ignored.
+ * - Between [onStart] and [onStop] it watches [changes] (the ledger changed; carries no data) and,
+ *   once a burst of changes has settled, reloads the list quietly: the filter, an open sheet and
+ *   its draft, and any message stay. A reload never overwrites the result of a newer one.
  * - Nothing is logged (AGENTS.md #11).
  */
 class HistoryViewModel(
@@ -55,6 +63,7 @@ class HistoryViewModel(
     private val correction: TaggedCorrectionService,
     private val clock: Clock,
     private val locale: () -> Locale = { Locale.getDefault() },
+    private val changes: Flow<Unit> = emptyFlow(),
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HistoryUiState())
@@ -62,9 +71,34 @@ class HistoryViewModel(
     /** The screen's single UI state. */
     val state: StateFlow<HistoryUiState> = _state.asStateFlow()
 
-    /** The History screen came to the foreground: (re)loads the list. */
+    /** Increments with every load; only the newest one may publish. */
+    private var loadSeq = 0L
+
+    /** Watches [changes] between [onStart] and [onStop]; null when not watching. */
+    private var changesJob: Job? = null
+
+    /**
+     * The History screen came to the foreground: (re)loads the list and starts watching for
+     * ledger changes (once; a second call does not start a second watcher).
+     */
+    @OptIn(FlowPreview::class)
     fun onStart() {
         viewModelScope.launch { reload() }
+        if (changesJob?.isActive != true) {
+            changesJob = viewModelScope.launch {
+                // A capture writes several tables in one go: reload once the burst has settled. The
+                // reload runs on its own so stopping the watch never strands a half-done load.
+                changes.debounce(CHANGE_SETTLE_MS).collect {
+                    viewModelScope.launch { reload(quiet = true) }
+                }
+            }
+        }
+    }
+
+    /** The screen is no longer showing: stops watching for ledger changes. */
+    fun onStop() {
+        changesJob?.cancel()
+        changesJob = null
     }
 
     /** Selects a filter chip. */
@@ -284,15 +318,26 @@ class HistoryViewModel(
         _state.update { it.copy(message = tagRefusalMessage(refusal)) }
     }
 
-    private suspend fun reload() {
+    /**
+     * Loads the list. A [quiet] reload (a ledger change while showing) that fails keeps what is
+     * shown and says "not loaded" only when no other message or sheet is showing. A load that a
+     * newer one started after never publishes.
+     */
+    private suspend fun reload(quiet: Boolean = false) {
+        val seq = ++loadSeq
         val history = try {
             repository.loadHistory()
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (expected: Exception) {
-            _state.update { it.copy(message = UserMessage(R.string.history_not_loaded)) }
+            if (seq == loadSeq) {
+                _state.update {
+                    if (quiet && (it.message != null || it.sheetOpen)) it else it.copy(message = NOT_LOADED)
+                }
+            }
             return
         }
+        if (seq != loadSeq) return
         val now = clock.instant()
         val rows = history.map { it.toHistoryRow(now, locale()) }
         _state.update { current ->
@@ -305,8 +350,14 @@ class HistoryViewModel(
                 allRows = rows,
                 loaded = true,
                 edit = edit,
-                message = if (current.message == UserMessage(R.string.history_not_loaded)) null else current.message,
+                message = if (current.message == NOT_LOADED) null else current.message,
             )
         }
+    }
+
+    private companion object {
+        /** How long ledger changes must pause before a quiet reload (one capture = several writes). */
+        const val CHANGE_SETTLE_MS = 300L
+        val NOT_LOADED = UserMessage(R.string.history_not_loaded)
     }
 }

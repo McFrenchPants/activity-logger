@@ -21,6 +21,7 @@ class ExploreViewModelFactory(private val application: ActivityLedgerApplication
             // The one Android speech implementation (ADR-024), on the application context.
             transcriber = PlatformSpeechTranscriber(application.applicationContext),
             clock = pipeline.clock,
+            changes = pipeline.ledgerChanges,
         ) as T
     }
 }

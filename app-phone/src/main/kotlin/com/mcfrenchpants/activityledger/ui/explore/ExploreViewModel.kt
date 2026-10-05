@@ -31,10 +31,14 @@ import com.mcfrenchpants.activityledger.ui.review.UserMessage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,7 +54,11 @@ import java.util.Locale
  *
  * Rules it keeps:
  * - Read only. It loads [TagRepository.loadExploreEntries] and [TagRepository.loadTagCatalog] on
- *   [onStart] (plan P1) and never calls a repository write.
+ *   [onStart] and never calls a repository write. Between [onStart] and [onStop] it also watches
+ *   [changes] (the ledger changed; carries no data) and, once a burst of changes has settled,
+ *   reloads quietly: no loading state, and filters, question answer (a count, how-often or
+ *   last-time answer is rebuilt from the new data), drill-down, sorts, view, box text and
+ *   messages stay.
  * - The typed text, questions and word searches live in [state] only: never stored, never
  *   logged (AGENTS.md #11). Messages carry string resource ids only.
  * - Counting is [ExploreCalculator]'s job, run on [computeDispatcher]; a result computed for an
@@ -74,6 +82,7 @@ class ExploreViewModel(
     private val zoneProvider: () -> ZoneId = { ZoneId.systemDefault() },
     private val firstDayOfWeekProvider: () -> DayOfWeek = { WeekFields.of(Locale.getDefault()).firstDayOfWeek },
     private val computeDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val changes: Flow<Unit> = emptyFlow(),
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ExploreUiState())
@@ -93,14 +102,26 @@ class ExploreViewModel(
     /** A Count / HowOften answer waiting for the summary of its filter; built in [recompute]. */
     private var pendingQuestion: PendingQuestion? = null
 
+    /**
+     * What the showing Count / HowOften / LastTime answer was built from, so [recompute] rebuilds it
+     * from new data (a quiet reload); null whenever the answer line is anything else.
+     */
+    private var answerBasis: PendingQuestion? = null
+
     /** The Scope line carries the "dates not understood" note (a browse question's words failed). */
     private var scopeDatesNotUnderstood = false
 
     /** Increments with every computation request; only the newest one may publish. */
     private var computeSeq = 0L
 
-    /** Increments with every load; only the newest one may publish. */
+    /** Increments with every load (quiet or not); only the newest one may publish. */
     private var loadSeq = 0L
+
+    /** A load started by [onStart] turned the loading state on and no newer load has finished. */
+    private var loudLoadPending = false
+
+    /** Watches [changes] between [onStart] and [onStop]; null when not watching. */
+    private var changesJob: Job? = null
 
     /** Identifies the one pending question allowed to change anything, or null when none is. */
     private var askToken: Any? = null
@@ -112,35 +133,77 @@ class ExploreViewModel(
 
     // ---- Loading ---------------------------------------------------------------------------
 
-    /** The screen came to the foreground: (re)loads every entry and the tag catalog. */
+    /**
+     * The screen came to the foreground: (re)loads every entry and the tag catalog, and starts
+     * watching for ledger changes (once; a second call does not start a second watcher).
+     */
+    @OptIn(FlowPreview::class)
     fun onStart() {
         val seq = ++loadSeq
+        loudLoadPending = true
         _state.update { it.copy(isLoading = true) }
-        viewModelScope.launch {
-            val loaded = try {
-                repository.loadExploreEntries() to repository.loadTagCatalog()
-            } catch (cancellation: CancellationException) {
-                throw cancellation
-            } catch (_: Exception) {
-                if (seq == loadSeq) {
-                    // Keep whatever was showing; say so in plain words (never the user's text).
-                    _state.update { it.copy(isLoading = false, message = UserMessage(R.string.history_not_loaded)) }
+        viewModelScope.launch { load(seq, quiet = false) }
+        if (changesJob?.isActive != true) {
+            changesJob = viewModelScope.launch {
+                // A capture writes several tables in one go: reload once the burst has settled. The
+                // reload runs on its own so stopping the watch never strands a half-done load.
+                changes.debounce(CHANGE_SETTLE_MS).collect {
+                    val quietSeq = ++loadSeq
+                    viewModelScope.launch { load(quietSeq, quiet = true) }
                 }
-                return@launch
             }
-            if (seq != loadSeq) return@launch
-            entries = loaded.first
-            catalog = loaded.second
-            _state.update { s ->
-                withChipNames(s).copy(
-                    message = if (s.message == UserMessage(R.string.history_not_loaded)) null else s.message,
-                    suggestions = suggestionsFor(s.input),
-                    subjectTags = catalog.subjects,
-                    actionTags = catalog.actions,
-                )
-            }
-            recompute()
         }
+    }
+
+    /** The screen is no longer showing: stops watching for ledger changes. */
+    fun onStop() {
+        changesJob?.cancel()
+        changesJob = null
+    }
+
+    /**
+     * Loads entries and catalog for load [seq]. A [quiet] load never turns the loading state on and
+     * changes nothing the person chose; on failure it keeps what is shown and only says "not
+     * loaded" when no other message is showing.
+     */
+    private suspend fun load(seq: Long, quiet: Boolean) {
+        val loaded = try {
+            repository.loadExploreEntries() to repository.loadTagCatalog()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Exception) {
+            if (seq == loadSeq) {
+                val endsLoudLoad = loudLoadPending
+                loudLoadPending = false
+                // Keep whatever was showing; say so in plain words (never the user's text).
+                _state.update {
+                    if (quiet) {
+                        it.copy(
+                            isLoading = if (endsLoudLoad) false else it.isLoading,
+                            message = it.message ?: NOT_LOADED,
+                        )
+                    } else {
+                        it.copy(isLoading = false, message = NOT_LOADED)
+                    }
+                }
+            }
+            return
+        }
+        if (seq != loadSeq) return
+        loudLoadPending = false
+        entries = loaded.first
+        catalog = loaded.second
+        _state.update { s ->
+            withChipNames(s).copy(
+                message = if (s.message == NOT_LOADED) null else s.message,
+                suggestions = suggestionsFor(s.input),
+                subjectTags = catalog.subjects,
+                actionTags = catalog.actions,
+            )
+        }
+        // New data: a showing answer (not the first answer of a fresh question) is rebuilt from it,
+        // after a loud reload (back on the screen) exactly as after a quiet one.
+        recompute(quiet = quiet, reloaded = true)
     }
 
     // ---- Filters ---------------------------------------------------------------------------
@@ -185,6 +248,7 @@ class ExploreViewModel(
         backStack.clear()
         questionAnswer = null
         pendingQuestion = null
+        answerBasis = null
         scopeDatesNotUnderstood = false
         val filter = ExploreFilter()
         _state.update {
@@ -367,6 +431,7 @@ class ExploreViewModel(
     override fun onCleared() {
         cancelListening()
         askJob?.cancel()
+        onStop()
     }
 
     // ---- Internals -------------------------------------------------------------------------
@@ -385,6 +450,7 @@ class ExploreViewModel(
                 }
                 questionAnswer = answer
                 pendingQuestion = null
+                answerBasis = null
                 scopeDatesNotUnderstood = false
                 _state.update { it.copy(answer = answer, isAsking = false) }
             }
@@ -419,6 +485,7 @@ class ExploreViewModel(
             else -> null
         }
         scopeDatesNotUnderstood = false
+        answerBasis = null
         if (answerKind == null) {
             pendingQuestion = null
             questionAnswer = ExploreAnswer.LastTime(
@@ -427,6 +494,13 @@ class ExploreViewModel(
                 lastTime = top.entry.occurredAt,
                 closestMatch = closest,
                 datesNotUnderstood = datesNotUnderstood,
+            )
+            // A reload refreshes the date from the newest entry of the SAME pair as the best entry
+            // (see [recompute]); a partial match's chips name a different pair than the entry.
+            answerBasis = PendingQuestion(
+                PendingKind.LAST_TIME, top.entry.subjectName, top.entry.actionName, closest, datesNotUnderstood,
+                pairSubjectId = top.entry.subjectId,
+                pairActionId = top.entry.actionId,
             )
         } else {
             // Name only the sides the count is narrowed to, as the chips show them.
@@ -454,6 +528,7 @@ class ExploreViewModel(
         backStack.addLast(_state.value.filter)
         questionAnswer = null
         pendingQuestion = null
+        answerBasis = null
         scopeDatesNotUnderstood = outcome.scope.dateWords == DateWords.NOT_UNDERSTOOD
         val filter = ExploreFilter(range = outcome.scope.range)
         _state.update {
@@ -471,17 +546,32 @@ class ExploreViewModel(
     }
 
     /**
-     * Builds a Count / HowOften answer: a count from [summary] (the question's filter), a how-often
-     * answer from [allTimeSummary] (the same tags over all time; [summary] itself when the
-     * question's range already is all time).
+     * Builds a Count / HowOften / LastTime answer: a count from [summary] (the question's filter), a
+     * how-often answer from [allTimeSummary] (the same tags over all time; [summary] itself when the
+     * question's range already is all time), a last time from the newest of [entries] with the
+     * pair of the entry the answer was first given from (null when none is left).
      */
     private fun answerFor(
         pending: PendingQuestion,
         summary: ExploreSummary,
         allTimeSummary: ExploreSummary,
         filter: ExploreFilter,
-    ): ExploreAnswer =
+        entries: List<ExploreEntry>,
+    ): ExploreAnswer? =
         when (pending.kind) {
+            // Same pair, so the names and the closest-match note still hold; only the date moves.
+            PendingKind.LAST_TIME -> entries
+                .filter { it.subjectId == pending.pairSubjectId && it.actionId == pending.pairActionId }
+                .maxOfOrNull { it.occurredAt }
+                ?.let { last ->
+                    ExploreAnswer.LastTime(
+                        subjectName = pending.subjectName,
+                        actionName = pending.actionName,
+                        lastTime = last,
+                        closestMatch = pending.closestMatch,
+                        datesNotUnderstood = pending.datesNotUnderstood,
+                    )
+                }
             PendingKind.COUNT -> ExploreAnswer.Count(
                 subjectName = pending.subjectName,
                 actionName = pending.actionName,
@@ -537,6 +627,7 @@ class ExploreViewModel(
         if (pushCurrent) backStack.addLast(_state.value.filter)
         questionAnswer = null
         pendingQuestion = null
+        answerBasis = null
         scopeDatesNotUnderstood = false
         _state.update {
             withChipNames(
@@ -552,17 +643,24 @@ class ExploreViewModel(
         recompute()
     }
 
-    private fun recompute() {
+    /**
+     * Counts [entries] for the current filter and sorts and publishes the result, unless a newer
+     * request superseded it. A [quiet] request (after a quiet reload) does not turn the loading
+     * state on. A showing Count / HowOften answer is rebuilt from the new summary every time; a
+     * showing LastTime answer only when [reloaded] (new data was loaded), so the first answer of
+     * a question is always the question reader's own.
+     */
+    private fun recompute(quiet: Boolean = false, reloaded: Boolean = false) {
         val all = entries ?: return
         val seq = ++computeSeq
         val request = _state.value
         // A how-often answer measures the gap over all time (the counting rules' typical gap is an
         // all-time measure), so it needs a second summary of the same tags with the All time range
         // when the question narrowed the dates; the chips and the screen keep the question's range.
-        val howOftenFilter = pendingQuestion
+        val howOftenFilter = (pendingQuestion ?: answerBasis)
             ?.takeIf { it.kind == PendingKind.HOW_OFTEN && request.filter.range != ALL_TIME }
             ?.let { request.filter.copy(range = ALL_TIME) }
-        _state.update { it.copy(isLoading = true) }
+        if (!quiet) _state.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             val zone = zoneProvider()
             val firstDay = firstDayOfWeekProvider()
@@ -592,12 +690,21 @@ class ExploreViewModel(
             }
             // A newer request superseded this one: its result must not overwrite the newer one.
             if (seq != computeSeq) return@launch
-            // A how-often answer over several activities shows the Activities view to pick one from.
+            // A how-often answer over several activities shows the Activities view to pick one from
+            // -- when first answered only; a rebuild (new data) keeps the view the person chose.
             var pickView: ExploreView? = null
-            pendingQuestion?.let { pending ->
-                val built = answerFor(pending, summary, allTimeSummary, request.filter)
-                if (built is ExploreAnswer.HowOften && built.activityCount > 1) pickView = ExploreView.ACTIVITIES
+            val fresh = pendingQuestion
+            // A last-time answer is first given from the question reader's best entry; only a reload
+            // (the data may have changed) rebuilds it, so asking never shows a different date than read.
+            (fresh ?: answerBasis)?.takeIf { reloaded || it.kind != PendingKind.LAST_TIME }?.let { basis ->
+                val built = answerFor(basis, summary, allTimeSummary, request.filter, all)
+                if (fresh != null && built is ExploreAnswer.HowOften && built.activityCount > 1) {
+                    pickView = ExploreView.ACTIVITIES
+                }
+                // No matching entry is left (it was removed): the answer line falls back to the
+                // scope of the unchanged chips, as after any change that drops a question answer.
                 questionAnswer = built
+                answerBasis = basis.takeIf { built != null }
                 pendingQuestion = null
             }
             _state.update { s ->
@@ -677,15 +784,20 @@ class ExploreViewModel(
 
     private class TagMatch(val tag: KnownTag, val rank: Int, val kindOrder: Int, val alias: String?)
 
-    private enum class PendingKind { COUNT, HOW_OFTEN }
+    private enum class PendingKind { COUNT, HOW_OFTEN, LAST_TIME }
 
-    /** What a Count / HowOften answer needs besides the summary. Memory only; no question text. */
+    /**
+     * What a Count / HowOften / LastTime answer needs besides the summary. Memory only; no question
+     * text. [pairSubjectId] / [pairActionId]: for LastTime, the tag pair of the entry it names.
+     */
     private class PendingQuestion(
         val kind: PendingKind,
         val subjectName: String?,
         val actionName: String?,
         val closestMatch: ClosestMatch?,
         val datesNotUnderstood: Boolean,
+        val pairSubjectId: String? = null,
+        val pairActionId: String? = null,
     )
 
     private fun cancelAsk() {
@@ -737,6 +849,10 @@ class ExploreViewModel(
 
     private companion object {
         const val MAX_TAG_SUGGESTIONS = 5
+
+        /** How long ledger changes must pause before a quiet reload (one capture = several writes). */
+        const val CHANGE_SETTLE_MS = 300L
+        val NOT_LOADED = UserMessage(R.string.history_not_loaded)
         val ALL_TIME: DateRangeSelection = DateRangeSelection.Preset(DateRangePreset.ALL_TIME)
     }
 }
