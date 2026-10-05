@@ -1,0 +1,72 @@
+{
+  "task_id": "DH3.1",
+  "plan_revision": "dh1",
+  "objective": "Build the Explore screen's state holder (no Compose UI) in a NEW package com.mcfrenchpants.activityledger.ui.explore in app-phone, beside the existing ui/ask package, which stays untouched and working (the next task builds the screen, swaps the tab and deletes ui/ask). Also add captureId to ExploreEntry so the screen can open an entry's existing History edit sheet.\n\nRead first: app-phone ui/ask/AskViewModel.kt, AskUiState.kt, AskViewModelFactory.kt and their tests (AskViewModelTest.kt, AskTestFixtures.kt: real Room ledger under Robolectric, fake extractor, fake transcriber) -- the voice/mic logic, one-question-at-a-time rule, late-answer drop, and 'never persist or log the question' rules carry over unchanged; ActivityLedgerApplication.kt (capturePipeline.repository is the LedgerRepository, capturePipeline.clock, lookupService); ui/history/HistoryViewModel.kt (how a view model loads with a Clock and reloads on onStart); core-domain stats package (ExploreTypes.kt, ExploreCalculator.kt, DateRange.kt, TypicalGap.kt); core-domain lookup (LookupService/LookupOutcome/LookupTarget/LookupTag/LookupMatch/LookupTier, QuestionDetector in HistoryLookup.kt); tagging/TagCatalog.kt (KnownTag: id, kind, displayName, aliases); repository/TagRepository.kt (loadTagCatalog, loadExploreEntries); docs/proposals/explore/DESIGN_SPEC.md sections 'Screen design' 1-6, 'Empty states', 'Counting rules'; docs/proposals/explore/IMPLEMENTATION_PLAN.md decisions P1-P4.\n\n0. captureId: add `captureId: String` to core.domain.stats.ExploreEntry (place it right after occurrenceId; update every constructor call in core-domain stats tests -- a test helper default is fine), select activity_occurrences.raw_capture_id in the DH2.1 DAO row for loadExploreEntries and map it in RoomActivityRepository, and assert it in RoomExploreEntriesTest. Nothing else in those files changes.\n\n1. ExploreUiState (immutable data class) holding at least: filter: ExploreFilter; summary: ExploreSummary? (null until first load); isLoading; catalog-derived display names for the current subject/action chips (subjectChipName/actionChipName: String?); input: String; suggestions: List<ExploreSuggestion> (sealed: Subject(tagId, name, matchedAlias: String?), Action(tagId, name, matchedAlias: String?), SearchWords(text), Ask(text)); answer: ExploreAnswer? (sealed: Scope (derived from summary + filter; the UI words it), LastTime(subjectName?, actionName?, lastTime: Instant, closestMatch: ClosestMatch? where ClosestMatch { NOT_EXACT, PARTIAL } chosen like ui/ask's note: non-exact -> NOT_EXACT; exact but tier SUBJECT_ONLY/ACTION_ONLY -> PARTIAL; exact BOTH -> null), NotEnoughHistory, NotAQuestion, AiUnavailable, TryAgainLater); askedQuestion: String? (the text shown in the box after asking, memory only); view: ExploreView { ENTRIES, ACTIVITIES, PATTERNS }; activitySort; entrySort; groupBySubject; chartAsList: Boolean; canGoBack: Boolean; isAsking; isListening; partialTranscript; message: UserMessage?; zone/today information the UI needs to word dates (or pass them as needed). Keep it UI-agnostic: no strings, only data and string resource ids for messages.\n\n2. ExploreViewModel(repository: TagRepository, lookup: LookupService, transcriber: SpeechTranscriber, clock: Clock, zoneProvider: () -> ZoneId = { ZoneId.systemDefault() }, firstDayOfWeekProvider: () -> DayOfWeek = { WeekFields.of(Locale.getDefault()).firstDayOfWeek }, computeDispatcher: CoroutineDispatcher = Dispatchers.Default). Behaviour:\n- onStart(): (re)loads loadExploreEntries() and loadTagCatalog() (plan P1: called each time the screen is shown; Explore never writes) and recomputes. Load failure -> keep previous data, show a UserMessage (reuse an existing generic 'could not load' string if one exists, else add explore_load_failed).\n- Every filter/sort/view-affecting change recomputes ExploreCalculator.calculate(...) on computeDispatcher with clock.instant(), the zone and first day of week; stale results from an earlier computation never overwrite a newer one.\n- Filter actions: setRange(DateRangeSelection), setSubject(tagId?), setAction(tagId?), setWords(text?), clearFilter(kind) for each chip, clearAll() (back to ExploreFilter() default: Last 30 days, no tags, no words; also clears askedQuestion and answer and the back stack).\n- Suggestions: onInputChange(text) updates input and suggestions: subjects then actions whose display name or any alias matches case-insensitively, prefix matches before substring matches, then by name; at most 5 tag suggestions total; then SearchWords(trimmed) and Ask(trimmed); empty list for blank input. Choosing Subject/Action sets that chip (setSubject/setAction), clears input; SearchWords sets the words chip; Ask asks. No AI for anything but Ask.\n- submit() (Enter key): trimmed blank -> nothing; QuestionDetector.isQuestion(text) -> ask(text); else setWords(text).\n- ask(text): same guards as AskViewModel (ignored while asking; cancels listening). Calls lookup.ask. Outcomes: Answer(target, result) -> push current filter on the back stack, set filter = ExploreFilter(range = Preset(ALL_TIME) (plan P2), subjectId = target.subject?.id, actionId = target.action?.id, words = null), answer = LastTime from result.top (names from the top entry; lastTime = top.entry.occurredAt) with closestMatch per rule above, view = ENTRIES, askedQuestion = text; NotEnoughHistory / NotAQuestion / Unavailable / Busy / Failed -> answer set to the matching variant, filters UNCHANGED; exceptions -> TryAgainLater. A clearAll() or a new filter change while a question is pending drops the late answer.\n- When no question answer is showing, answer = Scope. Any manual filter change after a question replaces a LastTime answer with Scope (the chips are the truth) but keeps askedQuestion cleared.\n- View defaults: whenever the filter changes, view becomes ACTIVITIES if the new filter has no tag and no words, else ENTRIES; a manual setView() sticks until the next filter change.\n- Sorts: setActivitySort, setEntrySort, setGroupBySubject, setChartAsList.\n- Drill-down: openActivity(row: ActivityRow) pushes the current filter and sets subject+action from the row (keeping range and clearing words); for an untagged row (null ids) it sets words = row.activityName instead. openSubjectGroup(group) pushes and sets subject only (untagged group -> words = name). back(): pops the previous filter (and its view rule) and returns true, or returns false when the stack is empty (the screen then lets system Back leave). canGoBack reflects the stack.\n- Mic: startListening/stopListening/onMicrophonePermissionDenied/Blocked/dismissMessage exactly as AskViewModel (reuse the ask_* message strings); the final transcript goes into the input and is then submitted via submit() (so a spoken question is asked and spoken words that are not a question become a word search).\n- Never writes to the repository; never persists or logs input, question or search text (AGENTS.md #11). Filters live in the view model only: survive rotation/tab switch, reset on process restart.\n3. ExploreViewModelFactory(application) mirroring AskViewModelFactory (repository = capturePipeline.repository, clock = capturePipeline.clock, lookup = lookupService, PlatformSpeechTranscriber).\n4. Tests (Robolectric, under app-phone/src/test/.../ui/explore/, reusing patterns from AskTestFixtures: real in-memory Room ledger seeded with tagged entries via the existing helpers, fixed MutableClock, fixed zone, UnconfinedTestDispatcher/StandardTestDispatcher as compute dispatcher, fake extractor, fake transcriber): initial load gives default filter + summary; suggestions (name, alias, prefix-before-substring, cap of 5, SearchWords + Ask items, blank -> empty); choosing each suggestion kind; submit routes question vs words; ask Answer sets chips + ALL_TIME + LastTime answer + ENTRIES view + back stack; closestMatch variants; each failure outcome leaves filters unchanged; late answer after clearAll dropped; manual change after a question switches answer to Scope; view default rule and sticky manual view; sorts and groupBySubject recompute; drill-down tagged and untagged + back() order + back() false on empty stack; clearAll resets everything; onStart reload picks up an entry added after first load; load failure message; voice final transcript submitted (question asked; non-question -> words); no repository write method is ever called (wrap the ledger in a write-refusing delegate like AskTestFixtures.WriteRefusingTags); stale computation cannot overwrite a newer filter's result.",
+  "non_goals": [
+    "No Compose UI, no navigation change, no tab rename (DH3.2).",
+    "Do not modify or delete anything in ui/ask (DH3.2 removes it).",
+    "No change to LookupService, QuestionExtractor, core-ai or prompts; no date-window or counting questions (stage 4).",
+    "No change to ExploreCalculator rules; only the captureId field is added to ExploreEntry.",
+    "No schema change or migration."
+  ],
+  "dependencies": [
+    "DH2.1"
+  ],
+  "read_paths": [
+    "app-phone/**",
+    "core-domain/**",
+    "core-data/**",
+    "core-speech/src/main/**",
+    "core-testing/**",
+    "docs/proposals/explore/DESIGN_SPEC.md",
+    "docs/proposals/explore/IMPLEMENTATION_PLAN.md",
+    "docs/UX_SPEC.md",
+    "docs/DECISIONS.md",
+    "AGENTS.md",
+    "gradle/**",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/explore/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/explore/**",
+    "app-phone/src/main/res/values/strings.xml",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/stats/ExploreTypes.kt",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/stats/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/dao/ActivityOccurrenceDao.kt",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/repository/RoomActivityRepository.kt",
+    "core-data/src/test/kotlin/com/mcfrenchpants/activityledger/core/data/repository/RoomExploreEntriesTest.kt"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/ask/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/ask/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/navigation/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/stats/ExploreCalculator.kt",
+    "core-data/schemas/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/entity/**",
+    "core-data/src/main/kotlin/com/mcfrenchpants/activityledger/core/data/db/migration/**",
+    "core-ai/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "ExploreEntry has captureId populated from activity_occurrences.raw_capture_id (tested in RoomExploreEntriesTest); no other change to stats rules or the read's inclusion rules.",
+    "ui/explore contains ExploreUiState (with ExploreSuggestion, ExploreAnswer, ClosestMatch, ExploreView), ExploreViewModel and ExploreViewModelFactory with the behaviour in the objective; ui/ask is unchanged.",
+    "Questions only set filters from LookupOutcome.Answer's resolved tag ids (range All time) and show a LastTime fact taken from the database entry; failure outcomes leave filters unchanged; the model never produces a count, date or answer text.",
+    "Suggestions, submit routing, word search, chips, Clear, view default rule, sorts, drill-down with back stack, reload on onStart, stale-computation guard and the mic flow behave as specified.",
+    "No repository write, no persistence and no logging of input/question/search text (tested with a write-refusing ledger).",
+    "All tests in the objective's list exist and pass; ./gradlew :core-domain:test :core-data:test :app-phone:testDebugUnitTest and :app-phone:assembleDebug pass."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test :core-data:test :app-phone:testDebugUnitTest",
+    "./gradlew :app-phone:assembleDebug",
+    "git status --porcelain"
+  ]
+}
