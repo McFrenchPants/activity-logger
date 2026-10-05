@@ -4,7 +4,7 @@ import com.google.mlkit.genai.schema.annotations.Generable
 import com.google.mlkit.genai.schema.annotations.Guide
 
 /**
- * The ML Kit Structured Output schema for ONE question extraction (prompt version q1, ADR-052).
+ * The ML Kit Structured Output schema for ONE question extraction (prompt version q2, schema version 2, ADR-052).
  *
  * The wire shape the on-device model is constrained to produce; not a domain type, and it
  * carries no guarantees. It maps one-to-one onto core-domain's `QuestionCandidate`, and
@@ -14,6 +14,10 @@ import com.google.mlkit.genai.schema.annotations.Guide
  * `core-ai`. It is `public` because the schema compiler generates a public provider in this
  * package that references it (see [ExtractionResponse]); its members are plain `String?`s and no
  * hand-written API of core-ai accepts or returns one.
+ *
+ * The alpha schema compiler has no enum support (ADR-023), so the question kind travels as a
+ * nullable String whose permitted spellings are pinned by `@Guide(enumValues = ...)`, exactly as
+ * [ExtractionResponse] does for its enums. The decoder maps it onto core-domain's `QuestionKind`.
  *
  * Every `@Guide` description is written FOR THE MODEL. The explicit `@param:` target is required
  * for the same reason as in [ExtractionResponse].
@@ -37,4 +41,18 @@ data class QuestionResponse(
             "similar actions. Leave empty if the question says nothing that was done.",
     )
     val action: String?,
+    @param:Guide(
+        description = "The words of the question that say when, copied exactly as written, " +
+            "for example \"in August\", \"last month\", \"this year\" or \"since June\". " +
+            "Leave empty if the question says nothing about when. Never turn them into a date.",
+    )
+    val dateWindow: String?,
+    @param:Guide(
+        description = "What the question asks for. Use LAST_TIME when it asks when something " +
+            "was last done or whether it was ever done, COUNT when it asks how many times, " +
+            "HOW_OFTEN when it asks how often or how regularly, LIST when it asks what was " +
+            "done. Leave empty if unclear.",
+        enumValues = ["LAST_TIME", "COUNT", "HOW_OFTEN", "LIST"],
+    )
+    val kind: String?,
 )

@@ -24,7 +24,7 @@ class QuestionPromptDriftTest {
 
     @Test
     fun `question prompt version is the one these fixtures were pinned against`() {
-        assertEquals("q1", QUESTION_PROMPT_VERSION, bumpVersion)
+        assertEquals("q2", QUESTION_PROMPT_VERSION, bumpVersion)
     }
 
     @Test
@@ -46,12 +46,12 @@ class QuestionPromptDriftTest {
     }
 
     private companion object {
-        /** SHA-256 of `buildQuestionPrompt(fixedQuestion)` at question prompt version q1. */
+        /** SHA-256 of `buildQuestionPrompt(fixedQuestion)` at question prompt version q2. */
         const val PINNED_PROMPT_SHA256 = 
-            "ada0ab47f752d565ddac780544454ecc8aee06f25ac59ac6d0c71523fa5b12ad"
+            "0eada412947fc255ed4edae72ff08ff0fec9c0302ce559166e27e49abf7a0172"
 
-        /** SHA-256 of [QUESTION_SYSTEM_INSTRUCTION] at question prompt version q1. */
+        /** SHA-256 of [QUESTION_SYSTEM_INSTRUCTION] at question prompt version q2. */
         const val PINNED_SYSTEM_INSTRUCTION_SHA256 = 
-            "0f258bb1939147acfbb9d93b1d0af6b9589379ebc99113adc52bf7397c5e0c1b"
+            "6d95ca65a2d0d5b5dae1f469d9c69c7e4bab76884684bed3f75896fe18435bcf"
     }
 }

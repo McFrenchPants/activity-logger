@@ -1,0 +1,75 @@
+{
+  "task_id": "DH4.2",
+  "plan_revision": "dh1",
+  "objective": "Extend the on-device question reader so that, besides the subject and action words, it also returns (a) the question's date-window words exactly as the user said them and (b) the kind of question. This is prompt version q2 and question schema version 2. The model still only extracts words: it never computes a date, a count or an answer. Dates are resolved later by core-domain's TemporalRangeResolver (already built in DH4.1); wiring into LookupService is the NEXT task (DH4.3), not this one.\n\nRead first: core-domain lookup/LookupService.kt (QuestionCandidate, QuestionExtractor, LookupService), core-domain lookup tests, core-ai QuestionPrompt.kt, QuestionResponse.kt, QuestionResponseDecoder.kt, GeminiNanoQuestionExtractor.kt (QUESTION_SCHEMA_VERSION, provenance), ExtractionResponse.kt (how a domain enum travels as a nullable String pinned by @Guide(enumValues = ...) because the alpha schema compiler has no enum support, ADR-023), and the core-ai question tests (QuestionPromptTest, QuestionPromptDriftTest, QuestionResponseSchemaTest, QuestionResponseDecoderTest, GeminiNanoQuestionExtractorTest). docs/DECISIONS.md ADR-051 and ADR-052 for the rules (read only).\n\n1. core-domain (lookup package):\n   - New enum `QuestionKind { LAST_TIME, COUNT, HOW_OFTEN, LIST, UNKNOWN }` (new file lookup/QuestionKind.kt), KDoc: LAST_TIME = when did I last / did I ever; COUNT = how many times / how much; HOW_OFTEN = how often / how regularly; LIST = what did I do / show me; UNKNOWN = not said or unclear.\n   - `QuestionCandidate` gains `val dateWindow: String? = null` (the date words in the user's own words, untrusted, e.g. \"in August\") and `val kind: QuestionKind = QuestionKind.UNKNOWN`, both with defaults so existing callers compile unchanged. Update its KDoc (still UNTRUSTED model output). No change to LookupService behaviour in this task (it ignores the new fields until DH4.3); add one LookupServiceTest asserting a candidate carrying dateWindow/kind still produces the same answer as before (no behaviour change).\n2. core-ai:\n   - QuestionResponse: fields in this exact order: subject, action, dateWindow, kind (all `String?`). dateWindow @Guide (written for the model): the words of the question that say WHEN, copied exactly as written, e.g. \"in August\", \"last month\", \"this year\", \"since June\"; leave empty if the question says nothing about when; never turn them into a date. kind @Guide with enumValues = [\"LAST_TIME\", \"COUNT\", \"HOW_OFTEN\", \"LIST\"]: what the question asks for -- LAST_TIME when it asks when something was last done or whether it was ever done, COUNT when it asks how many times, HOW_OFTEN when it asks how often or how regularly, LIST when it asks what was done; leave empty if unclear. Update the class KDoc (prompt version q2, schema version 2).\n   - QUESTION_SCHEMA_VERSION = 2 (shape changed). QUESTION_EXTRACTOR_VERSION stays \"gemini-nano-question-1\" unless something in the extractor's own behaviour changes (it should not).\n   - QuestionResponseDecoder: dateWindow cleaned like subject/action (trim, blank -> null, cap at QUESTION_FIELD_MAX_LENGTH). kind: trim + uppercase(Locale.ROOT) then exact match to one of the four spellings -> that QuestionKind; null, blank, or any other spelling -> QuestionKind.UNKNOWN (never a failure; the decoder stays total and never throws). Update its KDoc.\n   - QuestionPrompt: QUESTION_PROMPT_VERSION = \"q2\". System instruction stays terse and numbered: keep rules 1-4 in meaning, add a rule for the date words (copy the words that say when exactly as written; never turn them into a date; leave empty when not said) and a rule for the kind (one of the four, empty when unclear), and keep the final rule containing the exact phrase \"Never answer the question, never compute a date\" (it now says it writes nothing but the four fields). buildQuestionPrompt: Task/Rules sections updated to mention the four fields; still says \"Do not answer it\", \"not shown any list of activities or tags\", \"Leave a field empty when the question does not name it\". Worked examples (replace the current four; each line shows all four fields; none may appear in the core-testing corpora -- the existing test checks this): one LAST_TIME with no date words (keep the gutters example, add kind LAST_TIME, no date words); one COUNT with date words (e.g. \"How many times did I water the tomatoes last month?\" -> subject \"tomatoes\", action \"water\", date words \"last month\", kind COUNT); one HOW_OFTEN with no date words (e.g. \"How often do I descale the kettle?\"); one with a month (e.g. \"Did I service the generator in May?\" -> date words \"in May\", kind LAST_TIME); one LIST with date words and no subject/action (e.g. \"What did I do on Monday?\" -> no subject, no action, date words \"on Monday\", kind LIST). Keep the line `-> no subject, no action` wording present for the LIST example (existing test). The fenced question block at the end is unchanged.\n   - Tests: QuestionPromptDriftTest re-pinned for q2 (new SHA-256 values computed from the new text; version assert \"q2\"); QuestionPromptTest updated (version q2; numbered rule count matches the new instruction; asserts the prompt mentions the date words and the four kind spellings; all purity / no-catalog / no-corpus-sentence tests kept); QuestionResponseSchemaTest: field order subject, action, dateWindow, kind; every field has a description; subject/action/dateWindow are free text (no enumValues); kind's enumValues are exactly the four spellings in that order; schema version 2; QuestionResponseDecoderTest: dateWindow trim/blank/cap; kind for each spelling, lower/mixed case, surrounding spaces, unknown spelling, blank and null -> UNKNOWN; GeminiNanoQuestionExtractorTest: provenance carries prompt q2 / schema 2, and a fake model response with date words and kind reaches the Success candidate. Keep every existing guarantee: readiness gate, failure mapping, cancellation, no logging of question text.\n\nRules that must hold (AGENTS.md #5, ADR-011, ADR-052): model output is untrusted and only decoded, never acted on here; the model is never shown tags, entries or the date; no question text is logged anywhere; ML Kit imports stay inside core-ai (ADR-023); the activity extraction prompt, its version and its corpus baseline are untouched.",
+  "non_goals": [
+    "No change to LookupService's behaviour, HistoryLookup, the stats package or TemporalRangeResolver (DH4.3 wires dateWindow/kind into the lookup).",
+    "No change to the activity extraction prompt (ExtractionPrompt.kt / EXTRACTION_PROMPT_VERSION), ExtractionResponse, the interpreter, or any capture corpus/baseline.",
+    "No app-phone change (the Explore view model ignores the new fields until DH4.3); app-phone must still compile and its tests pass.",
+    "No docs/ADR edits (the orchestrator amends ADR-052 at the end of stage 4).",
+    "No recorded question corpus (DH4.4)."
+  ],
+  "dependencies": ["DH4.1"],
+  "read_paths": [
+    "core-domain/**",
+    "core-ai/**",
+    "core-testing/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/pipeline/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/explore/**",
+    "docs/DECISIONS.md",
+    "docs/proposals/explore/DESIGN_SPEC.md",
+    "AGENTS.md",
+    "gradle/**",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/LookupService.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/QuestionKind.kt",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/LookupServiceTest.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/QuestionPrompt.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/QuestionResponse.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/QuestionResponseDecoder.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/GeminiNanoQuestionExtractor.kt",
+    "core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai/QuestionPromptTest.kt",
+    "core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai/QuestionPromptDriftTest.kt",
+    "core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai/QuestionResponseSchemaTest.kt",
+    "core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai/QuestionResponseDecoderTest.kt",
+    "core-ai/src/test/kotlin/com/mcfrenchpants/activityledger/core/ai/GeminiNanoQuestionExtractorTest.kt"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/ExtractionPrompt.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/ExtractionResponse.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/ExtractionResponseDecoder.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/GeminiNanoActivityExtractor.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/GeminiNanoActivityInterpreter.kt",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/InterpretationPrompt.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/stats/**",
+    "core-testing/**",
+    "core-data/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-phone/**",
+    "app-wear/**"
+  ],
+  "acceptance_criteria": [
+    "core-domain has QuestionKind {LAST_TIME, COUNT, HOW_OFTEN, LIST, UNKNOWN}; QuestionCandidate has dateWindow: String? = null and kind: QuestionKind = UNKNOWN; LookupService behaviour is unchanged (existing tests pass; one new test shows the new fields do not change the answer).",
+    "QuestionResponse fields are exactly subject, action, dateWindow, kind (String?, in that order); kind is pinned by @Guide(enumValues = [LAST_TIME, COUNT, HOW_OFTEN, LIST]); QUESTION_SCHEMA_VERSION is 2.",
+    "QuestionResponseDecoder maps dateWindow with trim/blank-to-null/60-char cap and kind case-insensitively to the four kinds, anything else to UNKNOWN; it stays total (never throws, Failed never produced).",
+    "QUESTION_PROMPT_VERSION is q2; the system instruction and prompt ask for date words copied as written and a kind, still say never answer and never compute a date, show no tags or entries, and contain no core-testing corpus sentence; the drift guard is re-pinned to the new text.",
+    "Provenance reports prompt q2 and schema 2; readiness gate, failure mapping, cancellation propagation and no-logging behaviour of GeminiNanoQuestionExtractor are unchanged and still tested.",
+    "The activity extraction prompt/schema/version and all capture corpora/baselines are untouched; no ML Kit import outside core-ai.",
+    "./gradlew :core-domain:test :core-ai:testDebugUnitTest :app-phone:testDebugUnitTest passes in full, and ./gradlew :app-phone:assembleDebug succeeds."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test :core-ai:testDebugUnitTest",
+    "./gradlew :app-phone:testDebugUnitTest :app-phone:assembleDebug",
+    "git status --porcelain"
+  ]
+}

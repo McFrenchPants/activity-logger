@@ -9,8 +9,9 @@ import com.mcfrenchpants.activityledger.core.domain.tagging.TagResolver
 
 /*
  * Question answering (ADR-051). The model is asked ONLY to pull the user's own words out of a
- * question -- what it is about (subject) and what was done (action). It is never shown the
- * user's tags or logged entries (ADR-011, ADR-038). Matching and ranking are program logic.
+ * question -- what it is about (subject), what was done (action), the words that say when (date
+ * window) and what kind of question it is. It is never shown the user's tags, logged entries or
+ * the date (ADR-011, ADR-038). Matching, date resolution and ranking are program logic.
  */
 
 /**
@@ -22,10 +23,16 @@ import com.mcfrenchpants.activityledger.core.domain.tagging.TagResolver
  * @property subject What the question is about, in the user's own words (e.g. "furnace"), if named.
  * @property action What was done, as a short verb phrase in the user's own words
  *   (e.g. "change filter"), if stated.
+ * @property dateWindow The words of the question that say when, exactly as the user said them
+ *   (e.g. "in August", "last month"), if any. Never a computed date: turning these words into a
+ *   time range is deterministic domain logic (`TemporalRangeResolver`).
+ * @property kind What the question asks for; [QuestionKind.UNKNOWN] when not said or unclear.
  */
 data class QuestionCandidate(
     val subject: String?,
     val action: String?,
+    val dateWindow: String? = null,
+    val kind: QuestionKind = QuestionKind.UNKNOWN,
 )
 
 /** Outcome of one [QuestionExtractor.extract] call. */
@@ -47,7 +54,7 @@ sealed interface QuestionExtractionResult {
 }
 
 /**
- * Pulls the subject and action words out of a question's text. Implementations run on the phone
+ * Pulls the subject, action and date words, and the question kind, out of a question's text. Implementations run on the phone
  * only. Callers must treat every result as untrusted.
  */
 interface QuestionExtractor {

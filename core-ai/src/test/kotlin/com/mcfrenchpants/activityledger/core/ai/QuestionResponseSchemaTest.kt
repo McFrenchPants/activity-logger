@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 class QuestionResponseSchemaTest {
 
     @Test
-    fun `fields are exactly subject then action`() {
+    fun `fields are exactly subject, action, dateWindow, kind`() {
         val constructor = QuestionResponse::class.java.getDeclaredConstructor(
             *Array(FIELD_ORDER.size) { String::class.java },
         )
@@ -28,24 +28,41 @@ class QuestionResponseSchemaTest {
     }
 
     @Test
-    fun `every field carries a model-facing description and is free text`() {
-        FIELD_ORDER.forEachIndexed { index, field ->
-            val constructor = QuestionResponse::class.java.getDeclaredConstructor(
-                *Array(FIELD_ORDER.size) { String::class.java },
-            )
-            val guide = constructor.parameterAnnotations[index].filterIsInstance<Guide>().singleOrNull()
-            assertNotNull(guide, "field $field carries no @Guide annotation")
+    fun `every field carries a model-facing description`() {
+        FIELD_ORDER.forEach { field ->
+            val guide = guideOf(field)
             assertTrue(guide.description.isNotBlank(), "field $field has no description")
-            assertTrue(guide.enumValues.isEmpty(), "field $field should be free text")
         }
     }
 
     @Test
-    fun `schema version is 1`() {
-        assertEquals(1, QUESTION_SCHEMA_VERSION)
+    fun `subject, action and dateWindow are free text`() {
+        listOf("subject", "action", "dateWindow").forEach { field ->
+            assertTrue(guideOf(field).enumValues.isEmpty(), "field $field should be free text")
+        }
+    }
+
+    @Test
+    fun `kind is pinned to exactly the four kind spellings in order`() {
+        assertEquals(listOf("LAST_TIME", "COUNT", "HOW_OFTEN", "LIST"), guideOf("kind").enumValues.toList())
+    }
+
+    @Test
+    fun `schema version is 2`() {
+        assertEquals(2, QUESTION_SCHEMA_VERSION)
+    }
+
+    private fun guideOf(field: String): Guide {
+        val constructor = QuestionResponse::class.java.getDeclaredConstructor(
+            *Array(FIELD_ORDER.size) { String::class.java },
+        )
+        val guide = constructor.parameterAnnotations[FIELD_ORDER.indexOf(field)]
+            .filterIsInstance<Guide>().singleOrNull()
+        assertNotNull(guide, "field $field carries no @Guide annotation")
+        return guide
     }
 
     private companion object {
-        val FIELD_ORDER = listOf("subject", "action")
+        val FIELD_ORDER = listOf("subject", "action", "dateWindow", "kind")
     }
 }

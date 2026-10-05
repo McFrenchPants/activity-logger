@@ -5,6 +5,7 @@ import com.google.mlkit.genai.common.GenAiException
 import com.mcfrenchpants.activityledger.core.domain.interpretation.InterpreterFailureKind
 import com.mcfrenchpants.activityledger.core.domain.lookup.QuestionCandidate
 import com.mcfrenchpants.activityledger.core.domain.lookup.QuestionExtractionResult
+import com.mcfrenchpants.activityledger.core.domain.lookup.QuestionKind
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import java.time.Duration
@@ -21,6 +22,22 @@ class GeminiNanoQuestionExtractorTest {
         val result = resultOf(session())
 
         assertEquals(QuestionExtractionResult.Success(QuestionCandidate("furnace filter", "change")), result)
+    }
+
+    @Test
+    fun `date words and kind from the model reach the success candidate`() {
+        val fake = session(
+            outcome = GenerationOutcome.Responses(
+                listOf(QuestionResponse("tomatoes", "water", " last month ", "count")),
+            ),
+        )
+
+        assertEquals(
+            QuestionExtractionResult.Success(
+                QuestionCandidate("tomatoes", "water", dateWindow = "last month", kind = QuestionKind.COUNT),
+            ),
+            resultOf(fake),
+        )
     }
 
     @Test
@@ -127,8 +144,8 @@ class GeminiNanoQuestionExtractorTest {
         val provenance = extractorFor(session()).provenance
 
         assertEquals("gemini-nano-question-1", provenance.interpreterVersion)
-        assertEquals("q1", provenance.promptVersion)
-        assertEquals(1, provenance.schemaVersion)
+        assertEquals("q2", provenance.promptVersion)
+        assertEquals(2, provenance.schemaVersion)
     }
 
     @Test
@@ -166,6 +183,6 @@ class GeminiNanoQuestionExtractorTest {
     private companion object {
         const val ERROR_CODE = 13
         const val QUESTION = "When did I last change the furnace filter?"
-        val WELL_FORMED_QUESTION = QuestionResponse(subject = "furnace filter", action = "change")
+        val WELL_FORMED_QUESTION = QuestionResponse(subject = "furnace filter", action = "change", dateWindow = null, kind = null)
     }
 }

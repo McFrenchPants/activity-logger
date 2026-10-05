@@ -197,4 +197,18 @@ class LookupServiceTest {
         assertFalse(answer.result.top!!.exact)
         assertEquals(1, extractor.calls)
     }
+
+    @Test
+    fun `date words and kind do not change the answer yet`() = runSuspend {
+        val plain = service(words("furnace", "change filter")).ask(question)
+        val withExtras = service(
+            FakeExtractor(
+                QuestionExtractionResult.Success(
+                    QuestionCandidate("furnace", "change filter", dateWindow = "last month", kind = QuestionKind.COUNT),
+                ),
+            ),
+        ).ask(question)
+        assertIs<LookupOutcome.Answer>(plain)
+        assertEquals(plain, withExtras)
+    }
 }

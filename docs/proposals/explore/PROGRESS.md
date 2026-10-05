@@ -16,12 +16,15 @@ Registered in `.sdlc/state.json` as DH1.
 | DH3.2 | Explore screen UI + tab rename | done | Orchestrator rerun (all module tests, assembleDebug); 331 app-phone tests; ui/ask deleted; not yet seen on a device |
 | DH3.3 | Device check (Pixel 10 Pro or Moto G 2025); merge stage 3 | done | Pixel 10 Pro 2026-10-04: all checks passed incl. typed question; 4 visual fixes by orchestrator (chip clear tucked to its chip, keyboard closes on submit, bar width cap 24dp, range picker stops at today); fixes covered by tests, installed but not re-looked at (owner was using the phone); large font not checked (would need a settings change) |
 | DH4.1 | Temporal ranges ("in August", "this year") | done | Orchestrator spot-check + full core-domain run (410 tests); new TemporalRangeResolver beside TemporalResolver (unchanged) |
-| DH4.2 | Question reader q2 (core-ai) + domain seam | todo | after DH4.1; verifier |
+| DH4.2 | Question reader q2 (core-ai) + domain seam | done | Verifier pass attempt 1; prompt q2 / schema 2; not yet run on the real model (DH4.4) |
 | DH4.3 | Lookup -> Explore question result (count / how often) | todo | after DH4.2; verifier |
 | DH4.4 | Question corpus + replay gate; Pixel recording | todo | after DH4.3; needs Pixel 10 Pro |
 | DH5.1 | Device pass incl. voice; docs/ADRs; owner report | todo | needs owner to speak |
 
 ## Session log
+
+### 2026-10-05 - DH4.2 done
+`QuestionKind` (LAST_TIME/COUNT/HOW_OFTEN/LIST/UNKNOWN) and `QuestionCandidate.dateWindow`/`kind` (defaults keep callers unchanged). core-ai: `QuestionResponse` subject, action, dateWindow, kind (kind pinned by enumValues), schema 2; decoder caps dateWindow at 60 and maps kind case-insensitively, anything else UNKNOWN; prompt q2 (7 numbered rules, five worked examples: gutters LAST_TIME, tomatoes last month COUNT, kettle HOW_OFTEN, generator in May LAST_TIME, Monday LIST), drift guard re-pinned. LookupService still ignores the new fields. Verifier pass; notes for DH4.3: QuestionKind.COUNT KDoc says "or how much" but the prompt only says "how many times" (harmless); prompt q2 unmeasured on the Pixel until DH4.4. Tests: core-domain 411, core-ai 219 (2 old skips), app-phone 333; assembleDebug ok. Next: DH4.3.
 
 ### 2026-10-05 - DH4.1 done
 `core.domain.temporal.TemporalRangeResolver.resolve(expression, today, firstDayOfWeek) -> TemporalRange` (Resolved(DateRangeSelection) / NoWindow / Future / Unrecognised). Rules: all time; rolling "last/past N days|weeks|months|years" (7d/1w, 30d, 12m/1y map to presets); today/yesterday/this|last week|month|year ("last X" without "the" = previous calendar period, "the last X"/"past X" = rolling); named month (most recent started, label Month) with/without year; year alone (label Year); "since X"; "from/between X to Y" spans; single weekday / month-day. Ends clamped to today; windows after today are Future. 31 new tests. TemporalResolver untouched (capture baseline unaffected). Implementer extensions accepted: "couple of" without "a"; span month-vs-year sides share the year; yearless "from august to june" crosses the year boundary (per packet). Next: DH4.2 (question reader q2) -- needs the verifier.

@@ -24,11 +24,11 @@ internal const val QUESTION_EXTRACTOR_VERSION: String = "gemini-nano-question-1"
  * Version of the structured response shape the model is constrained to, i.e. of
  * [QuestionResponse]. Bump it when that class's shape or meaning changes.
  */
-internal const val QUESTION_SCHEMA_VERSION: Int = 1
+internal const val QUESTION_SCHEMA_VERSION: Int = 2
 
 /**
- * Pulls subject and action words out of a question using Gemini Nano on the device (prompt
- * version q1, ADR-052). The question twin of [GeminiNanoActivityExtractor], behaving the same way:
+ * Pulls the subject, action and date words and the question kind out of a question using Gemini
+ * Nano on the device (prompt version q2, schema version 2, ADR-052). The question twin of [GeminiNanoActivityExtractor], behaving the same way:
  *
  * - **Shared client.** Handed the process-wide [OnDeviceModelCapability]; never makes its own.
  * - **Same generation settings**, by reference to the interpreter's constants.
