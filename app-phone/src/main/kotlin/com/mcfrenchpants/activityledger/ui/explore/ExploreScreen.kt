@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,6 +26,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.DropdownMenu
@@ -38,6 +40,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,6 +56,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -322,6 +326,8 @@ internal fun ExploreContent(
 private fun SearchSection(state: ExploreUiState, callbacks: ExploreCallbacks) {
     // After a question the box shows it; typing replaces it.
     val shown = state.input.ifEmpty { state.askedQuestion.orEmpty() }
+    // Sending a question or search puts the keyboard away so the results can be seen.
+    val focusManager = LocalFocusManager.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
             value = shown,
@@ -333,7 +339,12 @@ private fun SearchSection(state: ExploreUiState, callbacks: ExploreCallbacks) {
                 capitalization = KeyboardCapitalization.Sentences,
                 imeAction = ImeAction.Search,
             ),
-            keyboardActions = KeyboardActions(onSearch = { callbacks.onSubmit() }),
+            keyboardActions = KeyboardActions(
+                onSearch = {
+                    focusManager.clearFocus()
+                    callbacks.onSubmit()
+                },
+            ),
             trailingIcon = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (shown.isNotEmpty()) {
@@ -408,7 +419,10 @@ private fun SearchSection(state: ExploreUiState, callbacks: ExploreCallbacks) {
         }
 
         if (state.input.isNotBlank() && state.suggestions.isNotEmpty()) {
-            Suggestions(state.suggestions, callbacks.onChooseSuggestion)
+            Suggestions(state.suggestions) { suggestion ->
+                focusManager.clearFocus()
+                callbacks.onChooseSuggestion(suggestion)
+            }
         }
     }
 }
@@ -506,72 +520,75 @@ private fun FilterRow(
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState()),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        // Pairs sit further apart than a chip and its own clear button, so each ✕ reads as part of its chip.
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        DateChip(filter, locale, callbacks, onCustomRange)
-        if (filter.range != ExploreFilter().range) {
-            GlyphButton(
-                "✕",
-                stringResource(R.string.explore_chip_clear_range),
-                { callbacks.onClearFilter(ExploreFilterKind.RANGE) },
-                exploreChipClearTag(ExploreFilterKind.RANGE),
-            )
+        ChipWithClear(
+            clear = if (filter.range != ExploreFilter().range) {
+                ChipClear(stringResource(R.string.explore_chip_clear_range), ExploreFilterKind.RANGE)
+            } else {
+                null
+            },
+            callbacks = callbacks,
+        ) {
+            DateChip(filter, locale, callbacks, onCustomRange)
         }
 
         val any = stringResource(R.string.explore_chip_any)
         val subjectName = state.subjectChipName
-        ExploreChip(
-            label = subjectName ?: stringResource(R.string.explore_chip_subject),
-            selected = filter.subjectId != null,
-            description = stringResource(R.string.explore_chip_subject_a11y, subjectName ?: any),
-            onClick = { onOpenPicker(TagKind.SUBJECT) },
-            tag = EXPLORE_SUBJECT_CHIP_TAG,
-            showArrow = filter.subjectId == null,
-        )
-        if (filter.subjectId != null) {
-            GlyphButton(
-                "✕",
-                stringResource(R.string.explore_chip_clear_subject),
-                { callbacks.onClearFilter(ExploreFilterKind.SUBJECT) },
-                exploreChipClearTag(ExploreFilterKind.SUBJECT),
+        ChipWithClear(
+            clear = if (filter.subjectId != null) {
+                ChipClear(stringResource(R.string.explore_chip_clear_subject), ExploreFilterKind.SUBJECT)
+            } else {
+                null
+            },
+            callbacks = callbacks,
+        ) {
+            ExploreChip(
+                label = subjectName ?: stringResource(R.string.explore_chip_subject),
+                selected = filter.subjectId != null,
+                description = stringResource(R.string.explore_chip_subject_a11y, subjectName ?: any),
+                onClick = { onOpenPicker(TagKind.SUBJECT) },
+                tag = EXPLORE_SUBJECT_CHIP_TAG,
+                showArrow = filter.subjectId == null,
             )
         }
 
         val actionName = state.actionChipName
-        ExploreChip(
-            label = actionName ?: stringResource(R.string.explore_chip_action),
-            selected = filter.actionId != null,
-            description = stringResource(R.string.explore_chip_action_a11y, actionName ?: any),
-            onClick = { onOpenPicker(TagKind.ACTION) },
-            tag = EXPLORE_ACTION_CHIP_TAG,
-            showArrow = filter.actionId == null,
-        )
-        if (filter.actionId != null) {
-            GlyphButton(
-                "✕",
-                stringResource(R.string.explore_chip_clear_action),
-                { callbacks.onClearFilter(ExploreFilterKind.ACTION) },
-                exploreChipClearTag(ExploreFilterKind.ACTION),
+        ChipWithClear(
+            clear = if (filter.actionId != null) {
+                ChipClear(stringResource(R.string.explore_chip_clear_action), ExploreFilterKind.ACTION)
+            } else {
+                null
+            },
+            callbacks = callbacks,
+        ) {
+            ExploreChip(
+                label = actionName ?: stringResource(R.string.explore_chip_action),
+                selected = filter.actionId != null,
+                description = stringResource(R.string.explore_chip_action_a11y, actionName ?: any),
+                onClick = { onOpenPicker(TagKind.ACTION) },
+                tag = EXPLORE_ACTION_CHIP_TAG,
+                showArrow = filter.actionId == null,
             )
         }
 
         val words = filter.words
         if (!words.isNullOrBlank()) {
-            ExploreChip(
-                label = stringResource(R.string.explore_chip_words, words),
-                selected = true,
-                description = stringResource(R.string.explore_chip_words_a11y, words),
-                // Puts the words back in the box to be changed.
-                onClick = { callbacks.onInputChange(words) },
-                tag = EXPLORE_WORDS_CHIP_TAG,
-                showArrow = false,
-            )
-            GlyphButton(
-                "✕",
-                stringResource(R.string.explore_chip_clear_words),
-                { callbacks.onClearFilter(ExploreFilterKind.WORDS) },
-                exploreChipClearTag(ExploreFilterKind.WORDS),
-            )
+            ChipWithClear(
+                clear = ChipClear(stringResource(R.string.explore_chip_clear_words), ExploreFilterKind.WORDS),
+                callbacks = callbacks,
+            ) {
+                ExploreChip(
+                    label = stringResource(R.string.explore_chip_words, words),
+                    selected = true,
+                    description = stringResource(R.string.explore_chip_words_a11y, words),
+                    // Puts the words back in the box to be changed.
+                    onClick = { callbacks.onInputChange(words) },
+                    tag = EXPLORE_WORDS_CHIP_TAG,
+                    showArrow = false,
+                )
+            }
         }
 
         if (!filter.isDefault || questionShown) {
@@ -586,6 +603,31 @@ private fun FilterRow(
         }
     }
 }
+
+private class ChipClear(val description: String, val kind: ExploreFilterKind)
+
+/**
+ * A chip with its clear button tucked against it. The button keeps its 48dp touch target but is
+ * pulled in under the chip's own touch margin, so the ✕ sits right beside the chip it clears.
+ */
+@Composable
+private fun ChipWithClear(clear: ChipClear?, callbacks: ExploreCallbacks, chip: @Composable () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        chip()
+        if (clear != null) {
+            Box(modifier = Modifier.offset(x = -CLEAR_TUCK)) {
+                GlyphButton(
+                    "✕",
+                    clear.description,
+                    { callbacks.onClearFilter(clear.kind) },
+                    exploreChipClearTag(clear.kind),
+                )
+            }
+        }
+    }
+}
+
+private val CLEAR_TUCK = 8.dp
 
 @Composable
 private fun DateChip(filter: ExploreFilter, locale: Locale, callbacks: ExploreCallbacks, onCustomRange: () -> Unit) {
@@ -703,6 +745,15 @@ private fun ExploreTagPicker(kind: TagKind, tags: List<KnownTag>, onChoose: (Str
     }
 }
 
+/** Allows any day up to and including [today] (picker days are UTC midnights). */
+@OptIn(ExperimentalMaterial3Api::class)
+internal class UpToToday(private val today: LocalDate) : SelectableDates {
+    override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+        !Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneOffset.UTC).toLocalDate().isAfter(today)
+
+    override fun isSelectableYear(year: Int): Boolean = year <= today.year
+}
+
 /** The Material 3 date-range picker in a dialog; both dates are inclusive local dates. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -715,9 +766,13 @@ private fun CustomRangeDialog(
     // The picker works in UTC midnights; the chosen days are read back the same way.
     fun millis(date: LocalDate?) = date?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
     fun date(millis: Long) = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
+    // History has nothing in the future, so the picker stops at today.
+    val today = remember { LocalDate.now() }
     val pickerState = rememberDateRangePickerState(
         initialSelectedStartDateMillis = millis(initialStart),
         initialSelectedEndDateMillis = millis(initialEnd),
+        yearRange = DatePickerDefaults.YearRange.first..today.year,
+        selectableDates = remember(today) { UpToToday(today) },
     )
     DatePickerDialog(
         onDismissRequest = onDismiss,

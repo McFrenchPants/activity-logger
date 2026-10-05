@@ -386,7 +386,8 @@ private fun BarChart(buckets: List<ChartBucket>, modifier: Modifier) {
     Canvas(modifier = modifier) {
         val max = (buckets.maxOfOrNull { it.count } ?: 0).coerceAtLeast(1)
         val slot = size.width / buckets.size
-        val barWidth = (slot * BAR_FRACTION).coerceAtLeast(1f)
+        // Capped so a chart with only a bucket or two shows bars, not a block.
+        val barWidth = (slot * BAR_FRACTION).coerceIn(1f, MAX_BAR_WIDTH.toPx())
         val baseline = 1.dp.toPx()
         val usable = size.height - baseline
         buckets.forEachIndexed { index, bucket ->
@@ -404,6 +405,7 @@ private fun BarChart(buckets: List<ChartBucket>, modifier: Modifier) {
 }
 
 private const val BAR_FRACTION = 0.7f
+private val MAX_BAR_WIDTH = 24.dp
 
 // ---- Switch, sorts and group by subject ------------------------------------------------------
 

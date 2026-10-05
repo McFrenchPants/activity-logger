@@ -1583,15 +1583,15 @@
         {
           "id": "DH3.3",
           "title": "Device check Moto G; merge stage 3",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "verified",
           "dependencies": [
             "DH3.2"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/DH3.3.packet.json",
           "report_path": null,

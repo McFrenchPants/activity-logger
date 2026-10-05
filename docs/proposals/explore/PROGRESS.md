@@ -14,7 +14,7 @@ Registered in `.sdlc/state.json` as DH1.
 | DH2.1 | `loadExploreEntries()` repository read, DAO, Room, fakes | done | Verifier pass attempt 1; 3 queries in one read transaction; reuses existing alias DAOs |
 | DH3.1 | Explore view model + state (phone, no UI) in new ui/explore | done | Verifier pass attempt 1; 26 tests; ExploreEntry gained captureId; ui/ask still present until DH3.2 |
 | DH3.2 | Explore screen UI + tab rename | done | Orchestrator rerun (all module tests, assembleDebug); 331 app-phone tests; ui/ask deleted; not yet seen on a device |
-| DH3.3 | Device check (Pixel 10 Pro or Moto G 2025); merge stage 3 | blocked | Current debug build installed on both the Pixel and the Moto G 2026-10-04; both have a secure lock (Moto G PIN pad, 10% battery), so the owner must unlock one and leave it awake; no emulator installed |
+| DH3.3 | Device check (Pixel 10 Pro or Moto G 2025); merge stage 3 | done | Pixel 10 Pro 2026-10-04: all checks passed incl. typed question; 4 visual fixes by orchestrator (chip clear tucked to its chip, keyboard closes on submit, bar width cap 24dp, range picker stops at today); fixes covered by tests, installed but not re-looked at (owner was using the phone); large font not checked (would need a settings change) |
 | DH4.1 | Temporal ranges ("in August", "this year") | todo | after DH3.3 |
 | DH4.2 | Question reader q2 (core-ai) + domain seam | todo | after DH4.1; verifier |
 | DH4.3 | Lookup -> Explore question result (count / how often) | todo | after DH4.2; verifier |
@@ -22,6 +22,9 @@ Registered in `.sdlc/state.json` as DH1.
 | DH5.1 | Device pass incl. voice; docs/ADRs; owner report | todo | needs owner to speak |
 
 ## Session log
+
+### 2026-10-04 - DH3.3 done (Pixel 10 Pro), stage 3 merged
+Owner unlocked the Pixel. Checked on device (dark mode): default overview (16 entries, 2 of 30 days, 13 activities, chart, average line), Activities/Entries/Patterns, sort labels, date menu + custom range dialog, Subject picker sheet and choosing a subject, clearing a chip, activity drill-down + Back, tapping an entry opens the edit sheet on first tap (Done, no change), Clear restores default, typed question "When did I last change the furnace filter?" -> All time + furnace filter + change chips, "Last logged: furnace filter · change — October 4 (today)". Found and fixed in ExploreScreen/ExploreResults: (1) chip ✕ buttons floated midway between chips -> ChipWithClear pairs (row gap 12dp, ✕ tucked 8dp); (2) keyboard stayed open after Enter/suggestion -> clearFocus; (3) one-bucket chart drew a full-width block -> bar width capped 24dp; (4) range picker offered future days/months -> UpToToday SelectableDates + yearRange ending this year (UpToTodayTest, 2 tests). 333 app-phone tests pass, assembleDebug ok. Fixed build installed on the Pixel (install -r) but not re-inspected: the owner was typing entries on the phone at the time, so driving stopped; DB read confirmed no test text was captured. Not checked on device: large font (needs a settings change), empty states (covered by Robolectric tests). Back from Explore goes to the Log tab (normal tab behaviour). Next: DH4.1.
 
 ### 2026-10-04 - DH3.3 retry: both phones locked
 Both phones were attached (Moto G by USB, Pixel over Wi-Fi ADB). Installed the current debug build (built from d0b9d78) on the Moto G with install -r. The Moto G was awake when checked but locked a few seconds later; a swipe brings up a PIN pad (screencap black = secure keyguard). Pixel dozing on its lock screen. Did not change any screen-timeout/stay-awake setting (owner rule). Both screens put back to sleep. No Android emulator in the SDK. Still waiting on an unlocked phone; device-check list unchanged (see entry below).
