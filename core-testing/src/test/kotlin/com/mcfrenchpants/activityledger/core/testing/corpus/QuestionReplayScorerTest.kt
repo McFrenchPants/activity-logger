@@ -98,10 +98,29 @@ class QuestionReplayScorerTest {
     fun `wrong, missing or unwanted target sides are WRONG`() {
         assertScore(score("lt-furnace-filter", q("hot tub", "change filter")), WRONG, WRONG_SUBJECT)
         assertScore(score("lt-action-only-chlorine", q("hot tub", "add chlorine")), WRONG, WRONG_SUBJECT)
-        assertScore(score("lt-furnace-filter", q(null, "change filter")), WRONG, WRONG_SUBJECT)
+        // Unset subject, and the action is also logged for another subject (clean: grill and windows).
+        assertScore(score("tr-did-ever-clean-grill", q(null, "clean")), WRONG, WRONG_SUBJECT)
         assertScore(score("lt-subject-only-grill", q("grill", "clean")), WRONG, WRONG_ACTION)
         assertScore(score("ho-change-oil", q(null, "change filter")), WRONG, WRONG_ACTION)
         assertScore(score("tr-replaced-furnace-filter", q("furnace", "change oil")), WRONG, MUST_NOT_MATCH, WRONG_ACTION)
+    }
+
+    @Test
+    fun `an unset subject is CORRECT only when the action alone selects the same entries`() {
+        // "change filter" is only ever logged for the furnace; "add chlorine" only for the hot tub.
+        val e = score("lt-furnace-filter", q(null, "change filter"))
+        assertScore(e, CORRECT)
+        assertNull(e.subjectId)
+        assertEquals("act-change-filter", e.actionId)
+        assertScore(score("c-how-much-chlorine-last-week", q(null, "add chlorine", "last week")), CORRECT)
+        // Same through the question-word clean-up: "add" + "chlorine" re-joins to the action.
+        assertScore(score("c-how-much-chlorine-last-week", q("chlorine", "add", "last week")), CORRECT)
+        // "clean" is logged for the grill AND the windows: other entries would be selected.
+        assertScore(score("tr-have-ever-cleaned-windows", q(null, "clean")), WRONG, WRONG_SUBJECT)
+        // The action must itself be acceptable.
+        assertScore(score("lt-furnace-filter", q(null, "change oil")), WRONG, WRONG_SUBJECT, WRONG_ACTION)
+        // A case that expects no action never takes the exception: the subject is required.
+        assertScore(score("li-what-to-furnace", q(null, "change filter")), WRONG, WRONG_SUBJECT, WRONG_ACTION)
     }
 
     @Test
@@ -151,7 +170,17 @@ class QuestionReplayScorerTest {
 
     @Test
     fun `the right all-time dates from used words where none were expected is SAFE_MISS`() {
-        val e = score("tr-did-ever-clean-grill", q("grill", "clean", "ever"))
+        // "ever" alone is last-time phrasing and is dropped by the lookup (DH4.5 rule 1): CORRECT.
+        assertScore(score("tr-did-ever-clean-grill", q("grill", "clean", "ever")), CORRECT)
+        // "ever before" is still resolved to all time and counted as used. The corpus has no such
+        // question, so the case's text is changed in an in-memory copy of the corpus.
+        val text = QuestionCorpus.resourceBytes().toString(Charsets.UTF_8)
+        val original = "\"Did I ever clean the grill?\""
+        assertTrue(original in text)
+        val changed = QuestionCorpus.parse(text.replace(original, "\"Did I ever before clean the grill?\"").toByteArray(Charsets.UTF_8))
+        val e = QuestionReplay(changed)
+            .replay(QuestionRecordings.withAnswers(changed, mapOf("tr-did-ever-clean-grill" to q("grill", "clean", "ever before"))))
+            .entries.single { it.caseId == "tr-did-ever-clean-grill" }
         assertScore(e, SAFE_MISS, DATE_WORDS_DIFFER)
         assertEquals(QuestionRangeDates.ALL_TIME, e.range)
     }

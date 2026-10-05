@@ -1668,17 +1668,17 @@
         {
           "id": "DH4.5",
           "title": "Lookup word clean-up from the first question recording",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "verified",
           "dependencies": [
             "DH4.4"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
-          "task_packet_path": null,
+          "task_packet_path": ".sdlc/task-packets/DH4.5.packet.json",
           "report_path": null,
           "notes": "see docs/proposals/explore/PROGRESS.md"
         },

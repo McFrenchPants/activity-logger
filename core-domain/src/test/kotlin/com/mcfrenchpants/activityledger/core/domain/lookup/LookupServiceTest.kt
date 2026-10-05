@@ -346,4 +346,107 @@ class LookupServiceTest {
             .ask("What did I do to the gutters last week?", today, firstDay)
         assertEquals(LookupOutcome.NotEnoughHistory, outcome)
     }
+
+    // ---- Question-word clean-up (DH4.5) ---------------------------------------------------
+
+    private val hotTub = KnownTag("s-hot-tub", TagKind.SUBJECT, "hot tub", emptyList())
+    private val car = KnownTag("s-car", TagKind.SUBJECT, "car", listOf("truck"))
+    private val grill = KnownTag("s-grill", TagKind.SUBJECT, "grill", emptyList())
+    private val dogs = KnownTag("s-dogs", TagKind.SUBJECT, "dogs", emptyList())
+    private val addChlorine = KnownTag("a-add-chlorine", TagKind.ACTION, "add chlorine", emptyList())
+    private val changeOil = KnownTag("a-change-oil", TagKind.ACTION, "change oil", emptyList())
+    private val clean = KnownTag("a-clean", TagKind.ACTION, "clean", emptyList())
+    private val walk = KnownTag("a-walk", TagKind.ACTION, "walk", emptyList())
+
+    private val household = TagCatalog(
+        subjects = listOf(furnace, hotTub, car, grill, dogs),
+        actions = listOf(change, addChlorine, changeOil, clean, walk),
+        pairs = emptyList(),
+    )
+
+    private val householdEntries = listOf(
+        entry("h1", furnace, change, 10),
+        entry("h2", hotTub, addChlorine, 270),
+        entry("h3", car, changeOil, 200),
+        entry("h4", grill, clean, 250),
+        entry("h5", dogs, walk, 272),
+    )
+
+    private suspend fun askHousehold(
+        text: String,
+        subject: String?,
+        action: String?,
+        dateWindow: String? = null,
+    ): LookupOutcome = LookupService(FakeRepo(household, householdEntries), candidate(subject, action, dateWindow))
+        .ask(text, today, firstDay)
+
+    @Test
+    fun `last-time date words are no date words`() = runSuspend {
+        val furnaceAnswer = assertIs<LookupOutcome.Answer>(askHousehold(question, "furnace", "change filter", "last"))
+        assertEquals(QuestionScope(QuestionKind.LAST_TIME, allTime, DateWords.NONE), furnaceAnswer.scope)
+        val dogsAnswer = assertIs<LookupOutcome.Answer>(
+            askHousehold("When was the last time I walked the dogs?", "dogs", "walked", "last time"),
+        )
+        assertEquals(DateWords.NONE, dogsAnswer.scope.dateWords)
+        assertEquals(LookupTarget(LookupTag("s-dogs", true), LookupTag("a-walk", true)), dogsAnswer.target)
+    }
+
+    @Test
+    fun `date-only questions with placeholder words browse`() = runSuspend {
+        val lastWeek = assertIs<LookupOutcome.Browse>(askHousehold("What did I do last week?", "I", "do", "last week"))
+        assertEquals(DateWords.USED, lastWeek.scope.dateWords)
+        assertEquals(DateRangeSelection.Custom(LocalDate.of(2026, 9, 28), LocalDate.of(2026, 10, 4)), lastWeek.scope.range)
+        val september = assertIs<LookupOutcome.Browse>(askHousehold("Show me what I did in September", "I", "did", "in September"))
+        assertEquals(DateWords.USED, september.scope.dateWords)
+        val month = assertIs<LookupOutcome.Browse>(askHousehold("What did I get done this month?", "I", "get done", "this month"))
+        assertEquals(DateWords.USED, month.scope.dateWords)
+    }
+
+    @Test
+    fun `a subject made of the date words browses with the date note`() = runSuspend {
+        val browse = assertIs<LookupOutcome.Browse>(
+            askHousehold("What did I do around the holidays?", "holidays", "do", "around the holidays"),
+        )
+        assertEquals(QuestionScope(QuestionKind.LIST, allTime, DateWords.NOT_UNDERSTOOD), browse.scope)
+    }
+
+    @Test
+    fun `a placeholder subject leaves the action`() = runSuspend {
+        val answer = assertIs<LookupOutcome.Answer>(askHousehold("When did I last clean something?", "something", "clean"))
+        assertEquals(LookupTarget(null, LookupTag("a-clean", true)), answer.target)
+    }
+
+    @Test
+    fun `a subject that is the action's object re-joins the action`() = runSuspend {
+        val chlorine = assertIs<LookupOutcome.Answer>(askHousehold("When did I last add chlorine?", "chlorine", "add", "last"))
+        assertEquals(LookupTarget(null, LookupTag("a-add-chlorine", true)), chlorine.target)
+        assertEquals(DateWords.NONE, chlorine.scope.dateWords)
+        val oil = assertIs<LookupOutcome.Answer>(askHousehold("How often do I change the oil?", "oil", "change"))
+        assertEquals(LookupTarget(null, LookupTag("a-change-oil", true)), oil.target)
+        val truck = assertIs<LookupOutcome.Answer>(askHousehold("Did I ever change the oil in the truck?", "oil", "change"))
+        assertEquals(LookupTarget(null, LookupTag("a-change-oil", true)), truck.target)
+        val lastWeek = askHousehold("How much chlorine did I add to the hot tub last week?", "chlorine", "add", "last week")
+        // h2 is 2026-09-28, inside last week: the answer stands, its range is last week.
+        val answer = assertIs<LookupOutcome.Answer>(lastWeek)
+        assertEquals(LookupTarget(null, LookupTag("a-add-chlorine", true)), answer.target)
+        assertEquals(DateWords.USED, answer.scope.dateWords)
+    }
+
+    @Test
+    fun `a subject holding the action's object re-splits`() = runSuspend {
+        val changed = assertIs<LookupOutcome.Answer>(askHousehold(question, "furnace filter", "change", "last"))
+        assertEquals(LookupTarget(LookupTag("s-furnace", true), LookupTag("a-change", true)), changed.target)
+        val replaced = assertIs<LookupOutcome.Answer>(
+            askHousehold("Have I ever replaced the furnace filter?", "furnace filter", "replace"),
+        )
+        assertEquals(LookupTarget(LookupTag("s-furnace", true), LookupTag("a-change", false)), replaced.target)
+    }
+
+    @Test
+    fun `an unlogged subject never re-joins a verb-only near action`() = runSuspend {
+        assertEquals(
+            LookupOutcome.NotEnoughHistory,
+            askHousehold("When was the last time I cleaned the gutters?", "gutters", "cleaned", "last time"),
+        )
+    }
 }

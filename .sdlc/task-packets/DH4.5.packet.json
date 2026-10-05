@@ -1,0 +1,62 @@
+{
+  "task_id": "DH4.5",
+  "plan_revision": "dh1",
+  "objective": "Deterministic clean-up of the question reader's untrusted words in core-domain LookupService, driven by the first Pixel 10 Pro question recording (core-testing/src/test/resources/semantic-corpus/recordings/question-device-latest.json; report via ./gradlew :core-testing:test --tests '*QuestionRegressionGateTest' -> core-testing/build/reports/semantic-corpus/question-device.md). Same spirit as the tag policy repairs of ADR-039 amendment TG1.4b: program logic decides, never the model; no prompt change, no re-recording. Also one scorer refinement in core-testing QuestionReplay.\n\nRead first: core-domain lookup/LookupService.kt (ask, scopeOf, browseOrNothing, normalizeForMatch), QuestionKindDetector.kt, QuestionScope.kt, HistoryLookup.kt (LookupTarget.fromResolutions), tagging/TagResolver.kt (Exact/Near/New/Empty, verb match, synonyms), naming/NameNormalizer.kt, lookup tests (LookupServiceTest, QuestionKindDetectorTest); core-testing corpus/QuestionReplay.kt, QuestionCorpusModel.kt, QuestionCorpusOracleTest.kt, QuestionReplayScorerTest.kt, QuestionRegressionGateTest.kt, the question corpus and the device recording named above (synthetic questions; never print model words in test output).\n\nWhat the model did (recorded answers: subject / action / date words):\n- \"When did I last change the furnace filter?\" -> furnace filter / change / \"last\"; \"When was the last time I walked the dogs?\" -> dogs / walked / \"last time\"; the same \"last\" for the yard, grass and chlorine last-time questions. Result today: dates NOT_UNDERSTOOD and the \"couldn't tell which dates\" note on a plain last-time question.\n- \"What did I do last week?\" -> I / do / \"last week\"; \"Show me what I did in September\" -> I / did; \"What did I get done this month?\" -> I / get done. Result: NotEnoughHistory instead of Browse.\n- \"What did I do around the holidays?\" -> holidays / do / \"around the holidays\".\n- \"When did I last clean something?\" -> something / clean.\n- \"When did I last add chlorine?\" -> chlorine / add; \"How often do I change the oil?\" -> oil / change; \"Did I ever change the oil in the truck?\" -> oil / change; \"How much chlorine did I add to the hot tub last week?\" -> chlorine / add. The catalog has actions \"add chlorine\" and \"change oil\". Result: NotEnoughHistory.\n- \"When did I last change the furnace filter?\" -> furnace filter / change; \"Have I ever replaced the furnace filter?\" -> furnace filter / replace. Catalog: subject furnace, action change filter. Result: closest furnace, action unset (WRONG_ACTION).\n\nPART A -- core-domain lookup: a new internal object `QuestionWords` in the lookup package, called by LookupService.ask right after a successful extraction and before scopeOf and tag resolution; pure; the catalog is passed in; logs nothing. Every rule only REMOVES or RECOMBINES the user's own words; nothing is invented. Apply in this order on normalized words (NameNormalizer.normalize plus curly apostrophe to plain):\n1. Date words that are only the 'last time / ever' phrasing are absent: normalized date words in {\"last\", \"last time\", \"the last time\", \"ever\", \"at all\", \"before\"} -> null. (\"last week\", \"the last month\" etc. are untouched.)\n2. Placeholder subject is absent: subject in {\"i\", \"me\", \"my\", \"myself\", \"we\", \"us\", \"it\", \"something\", \"anything\", \"everything\", \"stuff\", \"thing\", \"things\"} -> null, unless it resolves TagResolution.Exact against the catalog.\n3. Subject made only of date words is absent: when date words are present (after rule 1 and the existing occurs-in-question check) and every word of the subject occurs in them -> null, unless it resolves Exact.\n4. Generic action is absent: action in {\"do\", \"did\", \"done\", \"doing\", \"get done\", \"got done\", \"do anything\", \"do anything with\", \"do something\", \"do something with\", \"did anything\", \"work on\", \"worked on\"} -> null, unless it resolves Exact.\n5. Re-join: the subject resolves New (no tag at all), an action is given, and \"<action> <subject>\" resolves Exact or Near as an ACTION -> action = that joined phrase, subject = null. (\"add\" + \"chlorine\" -> \"add chlorine\"; \"change\" + \"oil\" -> \"change oil\".)\n6. Re-split: the subject has 2+ words and does not resolve Exact, an action is given, the subject minus its last word resolves Exact as a SUBJECT, and \"<action> <last word>\" resolves Exact or Near as an ACTION -> subject = the shorter words, action = the joined phrase. (\"furnace filter\" + \"change\" -> \"furnace\" + \"change filter\"; \"furnace filter\" + \"replace\" -> \"furnace\" + \"replace filter\" only if TagResolver resolves that Exact or Near, e.g. via its synonym rule; otherwise the rule does not apply.)\nAfter the clean-up the rest of ask() is unchanged: browseOrNothing sees the cleaned subject/action (so \"What did I do last week?\" -> Browse), and the date-word occurs-in-question check runs on the cleaned date words. Copy the QuestionCandidate rather than mutating. Update the LookupService class KDoc order-of-steps and the file comment (name the rules briefly). Unit tests (new QuestionWordsTest plus LookupServiceTest additions): every rule incl. its 'unless Exact' guard, rule order, a case where none applies, and the end-to-end examples above through LookupService with a small fake catalog; all existing lookup tests unchanged and passing.\n\nPART B -- core-testing scorer refinement (QuestionReplay.kt + tests): an ANSWER whose subject is UNSET while the case expects one of subjectIds is still CORRECT (not WRONG_SUBJECT) when the expected action is set, the resolved action is acceptable, and in the case's fixture every entry with that resolved action has a subject in the expected subjectIds (the answer selects exactly the same entries; e.g. \"add chlorine\" is only ever logged for the hot tub). Otherwise unchanged. Test both directions in QuestionReplayScorerTest. Do NOT change question-corpus.json (its hash pins the recording) or any recording/baseline file.\n\nPART C -- measure: run ./gradlew :core-testing:test (incl. QuestionRegressionGateTest, which writes question-device.md) and report the new class totals and every non-CORRECT case id with its codes. QuestionCorpusOracleTest must still pass with all cases CORRECT. Report counts, ids and codes only, never model words.\n\nRules: model output stays untrusted; the model never produces a date, count or answer (ADR-011/051/052); rules only drop or recombine the user's words and every recombined phrase must resolve to an EXISTING tag via TagResolver (never create or guess one); no logging (AGENTS.md #11); no change to TemporalRangeResolver, TagResolver, QuestionKindDetector, HistoryLookup ranking, stats, core-ai or the app.\n",
+  "non_goals": [
+    "No prompt or core-ai change and no re-recording.",
+    "No change to question-corpus.json, recordings or baselines (the orchestrator writes question-baseline.json).",
+    "No change to TagResolver, TemporalRangeResolver, QuestionKindDetector, HistoryLookup, stats, app-phone.",
+    "No docs edits (orchestrator)."
+  ],
+  "dependencies": [
+    "DH4.4"
+  ],
+  "read_paths": [
+    "core-domain/**",
+    "core-testing/**",
+    "core-ai/src/main/kotlin/com/mcfrenchpants/activityledger/core/ai/QuestionPrompt.kt",
+    "docs/SEMANTIC_CORPUS.md",
+    "docs/DECISIONS.md",
+    "AGENTS.md",
+    "gradle/**",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/LookupService.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/QuestionWords.kt",
+    "core-domain/src/test/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/**",
+    "core-testing/src/main/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/QuestionReplay.kt",
+    "core-testing/src/test/kotlin/com/mcfrenchpants/activityledger/core/testing/corpus/QuestionReplayScorerTest.kt"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "core-ai/**",
+    "core-data/**",
+    "app-phone/**",
+    "app-wear/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/tagging/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/temporal/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/stats/**",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/HistoryLookup.kt",
+    "core-domain/src/main/kotlin/com/mcfrenchpants/activityledger/core/domain/lookup/QuestionKindDetector.kt",
+    "core-testing/src/main/resources/**",
+    "core-testing/src/test/resources/**"
+  ],
+  "acceptance_criteria": [
+    "QuestionWords implements rules 1-6 in order with the 'unless Exact' guards; every recombined phrase resolves to an existing tag via TagResolver; LookupService applies it before scope and tag resolution; KDoc updated.",
+    "Unit tests cover each rule, its guard, ordering, no-op, and the end-to-end examples; all existing lookup tests pass unchanged.",
+    "QuestionReplay treats an unset subject as acceptable only under the same-entries condition; tests both ways.",
+    "question-corpus.json, recordings and baselines unchanged; QuestionCorpusOracleTest still all CORRECT.",
+    "Replay of the committed Pixel recording reported (class totals + non-CORRECT ids and codes).",
+    "./gradlew :core-domain:test :core-testing:test :app-phone:testDebugUnitTest pass.",
+    "No file outside write_paths is changed."
+  ],
+  "verification_commands": [
+    "./gradlew :core-domain:test :core-testing:test :app-phone:testDebugUnitTest",
+    "git status --porcelain"
+  ]
+}

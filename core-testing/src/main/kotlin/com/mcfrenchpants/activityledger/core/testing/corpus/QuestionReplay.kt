@@ -183,7 +183,10 @@ data class QuestionReplayResult(
  *   ANSWER/BROWSE expected but NOT_ENOUGH_HISTORY -> NOTHING_FOUND (safe miss).
  * - Target (any answer): a tag id in mustNotMatch -> MUST_NOT_MATCH; when ANSWER was expected, a
  *   subject (action) not in subjectIds (actionIds), or set where the list is empty, or unset
- *   where it is not -> WRONG_SUBJECT (WRONG_ACTION).
+ *   where it is not -> WRONG_SUBJECT (WRONG_ACTION). Exception (DH4.5): an UNSET subject where
+ *   subjectIds is not empty is fine when actionIds is not empty, the resolved action is
+ *   acceptable, and every fixture entry with that action has a subject in subjectIds -- the
+ *   answer selects exactly the same entries ("add chlorine" is only ever logged for the hot tub).
  * - Kind (when ANSWER or BROWSE was expected and given): outside kind + allowedKinds -> WRONG_KIND.
  * - Range and date words (same condition): equal dates and equal date-word status -> fine; date
  *   words USED with other dates -> WRONG_RANGE (wrong); else, when USED was expected:
@@ -286,8 +289,11 @@ class QuestionReplay(private val corpus: QuestionCorpus) {
         }
         if (listOfNotNull(subject?.id, action?.id).any { it in expected.mustNotMatch }) checks += QuestionCheck.MUST_NOT_MATCH
         if (expected.outcome == QuestionOutcome.ANSWER && outcome == QuestionOutcome.ANSWER) {
-            if (!sideOk(subject?.id, expected.subjectIds)) checks += QuestionCheck.WRONG_SUBJECT
-            if (!sideOk(action?.id, expected.actionIds)) checks += QuestionCheck.WRONG_ACTION
+            val actionOk = sideOk(action?.id, expected.actionIds)
+            val subjectOk = sideOk(subject?.id, expected.subjectIds) ||
+                (subject == null && actionOk && sameEntriesWithoutSubject(case, expected, action?.id))
+            if (!subjectOk) checks += QuestionCheck.WRONG_SUBJECT
+            if (!actionOk) checks += QuestionCheck.WRONG_ACTION
         }
         if (scope != null && range != null && expected.outcome != QuestionOutcome.NOT_ENOUGH_HISTORY) {
             if (scope.kind !in expected.acceptableKinds) checks += QuestionCheck.WRONG_KIND
@@ -320,6 +326,18 @@ class QuestionReplay(private val corpus: QuestionCorpus) {
     /** One target side against its acceptable ids: empty means it must be unset. */
     private fun sideOk(id: String?, acceptable: List<String>): Boolean =
         if (acceptable.isEmpty()) id == null else id != null && id in acceptable
+
+    /**
+     * An unset subject where one of [ExpectedQuestion.subjectIds] was expected still selects the
+     * same entries when the case expects an action, [actionId] is set, and in the case's fixture
+     * every entry with [actionId] has an expected subject ("add chlorine" is only ever logged for
+     * the hot tub). The caller has already checked that [actionId] is acceptable.
+     */
+    private fun sameEntriesWithoutSubject(case: QuestionCorpusCase, expected: ExpectedQuestion, actionId: String?): Boolean {
+        if (actionId == null || expected.subjectIds.isEmpty() || expected.actionIds.isEmpty()) return false
+        val withAction = corpus.fixtureOf(case).entries.filter { it.actionId == actionId }
+        return withAction.isNotEmpty() && withAction.all { it.subjectId in expected.subjectIds }
+    }
 
     /** The range / date-word check (see the class description), or null when both are as expected. */
     private fun dateCheck(expected: ExpectedQuestion, actual: QuestionRangeDates, words: DateWords): QuestionCheck? {
