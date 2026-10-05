@@ -713,13 +713,13 @@
     {
       "id": "VC1",
       "title": "Phone voice capture (build-guide Step 6)",
-      "lifecycle_state": "ready_to_release",
+      "lifecycle_state": "released",
       "tasks": [
         {
           "id": "VC1.1",
           "title": "Watch on-device recognition probe (OnePlus Watch 3)",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -734,7 +734,7 @@
           "id": "VC1.2",
           "title": "SpeechTranscriber and platform adapter in core-speech",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [
             "VC1.1"
           ],
@@ -751,7 +751,7 @@
           "id": "VC1.3",
           "title": "Mic button, listening state and failure card on Log",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [
             "VC1.2"
           ],
@@ -768,7 +768,7 @@
           "id": "VC1.4",
           "title": "Wire voice through the capture pipeline",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [
             "VC1.2",
             "VC1.3"
@@ -786,7 +786,7 @@
           "id": "VC1.5",
           "title": "Device pass and documentation",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [
             "VC1.4"
           ],
@@ -804,13 +804,13 @@
     {
       "id": "WD1",
       "title": "Wear Data Layer round-trip probe (backlog item 16)",
-      "lifecycle_state": "planned",
+      "lifecycle_state": "released",
       "tasks": [
         {
           "id": "WD1.1",
           "title": "Data Layer probe code",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -825,7 +825,7 @@
           "id": "WD1.2",
           "title": "Device run and write-up",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [
             "WD1.1"
           ],
@@ -842,7 +842,7 @@
           "id": "WD1.3",
           "title": "Debug-only dictation probe on the watch (owner request)",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [
             "WD1.1"
           ],
@@ -860,13 +860,13 @@
     {
       "id": "WC1",
       "title": "Watch capture (build-guide Step 8)",
-      "lifecycle_state": "implementing",
+      "lifecycle_state": "released",
       "tasks": [
         {
           "id": "WC1.1",
           "title": "Protocol module",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -881,7 +881,7 @@
           "id": "WC1.2",
           "title": "Watch outbox",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [
             "WC1.1"
           ],
@@ -898,7 +898,7 @@
           "id": "WC1.3",
           "title": "Repository: caller-supplied capture id (idempotent receive)",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [
             "WC1.1"
           ],
@@ -915,7 +915,7 @@
           "id": "WC1.3b",
           "title": "Phone receiver (listener, idempotent processing, ack)",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [
             "WC1.3"
           ],
@@ -932,7 +932,7 @@
           "id": "WC1.4a",
           "title": "Watch speech adapter (ordinary recognizer, prefer-offline) + offline assurance check",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -947,7 +947,7 @@
           "id": "WC1.4b",
           "title": "Watch capture UI states, session controller, haptics, permission",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [
             "WC1.4a",
             "WC1.1"
@@ -965,7 +965,7 @@
           "id": "WC1.5",
           "title": "Wire watch UI to outbox and transport (split into 5a/5b)",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [
             "WC1.2",
             "WC1.3b",
@@ -984,7 +984,7 @@
           "id": "WC1.6",
           "title": "Device pass and documentation",
           "status": "done",
-          "lifecycle_state": "planned",
+          "lifecycle_state": "released",
           "dependencies": [
             "WC1.5"
           ],
@@ -1001,7 +1001,7 @@
           "id": "WC1.5a",
           "title": "Watch send engine (outbox sink, sender, ack handler, stale-ack recovery) + end-to-end fake test",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [
             "WC1.4b",
             "WC1.3b"
@@ -1019,7 +1019,7 @@
           "id": "WC1.5b",
           "title": "Android wiring: Data Layer transport, ack listener, deferred retry, MainActivity",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [
             "WC1.5a"
           ],
@@ -1037,13 +1037,13 @@
     {
       "id": "TM1",
       "title": "Time defaults: 'just' = now, unknown time = today date-only",
-      "lifecycle_state": "implementing",
+      "lifecycle_state": "released",
       "tasks": [
         {
           "id": "TM1.1",
           "title": "Resolver rules + prompt v3",
           "status": "done",
-          "lifecycle_state": "implementing",
+          "lifecycle_state": "released",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -1065,7 +1065,7 @@
           "id": "TG1.1",
           "title": "Tag corpus: new cases from real watch entries + port of the 48 cases",
           "status": "done",
-          "lifecycle_state": "implementing",
+          "lifecycle_state": "released",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -1080,7 +1080,7 @@
           "id": "TG1.2",
           "title": "Extraction interpreter (prompt v4) + recorders",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG1.1"
           ],
@@ -1097,7 +1097,7 @@
           "id": "TG1.3",
           "title": "Tag resolver + decision policy in core-domain",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG1.1",
             "TG1.2"
@@ -1115,7 +1115,7 @@
           "id": "TG1.4a",
           "title": "On-phone debug-only tag corpus runner + import script (owner-approved Drive install)",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG1.2",
             "TG1.3"
@@ -1133,7 +1133,7 @@
           "id": "TG1.4",
           "title": "Tag replay, scorer, report, gate + DurationResolver (device recording via in-app runner)",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG1.2",
             "TG1.3",
@@ -1152,7 +1152,7 @@
           "id": "TG1.4b",
           "title": "Resolver/policy fixes + time/duration grounding from device findings",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG1.3",
             "TG1.4"
@@ -1170,7 +1170,7 @@
           "id": "TG2.1",
           "title": "Schema v2 + migration 1->2 (tag tables, pair columns, duration, extraction fields)",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG1.4b"
           ],
@@ -1187,7 +1187,7 @@
           "id": "TG2.2",
           "title": "Repository: tag catalog + acceptTagged",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG2.1"
           ],
@@ -1204,7 +1204,7 @@
           "id": "TG2.3",
           "title": "Corrections teach (aliases from corrections)",
           "status": "done",
-          "lifecycle_state": "verifying",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG2.2"
           ],
@@ -1221,7 +1221,7 @@
           "id": "TG2.4",
           "title": "Rename and merge tags (data operations)",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG2.3"
           ],
@@ -1238,7 +1238,7 @@
           "id": "TG3.1",
           "title": "Tagged capture orchestrator",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG2.4"
           ],
@@ -1255,7 +1255,7 @@
           "id": "TG3.2",
           "title": "Resolution, correction and tag management services",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG3.1"
           ],
@@ -1272,7 +1272,7 @@
           "id": "TG3.3",
           "title": "Phone wiring and watch receiver",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG3.2"
           ],
@@ -1289,7 +1289,7 @@
           "id": "TG3.4",
           "title": "Log screen on tags",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG3.3"
           ],
@@ -1306,7 +1306,7 @@
           "id": "TG3.5",
           "title": "History on tags",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG3.4"
           ],
@@ -1323,7 +1323,7 @@
           "id": "TG3.6",
           "title": "Tag management screen",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG3.5"
           ],
@@ -1340,7 +1340,7 @@
           "id": "TG3.7",
           "title": "Device pass",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG3.6"
           ],
@@ -1357,7 +1357,7 @@
           "id": "TG3.8",
           "title": "Extraction split: object noun in subject",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG3.7"
           ],
@@ -1374,7 +1374,7 @@
           "id": "TG3.9",
           "title": "Clean-up of old phone-app UI and wiring",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG3.8"
           ],
@@ -1391,7 +1391,7 @@
           "id": "TG4.1",
           "title": "Lookup ranking + question detector",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG3.9"
           ],
@@ -1408,7 +1408,7 @@
           "id": "TG4.2",
           "title": "Repository read: loadLookupEntries",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG4.1"
           ],
@@ -1425,7 +1425,7 @@
           "id": "TG4.3",
           "title": "Lookup service + question-extractor seam",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG4.2"
           ],
@@ -1442,7 +1442,7 @@
           "id": "TG4.4",
           "title": "Gemini Nano question extractor",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG4.3"
           ],
@@ -1459,7 +1459,7 @@
           "id": "TG4.5",
           "title": "Ask wiring + view model (phone, no UI)",
           "status": "done",
-          "lifecycle_state": "implemented",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG4.3"
           ],
@@ -1476,7 +1476,7 @@
           "id": "TG4.6",
           "title": "Ask screen (phone UI)",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG4.5"
           ],
@@ -1493,7 +1493,7 @@
           "id": "TG4.7",
           "title": "Device pass",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "TG4.4",
             "TG4.6"
@@ -1518,7 +1518,7 @@
           "id": "DH1.1",
           "title": "stats package: filter model + calculator",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [],
           "lease": {
             "assigned_agent": null,
@@ -1533,7 +1533,7 @@
           "id": "DH2.1",
           "title": "loadExploreEntries repository read",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "DH1.1"
           ],
@@ -1550,7 +1550,7 @@
           "id": "DH3.1",
           "title": "Explore view model + state",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "DH2.1"
           ],
@@ -1567,7 +1567,7 @@
           "id": "DH3.2",
           "title": "Explore screen UI + tab rename",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "DH3.1"
           ],
@@ -1584,7 +1584,7 @@
           "id": "DH3.3",
           "title": "Device check Moto G; merge stage 3",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "DH3.2"
           ],
@@ -1601,7 +1601,7 @@
           "id": "DH4.1",
           "title": "Temporal ranges",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "DH3.3"
           ],
@@ -1618,7 +1618,7 @@
           "id": "DH4.2",
           "title": "Question reader q2",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "DH4.1"
           ],
@@ -1635,7 +1635,7 @@
           "id": "DH4.3",
           "title": "Lookup -> Explore question result",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "DH4.2"
           ],
@@ -1652,7 +1652,7 @@
           "id": "DH4.4",
           "title": "Question corpus + replay gate",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "DH4.3"
           ],
@@ -1669,7 +1669,7 @@
           "id": "DH4.5",
           "title": "Lookup word clean-up from the first question recording",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "DH4.4"
           ],
@@ -1686,7 +1686,7 @@
           "id": "DH4.6",
           "title": "Explore and History refresh when entries change",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "DH4.5"
           ],
@@ -1703,7 +1703,7 @@
           "id": "DH5.1",
           "title": "Device pass, docs, owner report",
           "status": "done",
-          "lifecycle_state": "verified",
+          "lifecycle_state": "released",
           "dependencies": [
             "DH4.4"
           ],
