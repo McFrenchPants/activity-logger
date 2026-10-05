@@ -26,6 +26,7 @@ import com.mcfrenchpants.activityledger.core.domain.repository.RenameOutcome
 import com.mcfrenchpants.activityledger.core.domain.repository.TagCorrectionRequest
 import com.mcfrenchpants.activityledger.core.domain.repository.TagTarget
 import com.mcfrenchpants.activityledger.core.domain.repository.TaggedAcceptRequest
+import com.mcfrenchpants.activityledger.core.domain.stats.ExploreEntry
 import com.mcfrenchpants.activityledger.core.domain.tagging.KnownPair
 import com.mcfrenchpants.activityledger.core.domain.tagging.KnownTag
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagCatalog
@@ -71,6 +72,7 @@ private class FakeLedgerRepository(
     override suspend fun loadExtractedWordsForOccurrence(occurrenceId: String): ExtractedWords? = error("not used")
 
     override suspend fun loadLookupEntries(): List<LookupEntry> = error("not used")
+    override suspend fun loadExploreEntries(): List<ExploreEntry> = error("not used")
 }
 
 private class FakeExtractor : ActivityExtractor {

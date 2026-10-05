@@ -9,6 +9,7 @@ import com.mcfrenchpants.activityledger.core.domain.repository.RenameOutcome
 import com.mcfrenchpants.activityledger.core.domain.repository.TagCorrectionRequest
 import com.mcfrenchpants.activityledger.core.domain.repository.TagRepository
 import com.mcfrenchpants.activityledger.core.domain.repository.TaggedAcceptRequest
+import com.mcfrenchpants.activityledger.core.domain.stats.ExploreEntry
 import com.mcfrenchpants.activityledger.core.domain.tagging.KnownPair
 import com.mcfrenchpants.activityledger.core.domain.tagging.KnownTag
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagCatalog
@@ -64,6 +65,8 @@ class LookupServiceTest {
             entryLoads++
             return entries
         }
+
+        override suspend fun loadExploreEntries(): List<ExploreEntry> = error("not used")
 
         override suspend fun acceptTagged(request: TaggedAcceptRequest): String = error("not used")
         override suspend fun correctTags(request: TagCorrectionRequest): CorrectionOutcome = error("not used")

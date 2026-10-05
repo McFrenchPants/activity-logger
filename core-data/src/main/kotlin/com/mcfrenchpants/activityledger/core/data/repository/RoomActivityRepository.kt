@@ -43,6 +43,7 @@ import com.mcfrenchpants.activityledger.core.domain.repository.StoredCapture
 import com.mcfrenchpants.activityledger.core.domain.repository.TagCorrectionRequest
 import com.mcfrenchpants.activityledger.core.domain.repository.TagTarget
 import com.mcfrenchpants.activityledger.core.domain.repository.TaggedAcceptRequest
+import com.mcfrenchpants.activityledger.core.domain.stats.ExploreEntry
 import com.mcfrenchpants.activityledger.core.domain.tagging.KnownPair
 import com.mcfrenchpants.activityledger.core.domain.tagging.KnownTag
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagCatalog
@@ -238,6 +239,37 @@ internal class RoomActivityRepository(
                 occurredAt = Instant.ofEpochMilli(row.occurredAt),
                 durationSeconds = row.durationSeconds,
             )
+        }
+    }
+
+    override suspend fun loadExploreEntries(): List<ExploreEntry> = io {
+        // Three queries regardless of row counts (entries + one per alias table), in one read
+        // transaction for a consistent view. Alias lists cover ACTIVE tags only, which matches
+        // the rows: a non-ACTIVE tag side is already null there.
+        database.runInTransaction<List<ExploreEntry>> {
+            val rows = database.activityOccurrenceDao().loadExploreRows()
+            if (rows.isEmpty()) return@runInTransaction emptyList()
+            val subjectAliases = database.subjectAliasDao().listForActiveSubjects()
+                .groupBy({ it.subjectId }, { it.aliasText })
+            val actionAliases = database.actionAliasDao().listForActiveActions()
+                .groupBy({ it.actionId }, { it.aliasText })
+            rows.map { row ->
+                ExploreEntry(
+                    occurrenceId = row.occurrenceId,
+                    occurredAt = Instant.ofEpochMilli(row.occurredAt),
+                    timePrecision = row.timePrecision,
+                    durationSeconds = row.durationSeconds,
+                    activityId = row.activityId,
+                    activityName = row.activityName,
+                    subjectId = row.subjectId,
+                    subjectName = row.subjectName,
+                    actionId = row.actionId,
+                    actionName = row.actionName,
+                    rawText = row.rawText,
+                    subjectAliases = row.subjectId?.let { subjectAliases[it] }.orEmpty(),
+                    actionAliases = row.actionId?.let { actionAliases[it] }.orEmpty(),
+                )
+            }
         }
     }
 

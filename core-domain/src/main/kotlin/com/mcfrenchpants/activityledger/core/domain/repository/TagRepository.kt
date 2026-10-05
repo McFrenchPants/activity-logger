@@ -5,6 +5,7 @@ import com.mcfrenchpants.activityledger.core.domain.lookup.LookupEntry
 import com.mcfrenchpants.activityledger.core.domain.model.ActivityState
 import com.mcfrenchpants.activityledger.core.domain.model.CorrectionSource
 import com.mcfrenchpants.activityledger.core.domain.model.TimePrecision
+import com.mcfrenchpants.activityledger.core.domain.stats.ExploreEntry
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagCatalog
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
 import java.time.Instant
@@ -242,6 +243,30 @@ interface TagRepository {
      * query (no per-row queries).
      */
     suspend fun loadLookupEntries(): List<LookupEntry>
+
+    /**
+     * Every accepted, visible entry, for the Explore screen.
+     *
+     * Inclusion: each occurrence with ACTIVE visibility (hidden / undone ones are excluded) whose
+     * canonical activity is ACTIVE. Captures still waiting or in review have no occurrence and
+     * never appear. Unlike [loadLookupEntries], untagged (v3-path) activities ARE included.
+     *
+     * Fields:
+     * - occurrenceId, occurredAt, timePrecision, durationSeconds: from the occurrence.
+     * - activityId / activityName: the canonical activity's id and display name (always set).
+     * - subjectId / subjectName and actionId / actionName: the canonical activity's subject /
+     *   action and their CURRENT display names, read with LEFT JOIN semantics. A side is null when
+     *   the canonical activity has no subject / action (old untagged rows), AND ALSO when that
+     *   subject / action exists but is not ACTIVE (e.g. MERGED): a non-ACTIVE tag reads as null.
+     * - rawText: the occurrence's raw capture text, returned unchanged.
+     * - subjectAliases / actionAliases: the alias texts of that subject / action (oldest first);
+     *   empty when it has none or when that side is null.
+     *
+     * Ordered newest occurredAt first, occurrence id descending as tie-break. Read only (writes
+     * nothing, never logs); an empty database yields an empty list. Uses one query for the
+     * entries plus at most one query per alias table (no per-row queries).
+     */
+    suspend fun loadExploreEntries(): List<ExploreEntry>
 }
 
 /** The fixed reason code stored on the correction rows a tag merge writes (never user text). */

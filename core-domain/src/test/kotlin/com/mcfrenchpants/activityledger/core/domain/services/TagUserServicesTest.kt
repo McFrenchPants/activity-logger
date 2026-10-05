@@ -26,6 +26,7 @@ import com.mcfrenchpants.activityledger.core.domain.repository.RenameOutcome
 import com.mcfrenchpants.activityledger.core.domain.repository.TagCorrectionRequest
 import com.mcfrenchpants.activityledger.core.domain.repository.TagTarget
 import com.mcfrenchpants.activityledger.core.domain.repository.TaggedAcceptRequest
+import com.mcfrenchpants.activityledger.core.domain.stats.ExploreEntry
 import com.mcfrenchpants.activityledger.core.domain.tagging.KnownPair
 import com.mcfrenchpants.activityledger.core.domain.tagging.KnownTag
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagCatalog
@@ -96,6 +97,7 @@ private class RecordingLedger(
     override suspend fun loadExtractedWordsForOccurrence(occurrenceId: String): ExtractedWords? = occurrenceWords
 
     override suspend fun loadLookupEntries(): List<LookupEntry> = emptyList()
+    override suspend fun loadExploreEntries(): List<ExploreEntry> = emptyList()
 
     override suspend fun getOccurrence(id: String): OccurrenceView? = occurrenceView?.takeIf { it.id == id }
 
