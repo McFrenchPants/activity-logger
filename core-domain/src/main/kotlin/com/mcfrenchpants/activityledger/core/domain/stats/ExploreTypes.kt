@@ -10,6 +10,7 @@ import java.time.LocalDate
  * the calculator does not filter visibility.
  *
  * @property occurrenceId Id of the occurrence; the final deterministic tie-break.
+ * @property captureId Id of the raw capture the occurrence came from (opens its edit sheet).
  * @property occurredAt When the thing happened (grouping uses this, never capture time).
  * @property timePrecision How precisely [occurredAt] is known; DATE_ONLY rows are left out of
  *   part-of-day counts.
@@ -26,6 +27,7 @@ import java.time.LocalDate
  */
 data class ExploreEntry(
     val occurrenceId: String,
+    val captureId: String,
     val occurredAt: Instant,
     val timePrecision: TimePrecision,
     val durationSeconds: Long?,

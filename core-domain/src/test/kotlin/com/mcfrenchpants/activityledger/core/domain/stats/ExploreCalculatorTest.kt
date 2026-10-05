@@ -38,8 +38,10 @@ class ExploreCalculatorTest {
         activityName: String = if (subject == null && action == null) "legacy $id" else "$action $subject",
         subjectAliases: List<String> = emptyList(),
         actionAliases: List<String> = emptyList(),
+        captureId: String = "cap-$id",
     ) = ExploreEntry(
         occurrenceId = id,
+        captureId = captureId,
         occurredAt = occurredAt,
         timePrecision = precision,
         durationSeconds = duration,

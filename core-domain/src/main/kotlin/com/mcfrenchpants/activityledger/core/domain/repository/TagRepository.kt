@@ -259,6 +259,7 @@ interface TagRepository {
      *   the canonical activity has no subject / action (old untagged rows), AND ALSO when that
      *   subject / action exists but is not ACTIVE (e.g. MERGED): a non-ACTIVE tag reads as null.
      * - rawText: the occurrence's raw capture text, returned unchanged.
+     * - captureId: the occurrence's raw capture id (so the UI can open the History edit sheet).
      * - subjectAliases / actionAliases: the alias texts of that subject / action (oldest first);
      *   empty when it has none or when that side is null.
      *

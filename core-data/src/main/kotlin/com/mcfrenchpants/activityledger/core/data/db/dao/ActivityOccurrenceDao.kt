@@ -70,6 +70,7 @@ internal interface ActivityOccurrenceDao {
      */
     @Query(
         "SELECT activity_occurrences.id AS occurrence_id, " +
+            "activity_occurrences.raw_capture_id AS raw_capture_id, " +
             "activity_occurrences.occurred_at AS occurred_at, " +
             "activity_occurrences.time_precision AS time_precision, " +
             "activity_occurrences.duration_seconds AS duration_seconds, " +
@@ -109,6 +110,7 @@ internal data class LookupRow(
  */
 internal data class ExploreRow(
     @ColumnInfo(name = "occurrence_id") val occurrenceId: String,
+    @ColumnInfo(name = "raw_capture_id") val rawCaptureId: String,
     @ColumnInfo(name = "occurred_at") val occurredAt: Long,
     @ColumnInfo(name = "time_precision") val timePrecision: TimePrecision,
     @ColumnInfo(name = "duration_seconds") val durationSeconds: Long?,

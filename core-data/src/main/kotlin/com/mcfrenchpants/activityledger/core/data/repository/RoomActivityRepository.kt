@@ -256,6 +256,7 @@ internal class RoomActivityRepository(
             rows.map { row ->
                 ExploreEntry(
                     occurrenceId = row.occurrenceId,
+                    captureId = row.rawCaptureId,
                     occurredAt = Instant.ofEpochMilli(row.occurredAt),
                     timePrecision = row.timePrecision,
                     durationSeconds = row.durationSeconds,

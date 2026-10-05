@@ -1549,15 +1549,15 @@
         {
           "id": "DH3.1",
           "title": "Explore view model + state",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "verified",
           "dependencies": [
             "DH2.1"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/DH3.1.packet.json",
           "report_path": null,

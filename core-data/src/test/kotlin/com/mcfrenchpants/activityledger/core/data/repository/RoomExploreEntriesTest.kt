@@ -174,6 +174,10 @@ class RoomExploreEntriesTest {
         val entry = repository.loadExploreEntries().single()
 
         assertEquals(occurrence, entry.occurrenceId)
+        assertEquals(
+            stringColumn("SELECT id FROM raw_captures WHERE raw_text = ?", "synthetic furnace check"),
+            entry.captureId,
+        )
         assertEquals(Instant.ofEpochMilli(1_000L), entry.occurredAt)
         assertEquals(TimePrecision.DATE_ONLY, entry.timePrecision)
         assertEquals(600L, entry.durationSeconds)
@@ -249,6 +253,11 @@ class RoomExploreEntriesTest {
         assertTrue(old.subjectAliases.isEmpty())
         assertTrue(old.actionAliases.isEmpty())
         assertEquals("synthetic old words", old.rawText)
+        assertEquals(
+            stringColumn("SELECT raw_capture_id FROM activity_occurrences WHERE id = ?", untagged),
+            old.captureId,
+        )
+        assertTrue(entries[0].captureId != entries[1].captureId)
     }
 
     @Test
