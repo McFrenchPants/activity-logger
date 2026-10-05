@@ -319,6 +319,8 @@ At minimum:
 - occurrences within time range
 - approximate interval/frequency summary
 
+Status 2026-10-05: all five are delivered by the Explore tab (ADR-051 amendment, ADR-053): last time, previous entries (Entries list), count within a range, entries within a range, and "usually every N days".
+
 ### QRY-004 — No arbitrary SQL from model
 
 The application MUST NOT execute model-generated SQL directly.

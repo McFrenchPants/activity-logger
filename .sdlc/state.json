@@ -1512,7 +1512,7 @@
     {
       "id": "DH1",
       "title": "Explore: Ask, search and dashboard in one screen (backlog 19)",
-      "lifecycle_state": "planned",
+      "lifecycle_state": "released",
       "tasks": [
         {
           "id": "DH1.1",
@@ -1702,15 +1702,15 @@
         {
           "id": "DH5.1",
           "title": "Device pass, docs, owner report",
-          "status": "todo",
-          "lifecycle_state": "planned",
+          "status": "done",
+          "lifecycle_state": "verified",
           "dependencies": [
             "DH4.4"
           ],
           "lease": {
             "assigned_agent": null,
             "run_id": null,
-            "attempt_count": 0
+            "attempt_count": 1
           },
           "task_packet_path": ".sdlc/task-packets/DH5.1.packet.json",
           "report_path": null,

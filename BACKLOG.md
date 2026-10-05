@@ -282,7 +282,7 @@ Status vocabulary:
 18. **Ask: counting and date-window questions** — `merged into item 19` (2026-10-04)
     Ask answers "when did I last ..." only. Questions like "how many times did I mow in August?" or "how often do I change the oil?" need the model to also extract a time window / question type and program logic to count. Also open: a recorded set of real questions to guard the question reader against regressions, and asking by voice has not been tried on a device.
 
-19. **Explore: Ask, search and dashboard in one screen** — `ready` (design approved 2026-10-04)
+19. **Explore: Ask, search and dashboard in one screen** — `done` (2026-10-05; on `main`, device-checked on the Pixel 10 Pro incl. a spoken question; ADR-053)
     Added 2026-10-04 by the owner as a dashboard; same day the owner chose to
     fold it into the Ask tab and approved the design. The Ask tab becomes
     **Explore**: one box for a question or search words, a filter row (date

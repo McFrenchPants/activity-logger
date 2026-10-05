@@ -229,6 +229,8 @@ A future specialized review tool will use richer audit data.
 
 ## 9. Ask History
 
+*Built as the Explore tab (2026-10-05): questions set the screen's filters and one answer line states the fact; see `docs/UX_VISUAL_SPEC.md` §4.8 and ADR-053.*
+
 The query interface should look conversational, but execution should be constrained.
 
 Examples:

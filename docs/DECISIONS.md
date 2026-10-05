@@ -208,6 +208,8 @@ Top-level destinations in an M3 `NavigationBar`: **Log** (start; capture and rec
 
 Details and navigation graph: `docs/UX_VISUAL_SPEC.md` §3 D1.
 
+**Amendment (2026-10-05):** the bar now has four tabs, Log · History · Tags · Explore. Tags was added by ADR-048 and Ask was replaced by Explore (ADR-053). Back from any tab other than Log returns to Log; Explore first steps back through its own earlier filters.
+
 **Reason:** Capture must require no navigation on launch, so the mic lives on the start destination. History and Ask stay one tap away. A single activity keeps deep links and process-death handling in one place, and keeping review inside History avoids inbox patterns excluded by UX_SPEC §15.
 
 ---
@@ -840,6 +842,8 @@ The app can answer "when did I last change the furnace filter?" from the logged 
 
 **Amendment (TG4.7, 2026-10-04): a named subject that matches nothing.** Found on the Pixel: "When did I last clean the gutters?" (gutters never logged) answered with the last "hot tub filter · clean" because the ACTION matched. When the question names a subject and that subject resolves to no existing tag (New), the service now answers NotEnoughHistory instead of falling back to other subjects' entries of the same action. A question naming only an action, or a subject that resolves Exact/Near, is unchanged.
 
+**Amendment (DH4.3-DH4.5, 2026-10-05): questions set filters; counting and date windows are answered.** `LookupService.ask(text, today, firstDayOfWeek)` also returns a `QuestionScope`: the kind (fixed text rules in `QuestionKindDetector` first -- how many / how often / when did I last / what did I, show me, list -- then the model's kind, else UNKNOWN) and a date range (the model's date words count only if they occur in the question, and are turned into dates only by `TemporalRangeResolver`; none -> all time; not understood -> all time plus a note; a window after today -> NotEnoughHistory). A question naming nothing in particular with understood date words, or a LIST question, returns `Browse`. Before tag resolution, `QuestionWords` cleans the model's words: date words that are only "last" / "last time" / "ever" are dropped; placeholder subjects (I, something, ...), subjects made only of date words and generic actions (do, did, get done, ...) are dropped unless they are an exact tag; an unknown subject is re-joined into the action ("add" + "chlorine" -> "add chlorine") and a two-word subject re-split ("furnace filter" + "change" -> "furnace" + "change filter") only when the result is an existing tag (a close match only with the same object words). Explore turns the scope into chips and words a count, how-often or last-time answer from its own counts. The model still never produces a date, a count or an answer. The "Out of scope for this stage" paragraph above no longer applies.
+
 ## ADR-052 — Question extraction for Ask your history
 
 **Status:** Accepted (developer decision, 2026-10-04; Ask your history, TG4.4)
@@ -855,3 +859,21 @@ The app can answer "when did I last change the furnace filter?" from the logged 
 **Same behaviour as the activity extractor.** Same readiness gate (not ready means UNAVAILABLE, never a download), one generation per call, the interpreter's generation settings by reference, the same failure mapping (RETRYABLE / MALFORMED / OTHER, cancellation propagates), and no logging of question text.
 
 **Containment and measurement.** ML Kit stays inside core-ai (ADR-023). No recording or quality baseline exists yet for this prompt; it is measured on the Pixel in TG4.6.
+
+**Amendment (DH4.2, DH4.4, 2026-10-05): prompt q2.** The response gains `dateWindow` (the words that say when, copied as written, capped at 60 characters) and `kind` (LAST_TIME / COUNT / HOW_OFTEN / LIST; anything else UNKNOWN); prompt version `q2`, schema version 2, five worked examples that appear in no corpus. Measured with the question corpus (46 synthetic questions, `docs/SEMANTIC_CORPUS.md` §13): first Pixel 10 Pro recording 28 correct, 16 safe misses, 2 wrong; after the deterministic clean-up in ADR-051's amendment, 46 of 46 correct on the same recording, pinned by `question-baseline.json`. Spoken questions were confirmed on the Pixel by the owner on 2026-10-05.
+
+## ADR-053 — Explore: ask, search and count in one screen
+
+**Status:** Accepted (owner-approved design 2026-10-04; built and device-checked 2026-10-05; work item DH1, backlog item 19)
+
+The Ask tab is replaced by **Explore** (fourth tab: Log · History · Tags · Explore). One box takes a question or search words; a filter row (date range, subject, action, words) scopes everything below it; the screen shows an answer line, three numbers, one entries-over-time chart and a three-way switch (Entries, Activities, Patterns). A question only sets the filters, so what the app understood stays visible and editable.
+
+**Decisions (design D1-D9).** One screen instead of Ask + a separate dashboard; named Explore; "usually every N days" (typical gap) shown on activities with 3+ entries and as a number when one activity is in scope; no "longer than usual"/overdue label; no streaks, scores, goals, badges, reminders or good/bad colouring; averages and typical gaps allowed here (UX_VISUAL_SPEC §4.5 no longer forbids them on Explore); charts drawn with Compose Canvas, no chart library; counting in Kotlin over one read of entry rows (`core.domain.stats`, `TagRepository.loadExploreEntries`), not SQL; backlog item 18 absorbed.
+
+**Counting rules** (`ExploreCalculator`): only accepted, visible entries; grouped by when it happened in the phone's time zone; weeks start on the locale's first day; day-only entries count per day but not by part of day; activity = subject + action pair; typical gap = median gap over all time regardless of the date filter (needs 3+ entries), shown in hours below 20 hours, else days/months/years; "last time" uses the newest entry over all time for the scope; preset ranges include today; custom ranges are inclusive local dates. Full rules: `docs/proposals/explore/DESIGN_SPEC.md`.
+
+**Questions** (ADR-051/052 amendments of 2026-10-05): the model returns words only (subject, action, date words, kind); program logic resolves tags, the kind and the date range and counts from stored data.
+
+**Live refresh** (2026-10-05, owner report): Explore and History watch the database while on screen (Room invalidation over the tables they read, 300 ms settle) and reload quietly, keeping filters and rebuilding any shown answer from the new data. This replaces the plan's "load on screen start only" decision, which missed entries that finish saving a few seconds after they are typed.
+
+**Reason:** Combining asking, searching and counting around one shared filter keeps the screen simple and makes AI misreadings visible and fixable with a tap; personal-scale data makes in-memory counting fast and keeps every rule PC-testable.

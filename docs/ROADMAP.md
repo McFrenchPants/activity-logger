@@ -117,6 +117,8 @@ Examples:
 
 These are analysis features, not task planning.
 
+**Delivered by Explore (2026-10-05, ADR-053):** typical interval ("usually every N days"), entries over time per day/week/month, comparison with the previous period, activity summaries by period, weekday and part-of-day patterns, and time mentioned per activity. Not built: seasonal patterns and "next likely" predictions.
+
 ## 7. Post-MVP E — Additional capture surfaces
 
 Potential:
