@@ -1,0 +1,68 @@
+{
+  "task_id": "BF2.1",
+  "plan_revision": "bf2",
+  "objective": "Owner request (2026-10-14): when the phone app is not on screen, the watch sits on 'Queued for phone' indefinitely; it is not obvious whether to wait or whether another activity can be recorded. The owner wants the watch to always make its state obvious: either it is busy (wait) or it is ready (you can act).\n\nProduct behaviour (owner + orchestrator decisions):\n1. Launch / resume: unchanged -- the app opens straight into Listening (mic glyph + 'Listening…' + live partial).\n2. After a final transcript is handed to the outbox: show a busy state 'Saving…' with an indeterminate spinner (Wear Compose Material3 CircularProgressIndicator or equivalent already in the dependency set; no new dependency), replacing today's 'Queued for phone' text. Not tappable.\n3. If the phone's ack arrives while Saving: show the result as today (Saved / Saved named / 'Saved — review on phone' / failure), with the same haptics as today. Saved and NeedsReview results return to Ready by themselves after about 3 seconds (a tap during those seconds starts listening, as today). Failure stays until tapped (it is actionable: 'Couldn't capture. Tap to retry.').\n4. If no SAVED / NEEDS_REVIEW / FAILED ack arrives within about 5 seconds of entering Saving: go to Ready. The capture is already durable in the watch outbox and the existing drain/retry loop still delivers it; do not change that. A late ack for that capture after the controller has moved on must not yank the screen back (ignore it once the controller is in Ready or Listening; it may still fire haptics or not -- your call, prefer not, to avoid a buzz out of nowhere).\n5. New Ready state: mic glyph (non-ambient: filled as today; ambient: outline) plus 'Tap to record' text; tapping anywhere starts a new listening session. resume() keeps today's rule (resume starts listening unless a capture is Saving or a result is on screen); additionally resume from Ready starts listening (matches 'it comes up and says Listening').\n6. Timeouts are constructor-injected (e.g. savingTimeout = 5.seconds, resultHold = 3.seconds) so tests use virtual time; use the controller's CoroutineScope; cancel pending timers on every state change, on stop() and on start().\n7. Accessibility: each state's text is announced (existing liveRegion pattern); the spinner and mic glyph have content descriptions; Ready and result screens expose a click action.\n\nCode: CaptureUiState.kt (replace Queued with Saving, add Ready), CaptureSession.kt (CaptureSessionController: state machine and timers), CaptureScreen.kt (rendering, tappable states: Ready, Saved, NeedsReview, Failure -> onRetry/onTap starts listening), Haptics.kt (map the renamed state; keep existing patterns, no haptic for Ready), MainActivity.kt wiring if signatures change, res/values/strings.xml (capture_saving 'Saving…', capture_ready 'Tap to record', capture_saving_indicator, capture_ready_indicator descriptions; remove capture_queued if unused). Ambient rendering for the new states follows the existing ambient conventions (black, grey, outline).\n\nTests (JVM, extend CaptureSessionControllerTest and HapticsTest; WatchCaptureEndToEndTest must keep passing, update its expectations for Queued -> Saving): final transcript -> Saving; ack SAVED while Saving -> Saved, then Ready after resultHold; NEEDS_REVIEW likewise; FAILED -> Failure, stays; no ack -> Ready after savingTimeout; late ack after timeout is ignored; tap on Ready starts listening; tap on Saved within hold starts listening and cancels the hold timer; resume from Ready starts listening, resume while Saving does not; stop() cancels timers.",
+  "non_goals": [
+    "No change to the outbox, drain loop, retry scheduler, Data Layer transport, ack listener service or wire protocol.",
+    "No change to the phone app or any core module.",
+    "No docs or tracking edits (orchestrator)."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "app-wear/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "docs/UX_VISUAL_SPEC.md",
+    "AGENTS.md",
+    "gradle/**",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/capture/CaptureUiState.kt",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/capture/CaptureSession.kt",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/capture/CaptureScreen.kt",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/capture/Haptics.kt",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/capture/CaptureRuntime.kt",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/MainActivity.kt",
+    "app-wear/src/main/res/values/strings.xml",
+    "app-wear/src/test/kotlin/com/mcfrenchpants/activityledger/wear/capture/CaptureSessionControllerTest.kt",
+    "app-wear/src/test/kotlin/com/mcfrenchpants/activityledger/wear/capture/HapticsTest.kt",
+    "app-wear/src/test/kotlin/com/mcfrenchpants/activityledger/wear/capture/WatchCaptureEndToEndTest.kt",
+    "app-wear/src/test/kotlin/com/mcfrenchpants/activityledger/wear/capture/CaptureScreenTest.kt"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "app-phone/**",
+    "core-domain/**",
+    "core-data/**",
+    "core-ai/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/capture/OutboxCaptureSink.kt",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/capture/OutboxSender.kt",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/capture/DrainLoop.kt",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/capture/CaptureTransport.kt",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/capture/DataLayerCaptureTransport.kt",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/capture/AckHandler.kt",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/CaptureAckListenerService.kt",
+    "app-wear/src/main/kotlin/com/mcfrenchpants/activityledger/wear/RetryScheduler.kt"
+  ],
+  "acceptance_criteria": [
+    "After speaking, the watch shows a spinner with 'Saving…' (no 'Queued for phone' anywhere).",
+    "A phone result is shown as today; Saved / review-on-phone results return to a Ready screen ('Tap to record' + mic) after ~3 s; Failure stays until tapped.",
+    "With no phone answer within ~5 s, the watch goes to Ready; the capture still delivers later through the unchanged outbox; a late ack does not change the screen.",
+    "Tapping Ready (or a result) starts listening; resume from Ready starts listening; resume while Saving does not.",
+    "Timers are injectable and cancelled on state change, start() and stop().",
+    "Tests listed in the objective exist and pass; existing app-wear tests pass.",
+    "./gradlew :app-wear:testDebugUnitTest :app-wear:assembleDebug pass.",
+    "No file outside write_paths is changed."
+  ],
+  "verification_commands": [
+    "./gradlew :app-wear:testDebugUnitTest :app-wear:assembleDebug",
+    "git status --porcelain"
+  ]
+}

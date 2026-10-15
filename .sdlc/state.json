@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-10-15T04:30:00.000Z",
+  "updated_at": "2026-10-15T05:00:00.000Z",
   "work_items": [
     {
       "id": "SS1",
@@ -1752,6 +1752,28 @@
           "task_packet_path": ".sdlc/task-packets/BF1.2.packet.json",
           "report_path": null,
           "notes": "watch captures INTERPRETER_FAILED in background"
+        }
+      ]
+    },
+    {
+      "id": "BF2",
+      "title": "Watch capture flow: Saving spinner, Ready screen, no stuck 'Queued for phone'",
+      "lifecycle_state": "released",
+      "tasks": [
+        {
+          "id": "BF2.1",
+          "title": "Watch Saving/Ready states with timeouts",
+          "status": "done",
+          "lifecycle_state": "released",
+          "dependencies": [],
+          "lease": {
+            "assigned_agent": null,
+            "run_id": null,
+            "attempt_count": 1
+          },
+          "task_packet_path": ".sdlc/task-packets/BF2.1.packet.json",
+          "report_path": null,
+          "notes": "owner request 2026-10-14"
         }
       ]
     }
