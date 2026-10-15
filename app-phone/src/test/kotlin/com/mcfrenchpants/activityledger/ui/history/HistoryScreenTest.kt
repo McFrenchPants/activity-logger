@@ -1,6 +1,9 @@
 package com.mcfrenchpants.activityledger.ui.history
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -267,5 +270,33 @@ class HistoryScreenTest {
 
         composeRule.onNodeWithTag(EDIT_SHEET_TAG).assertDoesNotExist()
         row(tubWords).assertIsDisplayed()
+    }
+
+    @Test
+    fun anOpenRequestOpensTheCheckSheetAndIsHandedOverOnce() {
+        val id = closeMatchCapture()
+        val vm = HistoryViewModel(
+            repository = ledger,
+            resolution = TaggedResolutionService(ledger, clock),
+            correction = TaggedCorrectionService(ledger, clock),
+            clock = clock,
+            locale = { Locale.US },
+        )
+        var request by mutableStateOf<String?>(id)
+        var handedOver = 0
+        composeRule.setContent {
+            ActivityLedgerTheme {
+                HistoryScreen(
+                    openCaptureId = request,
+                    onOpenRequestHandled = { handedOver++; request = null },
+                    viewModel = vm,
+                )
+            }
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(CHECK_SHEET_TAG).assertIsDisplayed()
+        kotlin.test.assertEquals(1, handedOver)
+        kotlin.test.assertNull(request)
     }
 }

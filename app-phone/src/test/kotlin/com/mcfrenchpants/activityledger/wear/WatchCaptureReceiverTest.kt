@@ -86,6 +86,7 @@ class WatchCaptureReceiverTest {
     private var sendFails = false
     private var processOverride: (suspend (String) -> TaggedProcessingOutcome)? = null
     private var processCalls = 0
+    private var foreground = true
 
     private val receiver = WatchCaptureReceiver(
         repository = repository,
@@ -102,6 +103,7 @@ class WatchCaptureReceiverTest {
             }
         },
         zone = { zone },
+        isForeground = { foreground },
     )
 
     private fun envelope(
@@ -443,5 +445,85 @@ class WatchCaptureReceiverTest {
         send()
         assertTrue(rawAckJson.isNotEmpty())
         assertTrue(rawAckJson.none { it.contains("grass") })
+    }
+
+    // ---- Background deferral (ADR-029) ---------------------------------------------------
+
+    @Test
+    fun backgroundStoresRawDoesNotProcessAndAcksNeedsReview() {
+        autoAccept()
+        foreground = false
+        send()
+
+        val c = repository.created.single()
+        assertEquals(id, c.id)
+        assertEquals(text, c.rawText)
+        assertEquals(ProcessingState.CAPTURED, stored()!!.processingState)
+        assertEquals(text, stored()!!.rawText)
+        assertEquals(0, processCalls)
+        assertEquals(0, interpreter.callCount)
+        assertEquals(0, memory.occurrences.size)
+        assertEquals(listOf(AckStatus.NEEDS_REVIEW), acks.map { it.status })
+        assertTrue(acks.single().needsReview)
+        assertEquals(id, acks.single().captureId)
+        assertFalse(rawAckJson.single().contains("grass"))
+    }
+
+    @Test
+    fun backgroundResendIsIdempotentAndReAcksNeedsReview() {
+        autoAccept()
+        foreground = false
+        send()
+        send()
+        send()
+
+        assertEquals(1, repository.created.size)
+        assertEquals(0, processCalls)
+        assertEquals(ProcessingState.CAPTURED, stored()!!.processingState)
+        assertEquals(List(3) { AckStatus.NEEDS_REVIEW }, acks.map { it.status })
+        assertTrue(acks.all { it.needsReview })
+    }
+
+    @Test
+    fun backgroundResendOfFailedRetryableDoesNotProcess() {
+        foreground = false
+        runBlocking {
+            memory.createRawCapture(
+                NewRawCapture(
+                    CaptureSource.WATCH_VOICE, "watch-app", capturedAt, zone, text, null, null,
+                    ProcessingState.FAILED_RETRYABLE, id,
+                ),
+            )
+        }
+        send()
+        assertEquals(0, processCalls)
+        assertEquals(ProcessingState.FAILED_RETRYABLE, stored()!!.processingState)
+        assertEquals(listOf(AckStatus.NEEDS_REVIEW), acks.map { it.status })
+    }
+
+    @Test
+    fun backgroundResendAfterSavedStillAcksSaved() {
+        autoAccept()
+        send()
+        acks.clear()
+        foreground = false
+        send()
+        assertEquals(1, processCalls)
+        assertEquals(listOf(AckStatus.SAVED), acks.map { it.status })
+    }
+
+    @Test
+    fun resendInForegroundAfterBackgroundDeferralProcessesOnce() {
+        autoAccept()
+        foreground = false
+        send()
+        foreground = true
+        acks.clear()
+        send()
+        send()
+        assertEquals(1, processCalls)
+        assertEquals(1, repository.created.size)
+        assertEquals(1, memory.occurrences.size)
+        assertEquals(listOf(AckStatus.SAVED, AckStatus.SAVED), acks.map { it.status })
     }
 }

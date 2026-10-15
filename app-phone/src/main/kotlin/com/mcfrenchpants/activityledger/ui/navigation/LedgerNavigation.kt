@@ -10,6 +10,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -69,11 +72,17 @@ enum class TopLevelDestination(
  * [NavHost]. Each top-level destination keeps its own back stack (saveState/restoreState), and
  * because every tab switch pops back to the start destination, system Back from History, Tags
  * or Explore returns to Log (Explore first steps back through its own earlier filters).
+ *
+ * Tapping an openable Recent row on Log switches to History exactly like the History tab does and
+ * hands History a one-shot request to open that entry. The request lives only in memory here and
+ * is cleared as soon as History takes it, so a later tab switch, rotation or recreation never
+ * re-opens it, and a plain switch to History opens nothing.
  */
 @Composable
 fun LedgerNavigation(navController: NavHostController = rememberNavController()) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
+    var openInHistory by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         bottomBar = {
@@ -98,9 +107,20 @@ fun LedgerNavigation(navController: NavHostController = rememberNavController())
             modifier = Modifier.padding(innerPadding),
         ) {
             composable<LogRoute> {
-                LogScreen(onOpenHistory = { navController.navigateToTopLevel(TopLevelDestination.HISTORY) })
+                LogScreen(
+                    onOpenHistory = { navController.navigateToTopLevel(TopLevelDestination.HISTORY) },
+                    onOpenEntry = { captureId ->
+                        openInHistory = captureId
+                        navController.navigateToTopLevel(TopLevelDestination.HISTORY)
+                    },
+                )
             }
-            composable<HistoryRoute> { HistoryScreen() }
+            composable<HistoryRoute> {
+                HistoryScreen(
+                    openCaptureId = openInHistory,
+                    onOpenRequestHandled = { openInHistory = null },
+                )
+            }
             composable<TagsRoute> { TagsScreen() }
             composable<ExploreRoute> { ExploreScreen() }
         }

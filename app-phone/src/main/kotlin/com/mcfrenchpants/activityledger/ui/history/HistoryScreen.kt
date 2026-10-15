@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -39,7 +40,7 @@ import com.mcfrenchpants.activityledger.ActivityLedgerApplication
 import com.mcfrenchpants.activityledger.R
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
 import com.mcfrenchpants.activityledger.ui.components.EvidenceText
-import com.mcfrenchpants.activityledger.ui.components.HistoryRow
+import com.mcfrenchpants.activityledger.ui.components.OpenableHistoryRow
 import com.mcfrenchpants.activityledger.ui.log.CheckCard
 import com.mcfrenchpants.activityledger.ui.log.ResultCard
 import com.mcfrenchpants.activityledger.ui.review.UserMessage
@@ -71,10 +72,17 @@ fun historyFilterTag(filter: HistoryFilter): String = "HistoryFilter:${filter.na
  * first, with the All / Needs review / Not categorized chips. A waiting row opens the same Check
  * card the Log screen uses; a saved tagged row opens a small Edit sheet; a row from the old
  * pipeline is not clickable (ADR-047).
+ *
+ * @param openCaptureId A one-shot request (from tapping a Recent row on Log) to open that
+ *   capture's sheet, or null. It is handed to [viewModel] once and [onOpenRequestHandled] is
+ *   called so the caller clears it; the view model opens the sheet once the list has loaded.
+ * @param onOpenRequestHandled Called after [openCaptureId] was handed over.
  */
 @Composable
 fun HistoryScreen(
     modifier: Modifier = Modifier,
+    openCaptureId: String? = null,
+    onOpenRequestHandled: () -> Unit = {},
     viewModel: HistoryViewModel = defaultHistoryViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -82,6 +90,13 @@ fun HistoryScreen(
     LifecycleStartEffect(viewModel) {
         viewModel.onStart()
         onStopOrDispose { viewModel.onStop() }
+    }
+
+    LaunchedEffect(viewModel, openCaptureId) {
+        if (openCaptureId != null) {
+            viewModel.requestOpen(openCaptureId)
+            onOpenRequestHandled()
+        }
     }
 
     HistoryContent(
@@ -172,8 +187,6 @@ internal fun HistoryContent(
             )
         }
 
-        val checkLabel = stringResource(R.string.history_row_action_check)
-        val editLabel = stringResource(R.string.history_row_action_edit)
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -181,13 +194,7 @@ internal fun HistoryContent(
                 .testTag(HISTORY_LIST_TAG),
         ) {
             items(rows, key = { it.captureId }) { row ->
-                if (row.isAwaitingActivity) {
-                    HistoryRow(row, onClick = { onOpenCheck(row.captureId) }, onClickLabel = checkLabel)
-                } else if (row.isTagged) {
-                    HistoryRow(row, onClick = { onOpenEdit(row.captureId) }, onClickLabel = editLabel)
-                } else {
-                    HistoryRow(row)
-                }
+                OpenableHistoryRow(row, onOpenCheck = onOpenCheck, onOpenEdit = onOpenEdit)
                 HorizontalDivider()
             }
         }

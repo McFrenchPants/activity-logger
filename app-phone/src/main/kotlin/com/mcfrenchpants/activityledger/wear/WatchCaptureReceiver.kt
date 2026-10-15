@@ -28,6 +28,18 @@ import kotlinx.coroutines.sync.withLock
  * never creates a second raw capture or occurrence, and once an occurrence exists the
  * interpreter is never run again; the existing state is simply re-acked. A single [Mutex]
  * serialises all receives, so two concurrent deliveries of one id cannot both create or process.
+ * That lock is [lock], shared in production with the foreground catch-up and the Log screen,
+ * so no capture is ever interpreted by two of them at once.
+ *
+ * ## Background deferral (ADR-029)
+ *
+ * The platform refuses on-device model calls unless the phone app is in the foreground. When
+ * [isForeground] is false, a new or still-unprocessed capture is stored raw (it stays CAPTURED),
+ * the interpreter is not run, and it is acked NEEDS_REVIEW with needsReview set: a terminal ack,
+ * so the watch stops resending and shows that the entry is waiting on the phone. A resend while
+ * still in the background creates nothing and is re-acked the same way. The foreground catch-up
+ * ([com.mcfrenchpants.activityledger.pipeline.ForegroundCatchUp]) interprets it when the app is
+ * next on screen.
  *
  * ## Zone
  *
@@ -43,6 +55,11 @@ import kotlinx.coroutines.sync.withLock
  * @param process runs the tag pipeline for one stored capture (production passes the tagged
  *   orchestrator's `process`). A confirm or review outcome is acked NEEDS_REVIEW: the question
  *   cannot be asked on the watch, the owner answers it on the phone (ADR-045).
+ * @param isForeground whether the phone app's UI is in the foreground right now (production
+ *   passes the application's resumed-activity signal). Defaults to always-foreground for tests
+ *   of the foreground behaviour only.
+ * @param lock serialises every receive (and, in production, every other interpretation of a
+ *   capture in the process).
  * @param sendAck delivers an encoded ack to [sendAck]'s `sourceNodeId`; failures are swallowed
  *   because the watch will resend and be re-acked.
  */
@@ -50,9 +67,10 @@ class WatchCaptureReceiver(
     private val repository: ActivityRepository,
     private val process: suspend (captureId: String) -> TaggedProcessingOutcome,
     private val sendAck: suspend (sourceNodeId: String, ackJson: String) -> Unit,
+    private val isForeground: () -> Boolean = { true },
+    private val lock: Mutex = Mutex(),
     private val zone: () -> ZoneId,
 ) {
-    private val mutex = Mutex()
 
     /** Handles one delivered envelope from [sourceNodeId]. Rethrows cancellation, nothing else. */
     suspend fun receive(sourceNodeId: String, envelopeJson: String) {
@@ -60,7 +78,7 @@ class WatchCaptureReceiver(
             is ProtocolResult.Ok -> decoded.value
             is ProtocolResult.Failure -> return
         }
-        mutex.withLock { handle(sourceNodeId, envelope) }
+        lock.withLock { handle(sourceNodeId, envelope) }
     }
 
     private suspend fun handle(node: String, envelope: CaptureEnvelope) {
@@ -83,17 +101,26 @@ class WatchCaptureReceiver(
                 ack(node, id, AckStatus.FAILED_RETRYABLE)
                 return
             }
-            ack(node, id, AckStatus.RECEIVED)
-            runProcess(node, id)
+            if (isForeground()) {
+                ack(node, id, AckStatus.RECEIVED)
+                runProcess(node, id)
+            } else {
+                deferToForeground(node, id)
+            }
             return
         }
 
         when {
             existing.hasOccurrence -> ack(node, id, AckStatus.SAVED)
-            isUnprocessed(existing) -> runProcess(node, id)
+            isUnprocessed(existing) -> if (isForeground()) runProcess(node, id) else deferToForeground(node, id)
             existing.processingState == ProcessingState.FAILED_FINAL -> ack(node, id, AckStatus.FAILED_FINAL)
             else -> ack(node, id, AckStatus.NEEDS_REVIEW, needsReview = true)
         }
+    }
+
+    /** Background: leave the stored capture CAPTURED for the foreground catch-up; stop resends. */
+    private suspend fun deferToForeground(node: String, id: String) {
+        ack(node, id, AckStatus.NEEDS_REVIEW, needsReview = true)
     }
 
     private fun isUnprocessed(c: StoredCapture): Boolean =

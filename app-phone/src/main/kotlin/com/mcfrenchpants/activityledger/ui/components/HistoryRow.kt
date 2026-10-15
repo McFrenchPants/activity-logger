@@ -170,3 +170,34 @@ fun HistoryRow(
         }
     }
 }
+
+/**
+ * A [HistoryRow] with the one shared rule for which rows can be opened, used by both Log's Recent
+ * and the History screen so they behave and are announced the same: a waiting capture (Needs
+ * review / Not categorized) opens its Check card ([onOpenCheck], announced "check"), a saved
+ * tagged entry opens its Edit sheet ([onOpenEdit], announced "edit"), and a row from the old
+ * pipeline stays plain text (ADR-047).
+ */
+@Composable
+fun OpenableHistoryRow(
+    row: HistoryRowModel,
+    onOpenCheck: (captureId: String) -> Unit,
+    onOpenEdit: (captureId: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when {
+        row.isAwaitingActivity -> HistoryRow(
+            row,
+            modifier = modifier,
+            onClick = { onOpenCheck(row.captureId) },
+            onClickLabel = stringResource(R.string.history_row_action_check),
+        )
+        row.isTagged -> HistoryRow(
+            row,
+            modifier = modifier,
+            onClick = { onOpenEdit(row.captureId) },
+            onClickLabel = stringResource(R.string.history_row_action_edit),
+        )
+        else -> HistoryRow(row, modifier = modifier)
+    }
+}

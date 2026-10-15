@@ -101,6 +101,47 @@ class HistoryViewModel(
         changesJob = null
     }
 
+    /**
+     * A request (from tapping a Recent row on Log) to open [captureId]'s sheet, waiting for the
+     * first load that STARTED after it (so it is never resolved against an older list), or null.
+     * Held only in memory: it is used once and never comes back after recreation.
+     */
+    private var pendingOpen: PendingOpen? = null
+
+    private class PendingOpen(val captureId: String, val afterSeq: Long)
+
+    /**
+     * Asks History to open [captureId] once, as if its row had been tapped here: a waiting
+     * capture opens its Check sheet, a saved tagged entry its Edit sheet. The list is reloaded
+     * first; then any open sheet is closed (nothing is written), the filter goes back to All if
+     * it would hide the row, and the sheet opens. An unknown or non-openable capture just shows
+     * History. The request is used up by the first successful (or failed) load.
+     */
+    fun requestOpen(captureId: String) {
+        pendingOpen = PendingOpen(captureId, afterSeq = loadSeq)
+        viewModelScope.launch { reload() }
+    }
+
+    /** Uses up [pendingOpen] once a load numbered [seq] has finished, opening the row if it can. */
+    private fun consumePendingOpen(seq: Long, loadedOk: Boolean) {
+        val pending = pendingOpen ?: return
+        if (seq <= pending.afterSeq) return
+        pendingOpen = null
+        if (!loadedOk) return
+        val row = _state.value.allRows.firstOrNull { it.captureId == pending.captureId } ?: return
+        if (!row.isAwaitingActivity && !row.isTagged) return
+        _state.update {
+            it.copy(
+                check = null,
+                edit = null,
+                picker = null,
+                message = null,
+                filter = if (it.filter.matches(row)) it.filter else HistoryFilter.ALL,
+            )
+        }
+        if (row.isAwaitingActivity) openCheck(row.captureId) else openEdit(row.captureId)
+    }
+
     /** Selects a filter chip. */
     fun selectFilter(filter: HistoryFilter) {
         _state.update { it.copy(filter = filter) }
@@ -334,6 +375,7 @@ class HistoryViewModel(
                 _state.update {
                     if (quiet && (it.message != null || it.sheetOpen)) it else it.copy(message = NOT_LOADED)
                 }
+                consumePendingOpen(seq, loadedOk = false)
             }
             return
         }
@@ -353,6 +395,7 @@ class HistoryViewModel(
                 message = if (current.message == NOT_LOADED) null else current.message,
             )
         }
+        consumePendingOpen(seq, loadedOk = true)
     }
 
     private companion object {

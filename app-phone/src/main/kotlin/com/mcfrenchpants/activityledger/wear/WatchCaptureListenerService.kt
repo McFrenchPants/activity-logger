@@ -45,7 +45,8 @@ class WatchCaptureListenerService : WearableListenerService() {
     }
 
     private fun buildReceiver(): WatchCaptureReceiver {
-        val pipeline = (application as ActivityLedgerApplication).capturePipeline
+        val app = application as ActivityLedgerApplication
+        val pipeline = app.capturePipeline
         val messageClient = Wearable.getMessageClient(this)
         return WatchCaptureReceiver(
             repository = pipeline.repository,
@@ -58,6 +59,10 @@ class WatchCaptureListenerService : WearableListenerService() {
                 }
             },
             zone = { ZoneId.systemDefault() },
+            // In the background the model refuses to run (ADR-029): the receiver stores the
+            // capture raw and the foreground catch-up interprets it later, under the same lock.
+            isForeground = { app.isInForeground.value },
+            lock = app.captureProcessingLock,
         )
     }
 }
