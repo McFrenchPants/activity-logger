@@ -30,13 +30,19 @@ import com.mcfrenchpants.activityledger.ui.review.UserMessage
 import com.mcfrenchpants.activityledger.ui.review.tagRefusalMessage
 import com.mcfrenchpants.activityledger.ui.time.OccurrenceTimeFormatter
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.Clock
 import java.time.ZoneId
 import java.util.Locale
@@ -52,6 +58,9 @@ const val DEFAULT_UNDO_TIMEOUT_MILLIS: Long = 8_000L
 
 /** How often the undo window's draining bar is advanced. */
 const val UNDO_TICK_MILLIS: Long = 100L
+
+/** How long ledger changes must pause before Recent reloads quietly (one capture = several writes). */
+private const val CHANGE_SETTLE_MS = 300L
 
 /** Most rows shown under "Recent". */
 private const val RECENT_ROWS = 3
@@ -84,6 +93,11 @@ private const val RECENT_ROWS = 3
  *   coroutine clock, and pauses while the card is touched, the picker is open or the screen is
  *   stopped. Running out only dismisses the card; the occurrence stays saved.
  * - The AI-readiness check is asked once per start and never downloads anything.
+ * - Creating and interpreting a capture happens under [processingLock], the process-wide lock the
+ *   watch receiver and the foreground catch-up also hold, so a capture this screen just stored is
+ *   never interpreted by the catch-up as well.
+ * - Between [onStart] and [onStop] it watches [changes] and, once a burst has settled, reloads
+ *   Recent quietly, so a capture interpreted elsewhere (watch, catch-up) shows up on its own.
  * - Nothing is logged (AGENTS.md #11).
  *
  * @param transcriber Turns spoken words into text, one session at a time. A plain interface, so
@@ -92,6 +106,8 @@ private const val RECENT_ROWS = 3
  *   start a download.
  * @param zone The zone recorded on new captures.
  * @param locale The locale times are formatted in.
+ * @param processingLock Shared with every other interpretation of a capture in the process.
+ * @param changes Emits (no data) when the ledger changed; empty by default.
  */
 class LogViewModel(
     private val repository: LedgerRepository,
@@ -103,6 +119,8 @@ class LogViewModel(
     private val isAiReady: suspend () -> Boolean,
     private val zone: () -> ZoneId,
     private val locale: () -> Locale = { Locale.getDefault() },
+    private val processingLock: Mutex = Mutex(),
+    private val changes: Flow<Unit> = emptyFlow(),
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LogUiState())
@@ -126,12 +144,23 @@ class LogViewModel(
     /** The coroutine collecting [listeningSession]'s flow. Cancelling it ends the session. */
     private var listeningJob: Job? = null
 
+    /** Watches [changes] between [onStart] and [onStop]; null when not watching. */
+    private var changesJob: Job? = null
+
     // ---- Lifecycle (ADR-029) --------------------------------------------------------------
 
     /** The Log screen came to the foreground. Reloads Recent and asks the AI-readiness check once. */
+    @OptIn(FlowPreview::class)
     fun onStart() {
         _state.update { it.copy(isStarted = true) }
         viewModelScope.launch { reloadRecent() }
+        if (changesJob?.isActive != true) {
+            changesJob = viewModelScope.launch {
+                // One capture writes several tables: reload once the burst has settled. The reload
+                // runs on its own so stopping the watch never strands a half-done load.
+                changes.debounce(CHANGE_SETTLE_MS).collect { viewModelScope.launch { reloadRecent() } }
+            }
+        }
         viewModelScope.launch {
             val ready = try {
                 isAiReady()
@@ -151,6 +180,8 @@ class LogViewModel(
      */
     fun onStop() {
         _state.update { it.copy(isStarted = false) }
+        changesJob?.cancel()
+        changesJob = null
         cancelListening()
     }
 
@@ -210,7 +241,7 @@ class LogViewModel(
      * If storage fails, nothing was saved and the words go back into the capture field rather
      * than being lost; if interpretation fails, the words are stored and the card says so.
      */
-    private suspend fun captureAndInterpret(capture: NewRawCapture) {
+    private suspend fun captureAndInterpret(capture: NewRawCapture) = processingLock.withLock {
         val text = capture.rawText
         val captureId = try {
             repository.createRawCapture(capture)
@@ -225,7 +256,7 @@ class LogViewModel(
                     message = UserMessage(R.string.log_capture_not_saved),
                 )
             }
-            return
+            return@withLock
         }
 
         val card = try {

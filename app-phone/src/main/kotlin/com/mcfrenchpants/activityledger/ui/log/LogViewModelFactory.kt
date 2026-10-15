@@ -35,6 +35,8 @@ class LogViewModelFactory(private val application: ActivityLedgerApplication) : 
                 withContext(Dispatchers.Default) { pipeline.capability.readiness() == ModelReadiness.READY }
             },
             zone = { ZoneId.systemDefault() },
+            processingLock = application.captureProcessingLock,
+            changes = pipeline.ledgerChanges,
         ) as T
     }
 }
