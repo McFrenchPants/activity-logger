@@ -11,7 +11,8 @@ enum class HapticPattern { NONE, TICK, DOUBLE_TICK, LONG_PULSE }
 /** The pattern for arriving in [state]. */
 fun hapticFor(state: CaptureUiState): HapticPattern = when (state) {
     is CaptureUiState.Listening -> HapticPattern.NONE
-    CaptureUiState.Queued -> HapticPattern.TICK
+    CaptureUiState.Saving -> HapticPattern.TICK
+    CaptureUiState.Ready -> HapticPattern.NONE
     is CaptureUiState.Saved -> HapticPattern.DOUBLE_TICK
     CaptureUiState.NeedsReview -> HapticPattern.DOUBLE_TICK
     CaptureUiState.Failure -> HapticPattern.LONG_PULSE

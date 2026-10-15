@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -139,14 +139,16 @@ class WatchCaptureEndToEndTest {
     private suspend fun TestScope.speak(r: Rig, text: String = secret) {
         r.transcriber.text = text
         r.controller.start()
-        advanceUntilIdle()
+        // runCurrent, not advanceUntilIdle: the latter would also fire the controller's
+        // savingTimeout (virtual time) and move the screen to Ready before the acks are applied.
+        runCurrent()
     }
 
     @Test
     fun happyPath() = runTest {
         val r = rig()
         speak(r)
-        assertEquals(CaptureUiState.Queued, r.controller.state.value)
+        assertEquals(CaptureUiState.Saving, r.controller.state.value)
         assertEquals(1, r.wakeups)
         assertTrue("persisted before the sender is woken", r.persistedAtWake)
         assertEquals(1, r.records().size)
@@ -418,7 +420,7 @@ class WatchCaptureEndToEndTest {
         assertEquals(before, r.records())
         assertTrue(r.forwarded.isEmpty())
         assertTrue(r.transport.retracted.isEmpty())
-        assertEquals(CaptureUiState.Queued, r.controller.state.value)
+        assertEquals(CaptureUiState.Saving, r.controller.state.value)
     }
 
     @Test
