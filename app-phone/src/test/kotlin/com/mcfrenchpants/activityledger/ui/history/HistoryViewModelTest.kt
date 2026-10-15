@@ -541,4 +541,99 @@ class HistoryViewModelTest {
         assertTrue(vm.state.value.loaded)
         assertNull(vm.state.value.message)
     }
+
+    // ---- Open request (a Recent row tapped on Log) -----------------------------------------------
+
+    @Test
+    fun anOpenRequestForAWaitingCaptureOpensItsCheckSheetOnce() {
+        val id = closeMatchCapture()
+        val vm = started()
+
+        vm.act { requestOpen(id) }
+        assertEquals(id, assertNotNull(vm.check).captureId)
+        assertNull(vm.state.value.edit)
+
+        // Used up: closing the sheet, leaving and coming back, or a later reload never re-opens it.
+        vm.act { decideLater() }
+        vm.act { onStop() }
+        vm.act { onStart() }
+        assertNull(vm.check)
+        assertNull(vm.state.value.edit)
+    }
+
+    @Test
+    fun anOpenRequestForATaggedEntryOpensItsEditSheet() {
+        val id = savedTubEntry()
+        val vm = started()
+
+        vm.act { requestOpen(id) }
+        val edit = assertNotNull(vm.state.value.edit)
+        assertEquals(vm.row(id).occurrenceId, edit.occurrenceId)
+        assertNull(vm.check)
+
+        vm.act { closeEdit() }
+        vm.act { onStart() }
+        assertNull(vm.state.value.edit)
+    }
+
+    @Test
+    fun anOpenRequestMadeBeforeTheFirstLoadWaitsForTheList() {
+        val id = closeMatchCapture()
+        val vm = viewModel()
+
+        vm.act { requestOpen(id) }
+        vm.act { onStart() }
+
+        assertEquals(id, assertNotNull(vm.check).captureId)
+    }
+
+    @Test
+    fun anOpenRequestSeesACaptureMadeSinceHistoryLastLoaded() {
+        val vm = started()
+        vm.act { onStop() }
+        val id = savedTubEntry() // logged on Log while History was not watching
+
+        vm.act { requestOpen(id) }
+
+        assertNotNull(vm.state.value.edit)
+    }
+
+    @Test
+    fun anOpenRequestForAnUnknownCaptureJustShowsHistory() {
+        val id = savedTubEntry()
+        val vm = started()
+
+        vm.act { requestOpen("no-such-capture") }
+
+        assertNull(vm.check)
+        assertNull(vm.state.value.edit)
+        assertNull(vm.state.value.message)
+        assertTrue(vm.state.value.rows.any { it.captureId == id })
+    }
+
+    @Test
+    fun anOpenRequestResetsAFilterThatWouldHideTheEntry() {
+        val id = savedTubEntry()
+        val vm = started()
+        vm.act { selectFilter(HistoryFilter.NEEDS_REVIEW) }
+
+        vm.act { requestOpen(id) }
+
+        assertEquals(HistoryFilter.ALL, vm.state.value.filter)
+        assertNotNull(vm.state.value.edit)
+    }
+
+    @Test
+    fun anOpenRequestReplacesASheetLeftOpenEarlier() {
+        val waiting = closeMatchCapture()
+        val saved = savedTubEntry()
+        val vm = started()
+        vm.act { openCheck(waiting) }
+        assertNotNull(vm.check)
+
+        vm.act { requestOpen(saved) }
+
+        assertNull(vm.check)
+        assertNotNull(vm.state.value.edit)
+    }
 }

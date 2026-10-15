@@ -57,7 +57,7 @@ import com.mcfrenchpants.activityledger.ActivityLedgerApplication
 import com.mcfrenchpants.activityledger.R
 import com.mcfrenchpants.activityledger.core.domain.tagging.TagKind
 import com.mcfrenchpants.activityledger.ui.components.EvidenceText
-import com.mcfrenchpants.activityledger.ui.components.HistoryRow
+import com.mcfrenchpants.activityledger.ui.components.OpenableHistoryRow
 import com.mcfrenchpants.activityledger.ui.components.TagPicker
 import com.mcfrenchpants.activityledger.ui.review.resolve
 import com.mcfrenchpants.activityledger.ui.theme.LedgerShapes
@@ -94,11 +94,14 @@ private const val LISTENING_DIM_ALPHA = 0.38f
  * undo window (D5), and dismisses the Saved card when the user leaves Log (but not on rotation).
  *
  * @param onOpenHistory Switches to the History tab ("All history").
+ * @param onOpenEntry Opens a Recent row's capture in History (its Check card or Edit sheet),
+ *   called with the row's capture id. Only rows History can open are clickable.
  */
 @Composable
 fun LogScreen(
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenEntry: (captureId: String) -> Unit = {},
     viewModel: LogViewModel = defaultLogViewModel(),
     canAskAgain: () -> Boolean = defaultCanAskAgain(),
 ) {
@@ -155,6 +158,7 @@ fun LogScreen(
         onDecideLater = viewModel::decideLater,
         onCardTouched = viewModel::setCardTouched,
         onOpenHistory = onOpenHistory,
+        onOpenEntry = onOpenEntry,
         onMicrophone = {
             when {
                 state.isListening -> viewModel.stopListening()
@@ -219,6 +223,7 @@ internal fun LogContent(
     onTryAgain: () -> Unit,
     onTypeInstead: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenEntry: (captureId: String) -> Unit = {},
 ) {
     val inputFocus = remember { FocusRequester() }
     Column(
@@ -295,7 +300,7 @@ internal fun LogContent(
             }
         }
 
-        RecentSection(state = state, onOpenHistory = onOpenHistory)
+        RecentSection(state = state, onOpenHistory = onOpenHistory, onOpenEntry = onOpenEntry)
     }
 }
 
@@ -390,7 +395,7 @@ private fun ListeningSection(state: LogUiState) {
 }
 
 @Composable
-private fun RecentSection(state: LogUiState, onOpenHistory: () -> Unit) {
+private fun RecentSection(state: LogUiState, onOpenHistory: () -> Unit, onOpenEntry: (String) -> Unit) {
     // While listening, Recent is scenery: faded back visually and taken out of the semantics
     // tree, so a screen reader does not wander into old rows instead of the words being heard.
     val listening = state.isListening
@@ -409,7 +414,8 @@ private fun RecentSection(state: LogUiState, onOpenHistory: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        state.recent.forEach { row -> HistoryRow(row) }
+        // The same rule and labels as History's rows; the entry opens in History.
+        state.recent.forEach { row -> OpenableHistoryRow(row, onOpenCheck = onOpenEntry, onOpenEdit = onOpenEntry) }
         TextButton(onClick = onOpenHistory, modifier = Modifier.heightIn(min = 48.dp)) {
             Text(stringResource(R.string.log_all_history))
         }
