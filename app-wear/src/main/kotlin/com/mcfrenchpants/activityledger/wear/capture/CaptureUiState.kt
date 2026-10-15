@@ -11,8 +11,14 @@ sealed interface CaptureUiState {
     /** Listening; [partial] is the live guess, for display only. */
     data class Listening(val partial: String?) : CaptureUiState
 
-    /** Final transcript handed to the sink; waiting for the phone. */
-    data object Queued : CaptureUiState
+    /**
+     * Final transcript handed to the sink (already durable in the outbox); briefly waiting for
+     * the phone's answer. Busy: not tappable. Falls back to [Ready] if no answer comes in time.
+     */
+    data object Saving : CaptureUiState
+
+    /** Idle and ready for a new capture: tapping starts listening. */
+    data object Ready : CaptureUiState
 
     /** Phone saved it. [activityName] is the phone's canonical name, if it sent one. */
     data class Saved(val activityName: String?) : CaptureUiState

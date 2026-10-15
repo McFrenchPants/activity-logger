@@ -5,7 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -26,6 +28,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.wear.compose.material3.CircularProgressIndicator
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import com.mcfrenchpants.activityledger.wear.R
@@ -35,7 +38,8 @@ import com.mcfrenchpants.activityledger.wear.R
  *
  * @param ambient true draws black, outline-only, dimmed. The real ambient callback is deferred
  *   (WC1.6); callers currently pass false.
- * @param onRetry invoked by a tap anywhere, on the failure and finished-capture screens only.
+ * @param onRetry invoked by a tap anywhere, on the actionable screens only: Ready, Failure and
+ *   the finished-capture results. Listening and Saving are busy and not tappable.
  */
 @Composable
 fun CaptureScreen(
@@ -48,7 +52,8 @@ fun CaptureScreen(
     val base = Modifier
         .fillMaxSize()
         .background(if (ambient) Color.Black else MaterialTheme.colorScheme.background)
-    val tappable = state is CaptureUiState.Failure ||
+    val tappable = state is CaptureUiState.Ready ||
+        state is CaptureUiState.Failure ||
         state is CaptureUiState.Saved ||
         state is CaptureUiState.NeedsReview
     val tap = if (tappable) base.clickable(onClick = onRetry) else base
@@ -69,6 +74,31 @@ fun CaptureScreen(
             )
             Message(stringResource(R.string.capture_listening), textColor, 18)
             state.partial?.takeIf { it.isNotBlank() }?.let { Message(it, textColor, 14) }
+        } else if (state is CaptureUiState.Ready) {
+            val description = stringResource(R.string.capture_ready_indicator)
+            MicGlyph(
+                color = glyphColor,
+                ambient = ambient,
+                modifier = Modifier
+                    .size(56.dp)
+                    .semantics { contentDescription = description },
+            )
+            Message(stringResource(R.string.capture_ready), textColor, 18)
+        } else if (state is CaptureUiState.Saving) {
+            val description = stringResource(R.string.capture_saving_indicator)
+            val indicator = Modifier
+                .size(48.dp)
+                .semantics { contentDescription = description }
+            if (ambient) {
+                // Ambient: no animation; a static grey outline ring stands in for the spinner.
+                Canvas(modifier = indicator) {
+                    drawCircle(color = glyphColor, style = Stroke(width = size.width * 0.08f))
+                }
+            } else {
+                CircularProgressIndicator(modifier = indicator)
+            }
+            Spacer(Modifier.height(8.dp))
+            Message(stringResource(R.string.capture_saving), textColor, 18)
         } else {
             Message(messageFor(state), textColor, 20)
         }
@@ -78,7 +108,8 @@ fun CaptureScreen(
 @Composable
 private fun messageFor(state: CaptureUiState): String = when (state) {
     is CaptureUiState.Listening -> stringResource(R.string.capture_listening)
-    CaptureUiState.Queued -> stringResource(R.string.capture_queued)
+    CaptureUiState.Saving -> stringResource(R.string.capture_saving)
+    CaptureUiState.Ready -> stringResource(R.string.capture_ready)
     is CaptureUiState.Saved ->
         if (state.activityName != null) {
             stringResource(R.string.capture_saved_named, state.activityName)

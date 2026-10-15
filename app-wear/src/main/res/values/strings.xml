@@ -3,7 +3,6 @@
     <string name="app_name">Activity Ledger</string>
 
     <!-- Verbatim from WATCH_SPEC 11. -->
-    <string name="capture_queued">Queued for phone</string>
     <string name="capture_saved_named">✓ %1$s</string>
     <string name="capture_saved">✓ Saved</string>
     <string name="capture_needs_review">Saved — review on phone</string>
@@ -12,6 +11,10 @@
     <!-- New copy; the spec has none. -->
     <string name="capture_listening">Listening…</string>
     <string name="capture_listening_indicator">Microphone, listening</string>
+    <string name="capture_saving">Saving…</string>
+    <string name="capture_saving_indicator">Saving, please wait</string>
+    <string name="capture_ready">Tap to record</string>
+    <string name="capture_ready_indicator">Microphone, ready</string>
     <string name="capture_permission_missing">Allow microphone to capture.</string>
     <string name="capture_no_engine">Voice capture isn\'t available on this watch.</string>
 </resources>

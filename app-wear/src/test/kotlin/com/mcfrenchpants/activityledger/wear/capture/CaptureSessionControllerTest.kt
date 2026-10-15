@@ -13,12 +13,16 @@ import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CaptureSessionControllerTest {
@@ -62,14 +66,14 @@ class CaptureSessionControllerTest {
         t: FakeTranscriber = FakeTranscriber(),
     ): Triple<CaptureSessionController, FakeTranscriber, FakeSink> {
         val scope = kotlinx.coroutines.CoroutineScope(StandardTestDispatcher(testScheduler))
-        return Triple(CaptureSessionController(t, sink, scope), t, sink)
+        return Triple(CaptureSessionController(t, sink, scope, SAVING, HOLD), t, sink)
     }
 
     private fun ack(id: String, status: AckStatus, name: String? = null) =
         CaptureAck(captureId = id, status = status, canonicalActivityName = name)
 
     @Test
-    fun partialThenFinalQueuesOnceWithExactPayload() = runTest {
+    fun partialThenFinalSavesOnceWithExactPayload() = runTest {
         val (c, t, sink) = make()
         c.start()
         advanceUntilIdle()
@@ -78,8 +82,8 @@ class CaptureSessionControllerTest {
         assertEquals(CaptureUiState.Listening("ran fi"), c.state.value)
         t.channel.trySend(SpeechEvent.FinalTranscript("ran five km", 0.8f, listOf("ran 5 km")))
         t.channel.close()
-        advanceUntilIdle()
-        assertEquals(CaptureUiState.Queued, c.state.value)
+        runCurrent()
+        assertEquals(CaptureUiState.Saving, c.state.value)
         assertEquals(listOf(WatchTranscript("ran five km", 0.8f, listOf("ran 5 km"))), sink.received)
     }
 
@@ -203,22 +207,22 @@ class CaptureSessionControllerTest {
         assertEquals(CaptureUiState.Unavailable(UnavailableReason.NO_ENGINE), c.state.value)
     }
 
-    private fun TestScope.queued(): Pair<CaptureSessionController, String> {
-        val (c, t, sink) = make()
+    private fun TestScope.queued(t: FakeTranscriber = FakeTranscriber()): Pair<CaptureSessionController, String> {
+        val (c, _, sink) = make(t = t)
         c.start()
         advanceUntilIdle()
         t.channel.trySend(SpeechEvent.FinalTranscript("x", null, emptyList()))
         t.channel.close()
-        advanceUntilIdle()
+        runCurrent()
         return c to "id-${sink.received.size}"
     }
 
     @Test
-    fun resumeKeepsQueuedCaptureSoItsAckStillLands() = runTest {
+    fun resumeKeepsSavingCaptureSoItsAckStillLands() = runTest {
         val (c, id) = queued()
         c.resume()
-        advanceUntilIdle()
-        assertEquals(CaptureUiState.Queued, c.state.value)
+        runCurrent()
+        assertEquals(CaptureUiState.Saving, c.state.value)
         c.onAck(ack(id, AckStatus.SAVED, "Run"))
         assertEquals(CaptureUiState.Saved("Run"), c.state.value)
         c.resume()
@@ -258,9 +262,9 @@ class CaptureSessionControllerTest {
     fun receivedAckAndForeignIdAreIgnored() = runTest {
         val (c, id) = queued()
         c.onAck(ack(id, AckStatus.RECEIVED))
-        assertEquals(CaptureUiState.Queued, c.state.value)
+        assertEquals(CaptureUiState.Saving, c.state.value)
         c.onAck(ack("someone-else", AckStatus.SAVED, "Run"))
-        assertEquals(CaptureUiState.Queued, c.state.value)
+        assertEquals(CaptureUiState.Saving, c.state.value)
     }
 
     @Test
@@ -271,8 +275,197 @@ class CaptureSessionControllerTest {
         t.channel.trySend(SpeechEvent.PartialTranscript("hello partial"))
         t.channel.trySend(SpeechEvent.FinalTranscript("hello", null, emptyList()))
         t.channel.close()
-        advanceUntilIdle()
-        assertEquals(CaptureUiState.Queued, c.state.value)
+        runCurrent()
+        assertEquals(CaptureUiState.Saving, c.state.value)
         assertFalse(c.state.value.toString().contains("hello"))
+    }
+
+    // --- BF2.1: busy (Listening, Saving) vs actionable (Ready, results) ---
+
+    @Test
+    fun savedAckWhileSavingShowsSavedThenReadyAfterHold() = runTest {
+        val (c, id) = queued()
+        c.onAck(ack(id, AckStatus.SAVED, "Run"))
+        assertEquals(CaptureUiState.Saved("Run"), c.state.value)
+        advanceTimeBy(HOLD - 1.milliseconds)
+        runCurrent()
+        assertEquals(CaptureUiState.Saved("Run"), c.state.value)
+        advanceTimeBy(2.milliseconds)
+        runCurrent()
+        assertEquals(CaptureUiState.Ready, c.state.value)
+    }
+
+    @Test
+    fun needsReviewAckShowsNeedsReviewThenReadyAfterHold() = runTest {
+        val (c, id) = queued()
+        c.onAck(ack(id, AckStatus.NEEDS_REVIEW))
+        assertEquals(CaptureUiState.NeedsReview, c.state.value)
+        advanceTimeBy(HOLD + 1.milliseconds)
+        runCurrent()
+        assertEquals(CaptureUiState.Ready, c.state.value)
+    }
+
+    @Test
+    fun failedAckShowsFailureAndStays() = runTest {
+        val (c, id) = queued()
+        c.onAck(ack(id, AckStatus.FAILED_FINAL))
+        assertEquals(CaptureUiState.Failure, c.state.value)
+        advanceTimeBy(SAVING + HOLD + 10.seconds)
+        runCurrent()
+        assertEquals(CaptureUiState.Failure, c.state.value)
+    }
+
+    @Test
+    fun noAckGoesToReadyAfterSavingTimeout() = runTest {
+        val (c, _) = queued()
+        advanceTimeBy(SAVING - 1.milliseconds)
+        runCurrent()
+        assertEquals(CaptureUiState.Saving, c.state.value)
+        advanceTimeBy(2.milliseconds)
+        runCurrent()
+        assertEquals(CaptureUiState.Ready, c.state.value)
+    }
+
+    @Test
+    fun lateAckAfterTimeoutIsIgnored() = runTest {
+        val (c, id) = queued()
+        advanceTimeBy(SAVING + 1.milliseconds)
+        runCurrent()
+        assertEquals(CaptureUiState.Ready, c.state.value)
+        c.onAck(ack(id, AckStatus.SAVED, "Run"))
+        assertEquals(CaptureUiState.Ready, c.state.value)
+        c.onAck(ack(id, AckStatus.FAILED_FINAL))
+        assertEquals(CaptureUiState.Ready, c.state.value)
+    }
+
+    @Test
+    fun lateAckWhileListeningAgainIsIgnored() = runTest {
+        val t = FakeTranscriber()
+        val (c, id) = queued(t)
+        advanceTimeBy(SAVING + 1.milliseconds)
+        runCurrent()
+        c.retry()
+        runCurrent()
+        assertEquals(CaptureUiState.Listening(null), c.state.value)
+        c.onAck(ack(id, AckStatus.SAVED, "Run"))
+        assertEquals(CaptureUiState.Listening(null), c.state.value)
+    }
+
+    @Test
+    fun tapOnReadyStartsListening() = runTest {
+        val t = FakeTranscriber()
+        val (c, _) = queued(t)
+        advanceTimeBy(SAVING + 1.milliseconds)
+        runCurrent()
+        assertEquals(CaptureUiState.Ready, c.state.value)
+        c.retry()
+        runCurrent()
+        assertEquals(CaptureUiState.Listening(null), c.state.value)
+        assertEquals(2, t.listens)
+    }
+
+    @Test
+    fun tapOnSavedWithinHoldStartsListeningAndCancelsHold() = runTest {
+        val t = FakeTranscriber()
+        val (c, id) = queued(t)
+        c.onAck(ack(id, AckStatus.SAVED, "Run"))
+        advanceTimeBy(1.seconds)
+        c.retry()
+        runCurrent()
+        assertEquals(CaptureUiState.Listening(null), c.state.value)
+        advanceTimeBy(HOLD + SAVING)
+        runCurrent()
+        assertEquals("hold timer must not yank Listening to Ready", CaptureUiState.Listening(null), c.state.value)
+        assertEquals(2, t.listens)
+    }
+
+    @Test
+    fun tapIgnoredWhileSaving() = runTest {
+        val t = FakeTranscriber()
+        val (c, _) = queued(t)
+        c.retry()
+        runCurrent()
+        assertEquals(CaptureUiState.Saving, c.state.value)
+        assertEquals(1, t.listens)
+    }
+
+    @Test
+    fun resumeFromReadyStartsListening() = runTest {
+        val t = FakeTranscriber()
+        val (c, _) = queued(t)
+        advanceTimeBy(SAVING + 1.milliseconds)
+        runCurrent()
+        assertEquals(CaptureUiState.Ready, c.state.value)
+        c.resume()
+        runCurrent()
+        assertEquals(CaptureUiState.Listening(null), c.state.value)
+        assertEquals(2, t.listens)
+    }
+
+    @Test
+    fun resumeWhileSavingDoesNotListen() = runTest {
+        val t = FakeTranscriber()
+        val (c, _) = queued(t)
+        c.resume()
+        runCurrent()
+        assertEquals(CaptureUiState.Saving, c.state.value)
+        assertEquals(1, t.listens)
+    }
+
+    @Test
+    fun stopCancelsTimers() = runTest {
+        val (c, id) = queued()
+        c.stop()
+        advanceTimeBy(SAVING + HOLD + 10.seconds)
+        runCurrent()
+        assertEquals("saving timer cancelled by stop()", CaptureUiState.Saving, c.state.value)
+        c.onAck(ack(id, AckStatus.SAVED, "Run"))
+        c.stop()
+        advanceTimeBy(HOLD + 10.seconds)
+        runCurrent()
+        assertEquals("hold timer cancelled by stop()", CaptureUiState.Saved("Run"), c.state.value)
+    }
+
+    @Test
+    fun resumeAfterStopRearmsTimersSoTheScreenNeverSticks() = runTest {
+        val (c, _) = queued()
+        c.stop()
+        advanceTimeBy(SAVING + 10.seconds)
+        runCurrent()
+        assertEquals(CaptureUiState.Saving, c.state.value)
+        c.resume()
+        advanceTimeBy(SAVING + 1.milliseconds)
+        runCurrent()
+        assertEquals(CaptureUiState.Ready, c.state.value)
+    }
+
+    @Test
+    fun startCancelsPendingTimer() = runTest {
+        val (c, id) = queued()
+        c.onAck(ack(id, AckStatus.SAVED, "Run"))
+        c.start()
+        runCurrent()
+        assertEquals(CaptureUiState.Listening(null), c.state.value)
+        advanceTimeBy(HOLD + SAVING)
+        runCurrent()
+        assertEquals(CaptureUiState.Listening(null), c.state.value)
+    }
+
+    @Test
+    fun ackStateChangeReplacesSavingTimer() = runTest {
+        val (c, id) = queued()
+        advanceTimeBy(SAVING - 1.seconds)
+        c.onAck(ack(id, AckStatus.SAVED, "Run"))
+        advanceTimeBy(2.seconds)
+        runCurrent()
+        assertEquals("saving timer did not fire after the ack", CaptureUiState.Saved("Run"), c.state.value)
+        advanceTimeBy(HOLD)
+        runCurrent()
+        assertEquals(CaptureUiState.Ready, c.state.value)
+    }
+
+    private companion object {
+        val SAVING = 5.seconds
+        val HOLD = 3.seconds
     }
 }
