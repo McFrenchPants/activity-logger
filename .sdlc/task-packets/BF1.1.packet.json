@@ -1,0 +1,60 @@
+{
+  "task_id": "BF1.1",
+  "plan_revision": "bf1",
+  "objective": "Owner report (2026-10-01, repeated 2026-10-14): on the Log screen (home tab), the Recent list shows entries such as one marked 'Needs review', but tapping a row does nothing; the owner has to switch to History and tap the same entry there. Product decision (owner, 2026-10-14): tapping a Recent row on the Log screen takes the owner to the History tab with that entry opened, exactly as if they had tapped it in History.\n\nCurrent code: LogScreen.kt (ui/log) renders `state.recent.forEach { row -> HistoryRow(row) }` with no onClick. HistoryScreen.kt decides per row: `row.isAwaitingActivity` -> onOpenCheck(captureId) (HistoryViewModel.openCheck, the review/check sheet); `row.isTagged` -> onOpenEdit(captureId) (HistoryViewModel.openEdit); otherwise not clickable. LedgerNavigation.kt (ui/navigation) has `@Serializable data object HistoryRoute`, a TopLevelDestination enum, `composable<HistoryRoute> { HistoryScreen() }`, and LogScreen(onOpenHistory = { navController.navigateToTopLevel(TopLevelDestination.HISTORY) }).\n\nDesign (developer decision -- the exact mechanism is your call as long as the behaviour below holds):\n1. Recent rows use the same clickability rule as History rows (awaiting -> check label, tagged -> edit label, old-pipeline rows stay plain text), with the same onClickLabel strings, so screen readers announce the same action. Factor the rule into one shared place rather than duplicating it if that is clean (e.g. a small helper next to HistoryRow or in the history package).\n2. LogScreen gains a callback such as `onOpenEntry: (captureId: String) -> Unit` (default no-op so existing tests/previews compile). LedgerNavigation wires it to switch to the History tab the same way the bottom bar does (same back-stack behaviour as navigateToTopLevel) AND ask History to open that entry once.\n3. Passing the request: e.g. make HistoryRoute carry an optional `openCaptureId: String? = null` (type-safe navigation arguments), or a one-shot request holder; either way the entry must be opened exactly once -- returning to History later via the bottom bar, rotation, or process recreation must not re-open it, and a normal tab switch to History must not open anything. Keep the bottom bar's selected-tab highlighting correct for History when it is reached this way (the enum compares by route class today; keep that working).\n4. HistoryScreen/HistoryViewModel: on receiving the request, open the right sheet for that capture (openCheck for an awaiting capture, openEdit for a tagged entry) once the list has loaded; if the capture is not found or is not openable, just show History normally. History's filter must not hide the entry (if a filter chip is active that would hide it, resetting to the default/all filter is acceptable). Scrolling the list to the row is nice-to-have, not required: the sheet opening is the requirement.\n5. Tests: LogScreen/compose or view-model level test that an awaiting and a tagged Recent row are clickable and invoke onOpenEntry with their captureId while an old-pipeline row is not; HistoryViewModel (or screen) test that an open request for an awaiting capture opens the check sheet, for a tagged entry opens the edit sheet, for an unknown id opens nothing, and that the request is consumed once. Follow the existing test style in app-phone/src/test (Robolectric compose tests exist for these screens).\n\nRules: no change to how captures are processed or saved; nothing logged (AGENTS.md #11); no new dependencies unless already in gradle/libs.versions.toml.",
+  "non_goals": [
+    "No change to the watch app, core modules, or the database.",
+    "No change to History's own row behaviour or sheets beyond accepting an open request.",
+    "No docs or tracking edits (orchestrator)."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "app-phone/**",
+    "core-domain/**",
+    "core-testing/**",
+    "docs/UX_VISUAL_SPEC.md",
+    "AGENTS.md",
+    "gradle/**",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/log/LogScreen.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/navigation/LedgerNavigation.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history/HistoryScreen.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history/HistoryViewModel.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history/HistoryUiState.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/components/HistoryRow.kt",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/log/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/history/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/navigation/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/components/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "core-domain/**",
+    "core-data/**",
+    "core-ai/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-wear/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/wear/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline/**"
+  ],
+  "acceptance_criteria": [
+    "Tapping a Needs-review / Not-categorized Recent row on the Log screen switches to the History tab with that capture's check sheet open; tapping a tagged Recent row opens its edit sheet; old-pipeline rows stay non-clickable.",
+    "Recent rows announce the same click labels as History rows.",
+    "The open request is consumed exactly once (no re-open on a later tab switch, rotation or recreation); a plain switch to History opens nothing; the History tab is highlighted.",
+    "Unknown or non-openable capture ids fall back to showing History normally.",
+    "Tests listed in the objective exist and pass; existing tests pass.",
+    "./gradlew :app-phone:testDebugUnitTest :app-phone:assembleDebug pass.",
+    "No file outside write_paths is changed."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:testDebugUnitTest :app-phone:assembleDebug",
+    "git status --porcelain"
+  ]
+}

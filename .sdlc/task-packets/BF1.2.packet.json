@@ -1,0 +1,67 @@
+{
+  "task_id": "BF1.2",
+  "plan_revision": "bf1",
+  "objective": "Owner report (2026-10-14): the last several entries spoken on the watch got no AI suggestion (subject and action empty) and no error was shown. Evidence (orchestrator, phone DB pulled 2026-10-14): the three latest WATCH_VOICE captures each have a gemini-nano-extract-1 interpretation with operation UNSUPPORTED, validation_status INVALID, validation_reason INTERPRETER_FAILED, created ~1-25 s after capture; earlier PHONE_VOICE captures on the same phone and model were interpreted fine. Cause: ADR-029 (docs/DECISIONS.md) -- the platform refuses ML Kit GenAI calls unless the app is the top foreground app. WatchCaptureListenerService (app-phone wear/) builds a WatchCaptureReceiver whose `process` is `pipeline.taggedOrchestrator::process`, and WatchCaptureReceiver.handle runs it immediately after storing the raw capture, i.e. from a background service while the phone app is normally not on screen. The refusal maps to InterpreterFailureKind.OTHER and the capture is sent to review with nothing extracted. ADR-029 already states the intended behaviour: a capture arriving while the app is in the background is stored raw immediately and interpreted when the app is next in the foreground. That catch-up was never built.\n\nDesign (developer decision):\n1. Foreground signal: add a process-wide, thread-safe 'is the phone app's UI in the foreground (at least one Activity started)' signal owned by ActivityLedgerApplication, e.g. a started-activity counter via registerActivityLifecycleCallbacks exposed as a StateFlow<Boolean> or similar (no new dependency; androidx.lifecycle:lifecycle-process is NOT in the version catalog, do not add it). A locked screen stops the Activity, so it counts as background -- that is correct.\n2. WatchCaptureReceiver gets a constructor parameter `isForeground: () -> Boolean` (keep it pure Kotlin; a default of `{ true }` is acceptable only if every production construction passes the real signal). When a capture is new or unprocessed (CAPTURED / FAILED_RETRYABLE) and isForeground() is false: store the raw capture as today (state stays CAPTURED), do NOT call process, and ack NEEDS_REVIEW with needsReview = true (the watch shows 'Saved -- review on phone'; app-wear treats RECEIVED as a no-op and must not be changed in this task, and NEEDS_REVIEW is a terminal ack so the watch stops resending). When foreground, behaviour is unchanged. Idempotency on captureId must be preserved exactly (wear_transport_idempotency): a resend of a deferred capture must neither create a second raw capture nor run process while in background, and must be re-acked NEEDS_REVIEW.\n3. Catch-up: when the app comes to the foreground (transition false -> true of the signal, including the first Activity start after process launch), process every capture that has no occurrence and is in processing state CAPTURED or FAILED_RETRYABLE, oldest first, one at a time, through the same tagged orchestrator `process` the Log screen and watch path use (with the same busy-retry wrapping the pipeline already applies), on an application-scoped coroutine (not a ViewModel) so leaving the Log tab does not cancel it. Use existing repository reads (e.g. loadHistory() filtered on occurrence == null and processingState) -- do not change core-domain interfaces or the schema. Serialize with the watch receiver so the same capture is never processed twice concurrently (e.g. share one Mutex, or re-check state under the lock before processing; the orchestrator's own AlreadyHasOccurrence guard is a backstop, not the plan). Check isForeground() immediately before each process call and stop the sweep when it is false. Do not re-process captures already in NEEDS_REVIEW or FAILED_FINAL (that would re-ask a model answer, ADR-030). Be careful not to race the Log screen's own in-flight processing of a capture it just created (a typed or phone-voice capture is CAPTURED for a few seconds while LogViewModel processes it): the shared lock or a state re-check must prevent double processing.\n   Put the sweep in a small, JVM-testable class (e.g. pipeline/ForegroundCatchUp.kt) taking the repository, the process function, the foreground signal and a CoroutineScope/dispatcher, and wire it from ActivityLedgerApplication (lazily -- see that class KDoc's 'Lazy' rule: nothing may open the database just because the process started; starting the sweep on the first foreground transition is fine).\n   History and Explore already reload when the ledger changes (DH4.6 ledgerChanges). Check whether Log's Recent refreshes after a background write; only if it does not, make LogViewModel pick up changes via the existing CapturePipeline.ledgerChanges flow (debounced, quiet, like DH4.6).\n4. Tests (JVM, follow existing WatchCaptureReceiverTest / pipeline test style and core-testing fakes): receiver in background stores raw, does not process, acks NEEDS_REVIEW; resend in background is idempotent; in foreground unchanged; catch-up processes CAPTURED and FAILED_RETRYABLE captures oldest-first exactly once, skips NEEDS_REVIEW / FAILED_FINAL / ones with occurrences, stops when the signal goes false, does not run while background, runs again on the next foreground transition, and never processes one capture concurrently with the receiver. Existing tests keep passing.\n\nRules: raw captures are immutable (never rewrite raw_text etc.); AI output still goes only through the existing orchestrator validation; nothing logged and no user text in any exception or ack (AGENTS.md #11); no network; no change to the watch app or the wire protocol.",
+  "non_goals": [
+    "No change to app-wear, core-wear-protocol, core-ai, core-domain, core-data or the schema.",
+    "No retry of captures already sent to review or failed (the three existing failed entries were resolved by the owner).",
+    "No new user-visible error messages.",
+    "No docs or tracking edits (orchestrator)."
+  ],
+  "dependencies": [],
+  "read_paths": [
+    "app-phone/**",
+    "app-wear/**",
+    "core-domain/**",
+    "core-data/**",
+    "core-ai/**",
+    "core-wear-protocol/**",
+    "core-testing/**",
+    "docs/DECISIONS.md",
+    "docs/ARCHITECTURE.md",
+    "AGENTS.md",
+    "gradle/**",
+    "build.gradle.kts",
+    "settings.gradle.kts"
+  ],
+  "write_paths": [
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ActivityLedgerApplication.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/MainActivity.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/wear/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/pipeline/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/log/LogViewModel.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/log/LogViewModelFactory.kt",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/wear/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/pipeline/**",
+    "app-phone/src/test/kotlin/com/mcfrenchpants/activityledger/ui/log/**"
+  ],
+  "forbidden_paths": [
+    "BACKLOG.md",
+    "PROGRESS.md",
+    ".sdlc/**",
+    "docs/**",
+    "core-domain/**",
+    "core-data/**",
+    "core-ai/**",
+    "core-speech/**",
+    "core-wear-protocol/**",
+    "app-wear/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/log/LogScreen.kt",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/navigation/**",
+    "app-phone/src/main/kotlin/com/mcfrenchpants/activityledger/ui/history/**"
+  ],
+  "acceptance_criteria": [
+    "A watch capture received while the phone app is not in the foreground is stored raw (CAPTURED), not sent to the on-device model, and acked NEEDS_REVIEW; idempotent on captureId for resends.",
+    "In the foreground, watch receive behaviour is unchanged.",
+    "On each background -> foreground transition, every CAPTURED / FAILED_RETRYABLE capture without an occurrence is processed once, oldest first, through the existing tagged orchestrator; NEEDS_REVIEW / FAILED_FINAL / saved captures are never re-processed; the sweep stops when the app leaves the foreground and never processes a capture concurrently with the receiver or the Log screen.",
+    "Nothing opens the database merely because the process started; no new dependency; no logging of user content.",
+    "Log's Recent, History and Explore show the result of a catch-up without a manual refresh.",
+    "Tests listed in the objective exist and pass; existing tests pass.",
+    "./gradlew :app-phone:testDebugUnitTest :app-phone:assembleDebug pass.",
+    "No file outside write_paths is changed."
+  ],
+  "verification_commands": [
+    "./gradlew :app-phone:testDebugUnitTest :app-phone:assembleDebug",
+    "git status --porcelain"
+  ]
+}
